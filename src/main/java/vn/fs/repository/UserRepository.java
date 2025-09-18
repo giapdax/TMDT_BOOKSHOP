@@ -1,0 +1,68 @@
+package vn.fs.repository;
+
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import vn.fs.entities.User;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+public interface UserRepository extends JpaRepository<User, Long> {
+
+    /* ====== Compat cho code cũ ====== */
+    User findByEmail(String email);
+    User findByUsername(String username);
+
+    /* ====== Khuyến nghị dùng Optional/IgnoreCase ====== */
+    Optional<User> findByEmailIgnoreCase(String email);
+    Optional<User> findByUsernameIgnoreCase(String username);
+    Optional<User> findByUsernameIgnoreCaseOrEmailIgnoreCase(String username, String email);
+
+    /* Kéo roles kèm theo để tránh N+1 */
+    @Override
+    @EntityGraph(attributePaths = "roles")
+    List<User> findAll();
+
+    @Override
+    @EntityGraph(attributePaths = "roles")
+    Optional<User> findById(Long id);
+
+    /* ====== Field-level updates: không chạm entity => không trigger Bean Validation ====== */
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update User u " +
+            "   set u.failedAttempt = 0, " +
+            "       u.lockedUntil   = null, " +
+            "       u.lastLoginAt   = :now " +
+            " where lower(u.username) = lower(:login) " +
+            "    or lower(u.email)    = lower(:login)")
+    int resetLoginState(@Param("login") String login,
+                        @Param("now")   LocalDateTime now);
+
+    /* Bước 1: tăng failedAttempt nếu chưa bị khóa */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update User u " +
+            "   set u.failedAttempt = u.failedAttempt + 1 " +
+            " where (lower(u.username) = lower(:login) " +
+            "    or lower(u.email)    = lower(:login)) " +
+            "   and (u.lockedUntil is null or u.lockedUntil < :now)")
+    int bumpFailureCounter(@Param("login") String login,
+                           @Param("now")   LocalDateTime now);
+
+    /* Bước 2: nếu đã đủ/ngưỡng thì khóa tài khoản (chỉ khi đang không bị khóa) */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update User u " +
+            "   set u.lockedUntil = :lockUntil " +
+            " where (lower(u.username) = lower(:login) " +
+            "    or lower(u.email)    = lower(:login)) " +
+            "   and (u.lockedUntil is null or u.lockedUntil < :now) " +
+            "   and u.failedAttempt >= :maxFail")
+    int applyLockIfExceeded(@Param("login")     String login,
+                            @Param("maxFail")   int maxFail,
+                            @Param("lockUntil") LocalDateTime lockUntil,
+                            @Param("now")       LocalDateTime now);
+}

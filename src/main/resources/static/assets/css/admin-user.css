@@ -1,0 +1,56 @@
+/* ===== User Edit – Role Picker UI ===== */
+.avatar-lg{width:120px;height:120px;object-fit:cover}
+.card{border-radius:14px}
+.card-header{background:#fff;border-bottom:1px solid #eef0f4}
+.soft{color:#6c757d}
+
+/* pill role item */
+.pill{
+    display:inline-flex;align-items:center;
+    border:1px solid #e9ecef;border-radius:999px;
+    padding:.35rem .7rem;margin:.25rem .35rem;
+    background:#fff;cursor:pointer;transition:.15s;user-select:none
+}
+.pill:hover{box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.pill.active{background:#e9f2ff;border-color:#b6d4fe}
+.pill input{display:none}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:#b6c2cf;margin-right:.4rem}
+.pill.active .dot{background:#0d6efd}
+.pill .x{display:none;margin-left:.35rem;font-weight:700}
+.pill.active .x{display:inline}
+
+/* container */
+.role-wrap{
+    border:1px solid #eef0f4;border-radius:12px;
+    padding:.5rem .5rem .25rem;max-height:280px;
+    overflow:auto;background:#fbfbfc
+}
+
+.toolbar{gap:.5rem}
+.toolbar .btn{border-radius:10px}
+
+/* search box */
+.search{position:relative}
+.search input{padding-left:40px;border-radius:10px}
+.search .ico{
+    position:absolute;left:12px;top:50%;
+    transform:translateY(-50%);opacity:.6
+}
+
+/* selected chips */
+.chips{
+    min-height:44px;border:1px dashed #d8dee6;
+    border-radius:12px;padding:.35rem .5rem;background:#fff
+}
+.chips .chip{
+    display:inline-flex;align-items:center;background:#0d6efd;color:#fff;
+    border-radius:999px;padding:.25rem .6rem;margin:.2rem .25rem;font-size:.875rem
+}
+.chips .chip .close{margin-left:.4rem;opacity:.9;cursor:pointer}
+
+/* misc */
+.badge-soft{background:#eef7ff;color:#0d6efd;border-radius:10px;padding:.25rem .5rem}
+
+@media (max-width: 991px){
+    .search{width:100%}
+}

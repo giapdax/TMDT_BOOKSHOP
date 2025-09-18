@@ -1,0 +1,30 @@
+.payment-cancel-section {
+    padding: 80px 0;
+    text-align: center;
+}
+
+.payment-cancel-section h2 {
+    font-size: 32px;
+    color: var(--primary);
+    margin-bottom: 20px;
+}
+
+.payment-cancel-section p {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 30px;
+}
+
+.payment-cancel-button a {
+    display: inline-block;
+    padding: 10px 25px;
+    background-color: var(--primary);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+}
+
+.payment-cancel-button a:hover {
+    background-color: var(--green);
+}
