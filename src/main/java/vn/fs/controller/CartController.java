@@ -33,6 +33,7 @@ import vn.fs.entities.Product;
 import vn.fs.entities.User;
 import vn.fs.repository.OrderDetailRepository;
 import vn.fs.repository.OrderRepository;
+import vn.fs.repository.ProductRepository;
 import vn.fs.repository.UserRepository; // dùng Optional/IgnoreCase
 import vn.fs.service.PaypalService;
 import vn.fs.service.ShoppingCartService;
@@ -107,6 +108,8 @@ public class CartController extends CommomController {
         bindCartToModel(model);
         return "web/shoppingCart_checkout";
     }
+    @Autowired
+    private ProductRepository productRepository;
 
     // add cartItem
     @GetMapping("/addToCart")

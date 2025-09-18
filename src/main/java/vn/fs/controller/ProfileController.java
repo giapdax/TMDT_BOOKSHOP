@@ -29,104 +29,117 @@ import vn.fs.repository.OrderDetailRepository;
 import vn.fs.repository.OrderRepository;
 import vn.fs.repository.UserRepository;
 
-
 @Controller
-public class ProfileController extends CommomController{
+public class ProfileController extends CommomController {
 
-	@Autowired
-	UserRepository userRepository;
+    @Autowired
+    UserRepository userRepository;
 
-	@Autowired
-	OrderRepository orderRepository;
-	
-	@Autowired
-	OrderDetailRepository orderDetailRepository;
+    @Autowired
+    OrderRepository orderRepository;
 
-	@Autowired
-	CommomDataService commomDataService;
+    @Autowired
+    OrderDetailRepository orderDetailRepository;
 
-	@GetMapping(value = "/profile")
-	public String profile(Model model, Principal principal, User user, Pageable pageable,
-			@RequestParam("page") Optional<Integer> page, @RequestParam("size") Optional<Integer> size) {
+    @Autowired
+    CommomDataService commomDataService;
 
-		if (principal != null) {
+    // ===================== Helpers =====================
+    /** Lấy User theo principal: chấp nhận login id là username HOẶC email */
+    private User resolveCurrentUser(Principal principal) {
+        if (principal == null) return null;
+        String login = principal.getName();
+        // Thử username trước, không có thì rẽ sang email
+        User u = Optional.ofNullable(userRepository.findByUsername(login))
+                .orElseGet(() -> userRepository.findByEmail(login));
+        return u;
+    }
 
-			model.addAttribute("user", new User());
-			user = userRepository.findByEmail(principal.getName());
-			model.addAttribute("user", user);
-		}
-		
-		int currentPage = page.orElse(1);
-		int pageSize = size.orElse(6);
+    // ===================== /profile =====================
+    @GetMapping(value = "/profile")
+    public String profile(Model model,
+                          Principal principal,
+                          Pageable pageable,
+                          @RequestParam("page") Optional<Integer> page,
+                          @RequestParam("size") Optional<Integer> size) {
 
-		Page<Order> orderPage = findPaginated(PageRequest.of(currentPage - 1, pageSize), user);
+        // Bắt buộc đăng nhập
+        User current = resolveCurrentUser(principal);
+        if (current == null) {
+            return "redirect:/login";
+        }
 
-		int totalPages = orderPage.getTotalPages();
-		if (totalPages > 0) {
-			List<Integer> pageNumbers = IntStream.rangeClosed(1, totalPages).boxed().collect(Collectors.toList());
-			model.addAttribute("pageNumbers", pageNumbers);
-		}
+        // Đặt user lên model (an toàn dù CommomController cũng đã bơm)
+        model.addAttribute("user", current);
 
-		commomDataService.commonData(model, user);
-		model.addAttribute("orderByUser", orderPage);
+        int currentPage = page.orElse(1);
+        int pageSize = size.orElse(6);
 
-		return "web/profile";
-	}
+        Page<Order> orderPage = findPaginated(PageRequest.of(currentPage - 1, pageSize), current.getUserId());
 
-	public Page<Order> findPaginated(Pageable pageable, User user) {
+        int totalPages = orderPage.getTotalPages();
+        if (totalPages > 0) {
+            List<Integer> pageNumbers = IntStream.rangeClosed(1, totalPages).boxed().collect(Collectors.toList());
+            model.addAttribute("pageNumbers", pageNumbers);
+        }
 
-		List<Order> orderPage = orderRepository.findOrderByUserId(user.getUserId());
+        // Bơm dữ liệu chung (header/cart/favorite...) – null-safe
+        commomDataService.commonData(model, current);
 
-		int pageSize = pageable.getPageSize();
-		int currentPage = pageable.getPageNumber();
-		int startItem = currentPage * pageSize;
-		List<Order> list;
+        model.addAttribute("orderByUser", orderPage);
+        return "web/profile";
+    }
 
-		if (orderPage.size() < startItem) {
-			list = Collections.emptyList();
-		} else {
-			int toIndex = Math.min(startItem + pageSize, orderPage.size());
-			list = orderPage.subList(startItem, toIndex);
-		}
+    public Page<Order> findPaginated(Pageable pageable, Long userId) {
+        List<Order> orderList = (userId == null)
+                ? Collections.emptyList()
+                : orderRepository.findOrderByUserId(userId);
 
-		Page<Order> orderPages = new PageImpl<Order>(list, PageRequest.of(currentPage, pageSize), orderPage.size());
+        int pageSize = pageable.getPageSize();
+        int currentPage = pageable.getPageNumber();
+        int startItem = currentPage * pageSize;
 
-		return orderPages;
-	}
-	
-	@GetMapping("/order/detail/{order_id}")
-	public ModelAndView detail(Model model, Principal principal, User user, @PathVariable("order_id") Long id) {
+        List<Order> list;
+        if (orderList.size() < startItem) {
+            list = Collections.emptyList();
+        } else {
+            int toIndex = Math.min(startItem + pageSize, orderList.size());
+            list = orderList.subList(startItem, toIndex);
+        }
 
-		if (principal != null) {
+        return new PageImpl<>(list, PageRequest.of(currentPage, pageSize), orderList.size());
+    }
 
-			model.addAttribute("user", new User());
-			user = userRepository.findByEmail(principal.getName());
-			model.addAttribute("user", user);
-		}
-		
-		List<OrderDetail> listO = orderDetailRepository.findByOrderId(id);
+    // ===================== /order/detail/{id} =====================
+    @GetMapping("/order/detail/{order_id}")
+    public ModelAndView detail(Model model,
+                               Principal principal,
+                               @PathVariable("order_id") Long id) {
+        User current = resolveCurrentUser(principal);
+        if (current == null) {
+            return new ModelAndView("redirect:/login");
+        }
 
-//		model.addAttribute("amount", orderRepository.findById(id).get().getAmount());
-		model.addAttribute("orderDetail", listO);
-//		model.addAttribute("orderId", id);
-		// set active front-end
-//		model.addAttribute("menuO", "menu");
-		commomDataService.commonData(model, user);
-		
-		return new ModelAndView("web/historyOrderDetail");
-	}
-	
-	@RequestMapping("/order/cancel/{order_id}")
-	public ModelAndView cancel(ModelMap model, @PathVariable("order_id") Long id) {
-		Optional<Order> o = orderRepository.findById(id);
-		if (o.isEmpty()) {
-			return new ModelAndView("redirect:/profile", model);
-		}
-		Order oReal = o.get();
-		oReal.setStatus((short) 3);
-		orderRepository.save(oReal);
+        model.addAttribute("user", current);
 
-		return new ModelAndView("redirect:/profile", model);
-	}
+        List<OrderDetail> listO = orderDetailRepository.findByOrderId(id);
+        model.addAttribute("orderDetail", listO);
 
+        commomDataService.commonData(model, current);
+        return new ModelAndView("web/historyOrderDetail");
+    }
+
+    // ===================== /order/cancel/{id} =====================
+    @RequestMapping("/order/cancel/{order_id}")
+    public ModelAndView cancel(ModelMap model, @PathVariable("order_id") Long id) {
+        Optional<Order> o = orderRepository.findById(id);
+        if (o.isEmpty()) {
+            return new ModelAndView("redirect:/profile", model);
+        }
+        Order oReal = o.get();
+        oReal.setStatus((short) 3);
+        orderRepository.save(oReal);
+
+        return new ModelAndView("redirect:/profile", model);
+    }
 }

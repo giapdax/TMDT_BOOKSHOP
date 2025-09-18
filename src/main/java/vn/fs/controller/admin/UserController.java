@@ -34,8 +34,7 @@ public class UserController {
                        @RequestParam(value = "notfound", required = false) String notfound) {
         if (principal == null) return "redirect:/login";
 
-        User me = userRepository.findByEmail(principal.getName());
-        model.addAttribute("user", me);
+        // KHÔNG set 'user' ở đây nữa — GlobalModelAdvice đã bơm sẵn
 
         List<User> users = userRepository.findAll();
         model.addAttribute("users", users);
@@ -52,10 +51,9 @@ public class UserController {
     public String editForm(@PathVariable Long id, Model model, Principal principal) {
         if (principal == null) return "redirect:/login";
 
-        var me = userRepository.findByEmail(principal.getName());
-        model.addAttribute("user", me);
+        // KHÔNG set 'user' ở đây nữa — GlobalModelAdvice đã bơm sẵn
 
-        var target = userRepository.findById(id).orElse(null);
+        User target = userRepository.findById(id).orElse(null);
         if (target == null) return "redirect:/admin/customers?notfound=1";
 
         var allRoles = roleRepository.findAll();
@@ -66,7 +64,7 @@ public class UserController {
         model.addAttribute("allRoles", allRoles);
         model.addAttribute("selectedRoleIds", selectedRoleIds);
 
-        return "admin/user-edit"; // <<< đúng với tên file
+        return "admin/user-edit";
     }
 
     // Lưu quyền + trạng thái (ADMIN only)
@@ -84,7 +82,6 @@ public class UserController {
 
         // Cập nhật trạng thái: map checkbox -> boolean
         boolean isEnabled = StringUtils.hasText(enabled);
-        // Đổi cho đúng field của entity (nếu của fen là enabled/active thì thay ở đây)
         target.setStatus(isEnabled);
 
         // Cập nhật vai trò

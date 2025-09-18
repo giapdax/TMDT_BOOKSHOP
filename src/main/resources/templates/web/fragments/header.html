@@ -60,16 +60,10 @@
                     <img src="/images/logo.png" alt="logo"/>
                 </a>
 
-                <!-- Greeting: ưu tiên Spring Security, fallback remoteUser, cuối cùng 'Khách' -->
+                <!-- Greeting: dùng displayName do GlobalModelAdvice bơm -->
                 <a href="javascript:void(0);" class="header-widget" title="Tên của bạn">
                     <img src="/images/user.png" alt="user"/>
-                    <span>Hi! <strong><em>
-            <span sec:authorize="isAuthenticated()">
-              <span sec:authentication="name"></span>
-            </span>
-            <span th:if="${(#request.remoteUser == null or #strings.isEmpty(#request.remoteUser))}"
-                  sec:authorize="isAnonymous()">Khách</span>
-          </em></strong></span>
+                    <span>Hi! <strong><em>[[${displayName}]]</em></strong></span>
                 </a>
 
                 <!-- Search -->
