@@ -27,133 +27,127 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import vn.fs.entities.Category;
+import vn.fs.entities.NXB;
 import vn.fs.entities.Product;
 import vn.fs.entities.User;
 import vn.fs.repository.CategoryRepository;
+import vn.fs.repository.NxbRepository;
 import vn.fs.repository.ProductRepository;
 import vn.fs.repository.UserRepository;
 
-
 @Controller
 @RequestMapping("/admin")
-public class ProductController{
-	
-	@Value("${upload.path}")
-	private String pathUploadImage;
+public class ProductController {
 
-	@Autowired
-	ProductRepository productRepository;
+    @Value("${upload.path}")
+    private String pathUploadImage;
 
-	@Autowired
-	CategoryRepository categoryRepository;
-	
-	@Autowired
-	UserRepository userRepository;
-	
-	@ModelAttribute(value = "user")
-	public User user(Model model, Principal principal, User user) {
+    @Autowired ProductRepository productRepository;
+    @Autowired CategoryRepository categoryRepository;
+    @Autowired NxbRepository nxbRepository;
+    @Autowired UserRepository userRepository;
 
-		if (principal != null) {
-			model.addAttribute("user", new User());
-			user = userRepository.findByEmail(principal.getName());
-			model.addAttribute("user", user);
-		}
+    @ModelAttribute(value = "user")
+    public User user(Model model, Principal principal, User user) {
+        if (principal != null) {
+            model.addAttribute("user", new User());
+            user = userRepository.findByEmail(principal.getName());
+            model.addAttribute("user", user);
+        }
+        return user;
+    }
 
-		return user;
-	}
+    public ProductController(CategoryRepository categoryRepository,
+                             ProductRepository productRepository) {
+        this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
+    }
 
-	public ProductController(CategoryRepository categoryRepository,
-			ProductRepository productRepository) {
-		this.productRepository = productRepository;
-		this.categoryRepository = categoryRepository;
-	}
+    // show list product - table list
+    @ModelAttribute("products")
+    public List<Product> showProduct(Model model) {
+        List<Product> products = productRepository.findAll();
+        model.addAttribute("products", products);
+        return products;
+    }
 
-	// show list product - table list
-	@ModelAttribute("products")
-	public List<Product> showProduct(Model model) {
-		List<Product> products = productRepository.findAll();
-		model.addAttribute("products", products);
+    @GetMapping(value = "/products")
+    public String products(Model model, Principal principal) {
+        Product product = new Product();
+        model.addAttribute("product", product);
+        return "admin/products";
+    }
 
-		return products;
-	}
+    /* === NEW: load NXB cho form thêm/sửa sản phẩm === */
+    @ModelAttribute("nxbList")
+    public List<NXB> loadNxbList(Model model) {
+        List<NXB> nxbs = nxbRepository.findAll();
+        model.addAttribute("nxbList", nxbs);
+        return nxbs;
+    }
 
-	@GetMapping(value = "/products")
-	public String products(Model model, Principal principal) {
-		Product product = new Product();
-		model.addAttribute("product", product);
+    // add product
+    @PostMapping(value = "/addProduct")
+    public String addProduct(@ModelAttribute("product") Product product, ModelMap model,
+                             @RequestParam("file") MultipartFile file,
+                             @RequestParam(value = "nxbId", required = false) Long nxbId,
+                             HttpServletRequest httpServletRequest) {
 
-		return "admin/products";
-	}
+        // Gán NXB từ select
+        if (nxbId != null) {
+            nxbRepository.findById(nxbId).ifPresent(product::setNxb);
+        } else {
+            product.setNxb(null);
+        }
 
-	// add product
-	@PostMapping(value = "/addProduct")
-	public String addProduct(@ModelAttribute("product") Product product, ModelMap model,
-			@RequestParam("file") MultipartFile file, HttpServletRequest httpServletRequest) {
+        // Upload ảnh (nếu có)
+        if (file != null && !file.isEmpty()) {
+            try {
+                File convFile = new File(pathUploadImage + "/" + file.getOriginalFilename());
+                try (FileOutputStream fos = new FileOutputStream(convFile)) {
+                    fos.write(file.getBytes());
+                }
+                product.setProductImage(file.getOriginalFilename());
+            } catch (IOException ignored) {}
+        }
 
-		try {
+        Product p = productRepository.save(product);
+        if (p != null) model.addAttribute("message", "Update success");
+        else model.addAttribute("message", "Update failure");
 
-			File convFile = new File(pathUploadImage + "/" + file.getOriginalFilename());
-			FileOutputStream fos = new FileOutputStream(convFile);
-			fos.write(file.getBytes());
-			fos.close();
-		} catch (IOException e) {
+        model.addAttribute("product", product);
+        return "redirect:/admin/products";
+    }
 
-		}
+    // show select option ở add product
+    @ModelAttribute("categoryList")
+    public List<Category> showCategory(Model model) {
+        List<Category> categoryList = categoryRepository.findAll();
+        model.addAttribute("categoryList", categoryList);
+        return categoryList;
+    }
 
-		product.setProductImage(file.getOriginalFilename());
-		Product p = productRepository.save(product);
-		if (null != p) {
-			model.addAttribute("message", "Update success");
-			model.addAttribute("product", product);
-		} else {
-			model.addAttribute("message", "Update failure");
-			model.addAttribute("product", product);
-		}
-		return "redirect:/admin/products";
-	}
+    // get Edit product
+    @GetMapping(value = "/editProduct/{id}")
+    public String editCategory(@PathVariable("id") Long id, ModelMap model,
+                               @ModelAttribute("product") Product updatedProduct) {
+        Product product = productRepository.findById(id).orElse(null);
+        model.addAttribute("product", product);
+        return "admin/editProduct";
+    }
 
-	// show select option ở add product
-	@ModelAttribute("categoryList")
-	public List<Category> showCategory(Model model) {
-		List<Category> categoryList = categoryRepository.findAll();
-		model.addAttribute("categoryList", categoryList);
+    // delete product
+    @GetMapping("/deleteProduct/{id}")
+    public String delProduct(@PathVariable("id") Long id, Model model) {
+        productRepository.deleteById(id);
+        model.addAttribute("message", "Delete successful!");
+        return "redirect:/admin/products";
+    }
 
-		return categoryList;
-	}
-	
-	// get Edit brand
-	@GetMapping(value = "/editProduct/{id}")
-	public String editCategory(@PathVariable("id") Long id, ModelMap model, @ModelAttribute("product") Product updatedProduct) {
-		Product product = productRepository.findById(id).orElse(null);
-
-		model.addAttribute("product", product);
-
-		return "admin/editProduct";
-	}
-//	@PostMapping("/editProduct/{id}")
-//	public String updateProduct(@PathVariable("id") Long id, @ModelAttribute("product") Product updatedProduct) {
-//		Product product = productRepository.findById(id).orElse(null);
-//
-//		product.setProductName(updatedProduct.getProductName());
-//		product.setPrice(updatedProduct.getPrice());
-//		productRepository.save(product);
-//		return "redirect:/admin/products";
-//	}
-
-	// delete category
-	@GetMapping("/deleteProduct/{id}")
-	public String delProduct(@PathVariable("id") Long id, Model model) {
-		productRepository.deleteById(id);
-		model.addAttribute("message", "Delete successful!");
-
-		return "redirect:/admin/products";
-	}
-
-
-	@InitBinder
-	public void initBinder(WebDataBinder binder) {
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-		sdf.setLenient(true);
-		binder.registerCustomEditor(Date.class, new CustomDateEditor(sdf, true));
-	}
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        sdf.setLenient(true);
+        binder.registerCustomEditor(Date.class, new CustomDateEditor(sdf, true));
+    }
 }

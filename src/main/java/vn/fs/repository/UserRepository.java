@@ -16,6 +16,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /* ====== Compat cho code cũ ====== */
     User findByEmail(String email);
     User findByUsername(String username);
+    boolean existsByEmailIgnoreCaseAndUserIdNot(String email, Long userId);
+    boolean existsByUsernameIgnoreCaseAndUserIdNot(String username, Long userId);
+
 
     /* ====== Khuyến nghị dùng Optional/IgnoreCase ====== */
     Optional<User> findByEmailIgnoreCase(String email);
@@ -69,4 +72,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("update User u set u.password = :hashed, u.status = true where lower(u.email) = lower(:email)")
     int updatePasswordByEmail(@Param("email") String email,
                               @Param("hashed") String hashed);
+
+
 }

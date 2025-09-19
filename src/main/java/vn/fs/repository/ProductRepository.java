@@ -28,8 +28,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "SELECT * FROM products WHERE product_name LIKE %?1%", nativeQuery = true)
     List<Product> searchProduct(String productName);
 
-    // ĐẾM SỐ LƯỢNG SẢN PHẨM THEO THỂ LOẠI + TRẢ CẢ ẢNH THỂ LOẠI
-    // -> item[0]=category_id, item[1]=category_name, item[2]=category_image, item[3]=so_luong
+    // ĐẾM SP THEO THỂ LOẠI (đang dùng cho sidebar)
     @Query(value = ""
             + "SELECT c.category_id, c.category_name, c.category_image, "
             + "       COUNT(p.product_id) AS so_luong "
@@ -49,4 +48,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query(value = "select * from products o where product_id in :ids", nativeQuery = true)
     List<Product> findByInventoryIds(@Param("ids") List<Integer> listProductId);
+
+    /* ========== NEW: lọc theo Nhà xuất bản (NXB) ========== */
+    @Query(value = "SELECT * FROM products WHERE nxb_id = :nxbId", nativeQuery = true)
+    List<Product> listProductByNxb(@Param("nxbId") Long nxbId);
+
+    @Query(value = "SELECT * FROM products WHERE nxb_id = :nxbId LIMIT 10", nativeQuery = true)
+    List<Product> listProductByNxb10(@Param("nxbId") Long nxbId);
 }

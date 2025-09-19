@@ -43,7 +43,7 @@
     <div class="container">
         <div class="row content-reverse">
 
-            <!-- Sidebar -->
+            <!-- Sidebar trái: THỂ LOẠI -->
             <div class="col-lg-3">
                 <div class="shop-widget-promo">
                     <a href="#"><img th:src="@{/images/promo/shop/2.jpg}" alt="promo"/></a>
@@ -51,8 +51,6 @@
 
                 <div class="shop-widget">
                     <h6 class="shop-widget-title">Theo thể loại</h6>
-
-                    <!-- ĐÚNG TÊN BIẾN: countProductByCategory -->
                     <ul class="shop-widget-list shop-widget-scroll">
                         <li th:each="item : ${countProductByCategory}">
                             <a class="shop-widget-content"
@@ -63,8 +61,10 @@
                 </div>
             </div>
 
-            <!-- Content -->
+            <!-- Cột phải: FILTER + LIST SẢN PHẨM -->
             <div class="col-lg-9">
+
+                <!-- Top filter (giữ nguyên giao diện có sẵn) -->
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="top-filter">
@@ -72,6 +72,23 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- ====== THEO NHÀ XUẤT BẢN (đặt ở cột phải) ====== -->
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="shop-widget">
+                            <h6 class="shop-widget-title">Theo nhà xuất bản</h6>
+                            <ul class="shop-widget-list shop-widget-scroll" style="max-height:220px;overflow:auto;">
+                                <li th:each="pub : ${nxbList}">
+                                    <a class="shop-widget-content"
+                                       th:href="@{/productByPublisher(id=${pub.id})}"
+                                       th:text="${pub.name}">Nhà xuất bản</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <!-- ====== /THEO NHÀ XUẤT BẢN ====== -->
 
                 <!-- Products -->
                 <div class="row row-cols-2 row-cols-md-3 row-cols-lg-3 row-cols-xl-4">
@@ -82,7 +99,6 @@
                                     <label class="label-text sale">- [[${item.discount + '%'}]]</label>
                                 </div>
 
-                                <!-- Nếu đã đăng nhập: hiển thị trạng thái yêu thích -->
                                 <th:block sec:authorize="isAuthenticated()">
                                     <button class="product-wish" th:if="${!item.favorite}">
                                         <i class="fas fa-heart"></i>
@@ -91,8 +107,6 @@
                                         <i class="fas fa-heart"></i>
                                     </button>
                                 </th:block>
-
-                                <!-- Chưa đăng nhập: icon wish mặc định -->
                                 <th:block sec:authorize="isAnonymous()">
                                     <button class="product-wish"><i class="fas fa-heart"></i></button>
                                 </th:block>
@@ -102,16 +116,12 @@
                                 </a>
 
                                 <div class="product-widget">
-                                    <!-- Nếu chưa login: dẫn tới trang đăng nhập -->
                                     <th:block sec:authorize="isAnonymous()">
                                         <a title="Hãy đăng nhập" th:href="@{/login}" class="fas fa-heart"></a>
                                     </th:block>
-
-                                    <!-- Đã login: toggle favorite -->
                                     <th:block sec:authorize="isAuthenticated()">
                                         <a th:if="${!item.favorite}" title="Yêu thích"
                                            th:href="@{/doFavorite(id=${item.productId})}" class="fas fa-heart"></a>
-
                                         <a th:if="${item.favorite}" title="Xóa Yêu thích"
                                            th:href="@{/doUnFavorite(id=${item.productId})}"
                                            style="background-color:#fd7e14" class="fas fa-heart"></a>
@@ -119,7 +129,6 @@
 
                                     <a title="Video về sản phẩm" href="https://youtu.be/9xzcVxSBbG8"
                                        class="venobox fas fa-play" data-autoplay="true" data-vbtype="video"></a>
-
                                     <a title="Chi tiết sản phẩm"
                                        th:href="@{/productDetail(id=${item.productId})}" class="fas fa-eye"></a>
                                 </div>
@@ -134,16 +143,14 @@
                                     <i class="icofont-star"></i>
                                 </div>
 
-                                <h6 class="product-name">
-                                    <a href="javascript:void(0);">[[${item.productName}]]</a>
-                                </h6>
+                                <h6 class="product-name"><a href="javascript:void(0);">[[${item.productName}]]</a></h6>
 
                                 <h6 class="product-price">
                                     <del>[[${#numbers.formatDecimal(item.price, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]</del>
                                     <span>
-                    [[${#numbers.formatDecimal(item.price - (item.price * item.discount/100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]
-                    <small>/kg</small>
-                  </span>
+                                        [[${#numbers.formatDecimal(item.price - (item.price * item.discount/100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]]
+                                        <small>/kg</small>
+                                    </span>
                                 </h6>
 
                                 <a class="product-add1" title="Thêm Giỏ Hàng"
@@ -155,7 +162,7 @@
                     </div>
                 </div>
 
-                <!-- Pagination (chỉ hiện khi có pageNumbers) -->
+                <!-- Pagination -->
                 <div class="row" th:if="${pageNumbers != null}">
                     <div class="col-lg-12">
                         <div class="bottom-paginate">

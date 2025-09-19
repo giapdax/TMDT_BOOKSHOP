@@ -75,13 +75,13 @@
                                         th:field="*{username}"
                                         id="username"
                                         class="form-control"
-                                        placeholder="Username (chỉ chữ & số, không khoảng trắng)"
+                                        placeholder="Username (chỉ chữ & số, 4–50 ký tự)"
                                         autocomplete="username"
                                         required="required"
-                                        minlength="1"
-                                        maxlength="49"
-                                        pattern="^[A-Za-z0-9]{1,49}$"
-                                        title="Username dưới 50 ký tự, chỉ chữ và số, không chứa khoảng trắng/ký tự đặc biệt"
+                                        minlength="4"
+                                        maxlength="50"
+                                        pattern="^[A-Za-z0-9]{4,50}$"
+                                        title="Username 4–50 ký tự, chỉ chữ và số, không khoảng trắng/ký tự đặc biệt"
                                 />
                             </div>
 

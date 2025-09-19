@@ -31,31 +31,26 @@ import vn.fs.repository.UserRepository;
 import javax.servlet.http.HttpSession;
 
 @Controller
-public class ShopController { // không extends gì để tránh side-effect không cần thiết
+public class ShopController {
 
     @Autowired private ProductRepository productRepository;
     @Autowired private FavoriteRepository favoriteRepository;
     @Autowired private CommomDataService commomDataService;
     @Autowired private UserRepository userRepository;
 
-    // ========================== Helpers ==========================
     private User getCurrentUser(HttpSession session) {
-        // Ưu tiên session attribute "customer" nếu có
         Object customer = (session != null) ? session.getAttribute("customer") : null;
-        if (customer instanceof User) {
-            return (User) customer;
-        }
-        // Nếu chưa, lấy theo SecurityContext (đã login)
+        if (customer instanceof User) return (User) customer;
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
             String loginId = auth.getName();
             User byUsername = userRepository.findByUsername(loginId);
             return (byUsername != null) ? byUsername : userRepository.findByEmail(loginId);
         }
-        return null; // anonymous
+        return null;
     }
 
-    // ========================== All products (paging) ==========================
     @GetMapping(value = "/products")
     public String shop(Model model,
                        Pageable pageable,
@@ -74,7 +69,6 @@ public class ShopController { // không extends gì để tránh side-effect kh�
             model.addAttribute("pageNumbers", pageNumbers);
         }
 
-        // Bơm dữ liệu common (an toàn kể cả khi user == null)
         User current = getCurrentUser(session);
         commomDataService.commonData(model, current);
 
@@ -99,7 +93,6 @@ public class ShopController { // không extends gì để tránh side-effect kh�
         return new PageImpl<>(list, PageRequest.of(currentPage, pageSize), all.size());
     }
 
-    // ========================== Search ==========================
     @GetMapping(value = "/searchProduct")
     public String showsearch(Model model,
                              Pageable pageable,
@@ -144,7 +137,6 @@ public class ShopController { // không extends gì để tránh side-effect kh�
         return new PageImpl<>(list, PageRequest.of(currentPage, pageSize), all.size());
     }
 
-    // ========================== By Category ==========================
     @GetMapping(value = "/productByCategory")
     public String listProductbyid(Model model,
                                   @RequestParam("id") Long categoryId,
@@ -160,7 +152,6 @@ public class ShopController { // không extends gì để tránh side-effect kh�
             Product copy = new Product();
             BeanUtils.copyProperties(product, copy);
 
-            // Chỉ check favorite khi đã đăng nhập (userId != null)
             boolean isFav = false;
             if (currentUserId != null) {
                 Favorite save = favoriteRepository.selectSaves(copy.getProductId(), currentUserId);
@@ -172,8 +163,36 @@ public class ShopController { // không extends gì để tránh side-effect kh�
         }
 
         model.addAttribute("products", listProductNew);
+        commomDataService.commonData(model, current);
+        return "web/shop";
+    }
 
-        // bơm dữ liệu common cho header/sidebar
+    /* ========== NEW: lọc theo Nhà xuất bản ========== */
+    @GetMapping(value = "/productByPublisher")
+    public String listProductByPublisher(Model model,
+                                         @RequestParam("id") Long nxbId,
+                                         HttpSession session) {
+        User current = getCurrentUser(session);
+        Long currentUserId = (current != null) ? current.getUserId() : null;
+
+        List<Product> products = productRepository.listProductByNxb(nxbId);
+        List<Product> listView = new ArrayList<>();
+
+        for (Product p : products) {
+            Product copy = new Product();
+            BeanUtils.copyProperties(p, copy);
+
+            boolean fav = false;
+            if (currentUserId != null) {
+                Favorite save = favoriteRepository.selectSaves(copy.getProductId(), currentUserId);
+                fav = (save != null);
+            }
+            copy.favorite = fav;
+
+            listView.add(copy);
+        }
+
+        model.addAttribute("products", listView);
         commomDataService.commonData(model, current);
         return "web/shop";
     }

@@ -20,44 +20,35 @@ import vn.fs.entities.Order;
 import vn.fs.entities.User;
 import vn.fs.repository.CategoryRepository;
 import vn.fs.repository.FavoriteRepository;
+import vn.fs.repository.NxbRepository;
 import vn.fs.repository.ProductRepository;
 import vn.fs.service.ShoppingCartService;
 
 @Service
 public class CommomDataService {
 
-    @Autowired
-    FavoriteRepository favoriteRepository;
+    @Autowired FavoriteRepository favoriteRepository;
+    @Autowired ShoppingCartService shoppingCartService;
+    @Autowired ProductRepository productRepository;
+    @Autowired CategoryRepository categoryRepository;
+    @Autowired NxbRepository nxbRepository;
 
-    @Autowired
-    ShoppingCartService shoppingCartService;
-
-    @Autowired
-    ProductRepository productRepository;
-
-    @Autowired
-    CategoryRepository categoryRepository; // NEW: để bơm categoryList cho header
-
-    @Autowired
-    public JavaMailSender emailSender;
-
-    @Autowired
-    TemplateEngine templateEngine;
+    @Autowired public JavaMailSender emailSender;
+    @Autowired TemplateEngine templateEngine;
 
     /**
-     * Bơm dữ liệu dùng chung cho header/footer/menu:
-     * - countProductByCategory (đổi đúng chính tả)
+     * Dữ liệu dùng chung cho header/footer/menu:
+     * - countProductByCategory
      * - categoryList (navbar)
+     * - nxbList (navbar)
      * - totalSave, totalCartItems, cartItems
      */
     public void commonData(Model model, User user) {
-        // Đếm SP theo category cho phần gợi ý
         listCategoryByProductName(model);
 
         Integer totalSave = 0;
-        if (user != null) {
-            totalSave = favoriteRepository.selectCountSave(user.getUserId());
-        }
+        if (user != null) totalSave = favoriteRepository.selectCountSave(user.getUserId());
+
         Integer totalCartItems = shoppingCartService.getCount();
         Collection<CartItem> cartItems = shoppingCartService.getCartItems();
 
@@ -65,8 +56,9 @@ public class CommomDataService {
         model.addAttribute("totalCartItems", totalCartItems);
         model.addAttribute("cartItems", cartItems);
 
-        // Bơm categoryList cho navbar (header.html đang dùng)
+        // Navbar data
         model.addAttribute("categoryList", categoryRepository.findAll());
+        model.addAttribute("nxbList", nxbRepository.findAll()); // NEW
     }
 
     // count product by category (đặt đúng tên biến cho template)

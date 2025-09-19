@@ -136,6 +136,16 @@
                                     </li>
                                 </ul>
                             </li>
+                            <li class="navbar-item dropdown">
+                                <a class="navbar-link dropdown-arrow" href="javascript:void(0);">Nhà xuất bản</a>
+                                <ul class="dropdown-position-list">
+                                    <li th:each="pub : ${nxbList}">
+                                        <a th:href="@{/productByPublisher(id=${pub.id})}"
+                                           th:text="${pub.name}">NXB</a>
+                                    </li>
+                                </ul>
+                            </li>
+
 
                             <li class="navbar-item dropdown">
                                 <a class="navbar-link dropdown-arrow" href="javascript:void(0);">Liên hệ</a>
@@ -154,6 +164,7 @@
                                     </th:block>
                                     <th:block sec:authorize="isAuthenticated()">
                                         <li><a th:href="@{/profile}">Thông tin tài khoản</a></li>
+                                        <li><a th:href="@{/profile/change-password}">Đổi Mật khẩu</a></li>
                                         <li><a th:href="@{/logout}">Đăng xuất</a></li>
                                     </th:block>
                                 </ul>
