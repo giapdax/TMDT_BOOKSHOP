@@ -3,15 +3,7 @@ package vn.fs.entities;
 import java.io.Serializable;
 import java.util.Date;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
+import javax.persistence.*;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -38,6 +30,7 @@ public class Product implements Serializable {
 	@Temporal(TemporalType.DATE)
 	private Date enteredDate;
 	private Boolean status;
+	@Transient
 	public boolean favorite;
 
 	@ManyToOne
