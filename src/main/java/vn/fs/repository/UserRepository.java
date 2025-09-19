@@ -43,7 +43,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     int resetLoginState(@Param("login") String login,
                         @Param("now")   LocalDateTime now);
 
-    /* Bước 1: tăng failedAttempt nếu chưa bị khóa */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update User u " +
             "   set u.failedAttempt = u.failedAttempt + 1 " +
@@ -53,7 +52,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     int bumpFailureCounter(@Param("login") String login,
                            @Param("now")   LocalDateTime now);
 
-    /* Bước 2: nếu đã đủ/ngưỡng thì khóa tài khoản (chỉ khi đang không bị khóa) */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update User u " +
             "   set u.lockedUntil = :lockUntil " +
@@ -65,4 +63,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
                             @Param("maxFail")   int maxFail,
                             @Param("lockUntil") LocalDateTime lockUntil,
                             @Param("now")       LocalDateTime now);
+
+    /* >>> NEW: đổi mật khẩu & bật status bằng email — không validate toàn entity */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update User u set u.password = :hashed, u.status = true where lower(u.email) = lower(:email)")
+    int updatePasswordByEmail(@Param("email") String email,
+                              @Param("hashed") String hashed);
 }

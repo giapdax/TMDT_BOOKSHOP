@@ -55,12 +55,9 @@
                     <!-- ĐÚNG TÊN BIẾN: countProductByCategory -->
                     <ul class="shop-widget-list shop-widget-scroll">
                         <li th:each="item : ${countProductByCategory}">
-                            <div class="shop-widget-content">
-                                <a th:href="@{/productByCategory(id=${item[0]})}">
-                                    <label style="color:#119744">[[${item[1]}]]</label>
-                                </a>
-                            </div>
-                            <span class="shop-widget-number">([[${item[2]}]])</span>
+                            <a class="shop-widget-content"
+                               th:href="@{/productByCategory(id=${item[0]})}"
+                               th:text="${item[1]}">Thể loại</a>
                         </li>
                     </ul>
                 </div>

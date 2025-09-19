@@ -1,43 +1,45 @@
 package vn.fs.config;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import com.paypal.base.rest.APIContext;
+import com.paypal.base.rest.OAuthTokenCredential;
+import com.paypal.base.rest.PayPalRESTException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.paypal.base.rest.APIContext;
-import com.paypal.base.rest.OAuthTokenCredential;
-import com.paypal.base.rest.PayPalRESTException;
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 public class PaypalConfig {
 
-	@Value("${paypal.client.app}")
-	private String clientId;
-	@Value("${paypal.client.secret}")
-	private String clientSecret;
-	@Value("${paypal.mode}")
-	private String mode;
+    @Value("${paypal.mode:sandbox}")
+    private String mode;
 
-	@Bean
-	public Map<String, String> paypalSdkConfig() {
-		Map<String, String> sdkConfig = new HashMap<>();
-		sdkConfig.put("mode", mode);
-		return sdkConfig;
-	}
+    @Value("${paypal.client.app:}")
+    private String clientId;
 
-	@Bean
-	public OAuthTokenCredential authTokenCredential() {
-		return new OAuthTokenCredential(clientId, clientSecret, paypalSdkConfig());
-	}
+    @Value("${paypal.client.secret:}")
+    private String clientSecret;
 
-	@Bean
-	public APIContext apiContext() throws PayPalRESTException {
-		APIContext apiContext = new APIContext(authTokenCredential().getAccessToken());
-		apiContext.setConfigurationMap(paypalSdkConfig());
-		return apiContext;
-	}
+    @Bean
+    public Map<String, String> paypalSdkConfig() {
+        Map<String, String> config = new HashMap<>();
+        config.put("mode", mode);
+        return config;
+    }
 
+    @Bean
+    public OAuthTokenCredential authTokenCredential(Map<String, String> paypalSdkConfig) {
+        return new OAuthTokenCredential(clientId, clientSecret, paypalSdkConfig);
+    }
+
+    @Bean
+    public APIContext apiContext(OAuthTokenCredential authTokenCredential) throws PayPalRESTException {
+        // Lấy access token thủ công
+        String accessToken = authTokenCredential.getAccessToken();
+        APIContext context = new APIContext(accessToken);
+        context.setConfigurationMap(paypalSdkConfig());
+        return context;
+    }
 }

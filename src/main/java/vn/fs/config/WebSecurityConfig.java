@@ -19,17 +19,10 @@ import vn.fs.service.UserDetailService;
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    @Autowired
-    private UserDetailService userDetailService;
-
-    @Autowired
-    private SuccessHandler successHandler;
-
-    @Autowired
-    private CustomAuthenticationFailureHandler failureHandler;
-
-    @Autowired
-    private PreLoginLockFilter preLoginLockFilter;
+    @Autowired private UserDetailService userDetailService;
+    @Autowired private SuccessHandler successHandler;
+    @Autowired private CustomAuthenticationFailureHandler failureHandler;
+    @Autowired private PreLoginLockFilter preLoginLockFilter;
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
@@ -54,26 +47,37 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        // Giữ disable CSRF như dự án hiện tại để không phá flow cũ
         http.csrf().disable();
 
         http.authorizeRequests()
                 .antMatchers("/css/**","/js/**","/images/**","/vendor/**","/fonts/**",
                         "/assets/**","/uploads/**").permitAll()
-                .antMatchers("/","/login","/register","/forgotPassword","/confirmOtpRegister",
+
+                // Public pages
+                .antMatchers("/","/login","/register",
                         "/products","/productDetail","/productByCategory","/productByPublisher",
                         "/searchProduct","/aboutUs","/contact","/loadImage").permitAll()
+
+                // >>> QUÊN MẬT KHẨU: mở quyền FULL flow
+                .antMatchers("/forgotPassword",
+                        "/confirmOtpForgotPassword",
+                        "/resendOtpForgotPassword",
+                        "/changePassword").permitAll()
+
+                // Admin
                 .antMatchers("/admin/reports","/admin/reportCategory","/admin/reportYear",
                         "/admin/reportMonth","/admin/reportQuarter","/admin/reportOrderCustomer")
                 .hasRole("ADMIN")
                 .antMatchers("/admin/**").hasAnyRole("ADMIN","STAFF")
+
+                // Auth required
                 .antMatchers("/checkout","/favorite/**","/profile").authenticated()
                 .anyRequest().permitAll()
                 .and()
                 .formLogin()
                 .loginProcessingUrl("/doLogin")
                 .loginPage("/login")
-                .usernameParameter("username") // username hoặc email
+                .usernameParameter("username")
                 .passwordParameter("password")
                 .successHandler(successHandler)
                 .failureHandler(failureHandler)
@@ -89,7 +93,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .rememberMe()
                 .rememberMeParameter("remember");
 
-        // Chặn trước khi vào Authentication nếu đang bị khóa
+        // chặn trước khi auth nếu bị lock
         http.addFilterBefore(preLoginLockFilter, UsernamePasswordAuthenticationFilter.class);
     }
 }

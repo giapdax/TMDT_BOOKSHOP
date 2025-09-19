@@ -6120,3 +6120,40 @@ tbody tr td:last-child {
     margin-bottom: 30px;
   }
 }
+/* Khung ảnh sản phẩm cố định tỷ lệ, không méo layout */
+.product-card .product-image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 3 / 4;     /* hoặc 1/1, 2/3 tùy bạn */
+    overflow: hidden;
+}
+
+/* Ảnh phủ kín khung, cắt phần thừa cho đẹp */
+.product-card .product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;        /* cover = không méo, cắt viền thừa */
+    display: block;
+}
+/* === FIX ẢNH DANH MỤC TRONG HOME === */
+#home-categories .cat-thumb {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;          /* vuông cho đẹp, có thể đổi 3/4 */
+    overflow: hidden;
+    border-radius: 12px;
+    background: #f4f4f4;
+}
+
+/* Ảnh phủ kín khung, không méo */
+#home-categories .cat-thumb img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block;
+}
+
+/* fallback cho trình duyệt chưa hỗ trợ aspect-ratio */
+@supports not (aspect-ratio: 1 / 1) {
+    #home-categories .cat-thumb { height: 200px; }  /* chỉnh 180/220 tuỳ layout */
+}
