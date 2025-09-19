@@ -4,38 +4,34 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
-
 /**
- * CartItem lưu trong bộ nhớ (per-user) – không map JPA.
- * Dùng Product để đọc tên/giá/discount cho đúng dữ liệu hiện tại.
+ * DTO dùng cho tầng controller/view.
+ * Không có JPA annotation, KHÔNG map DB.
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CartItem implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class CartItem {
 
-    private Long id;         // = productId
-    private int quantity;    // số lượng trong giỏ
-    private Product product; // tham chiếu nhanh
+    private Long id;          // productId
+    private String name;      // fallback nếu product null
+    private double unitPrice; // fallback nếu product null
+    private int quantity;
+    private Product product;  // để view lấy ảnh/tên,... cho tiện
 
-    /* ======= Helpers cho Thymeleaf/JSON ======= */
-
-    public String getName() {
-        return product != null ? product.getProductName() : null;
-    }
-
-    /** Đơn giá sau discount (nếu có) */
-    public double getUnitPrice() {
-        if (product == null) return 0.0;
-        double p = product.getPrice();
+    public double getUnitPriceAfterDiscount() {
+        if (product == null) return unitPrice;
+        double price = product.getPrice();
         double discount = product.getDiscount() / 100.0;
-        return p * (1 - discount);
+        return price * (1.0 - discount);
     }
 
-    /** Thành tiền dòng */
     public double getLineTotal() {
-        return getUnitPrice() * Math.max(1, quantity);
+        return getUnitPriceAfterDiscount() * Math.max(1, quantity);
+    }
+
+    public String getDisplayName() {
+        if (product != null && product.getProductName() != null) return product.getProductName();
+        return name;
     }
 }

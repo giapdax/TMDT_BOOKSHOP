@@ -6,7 +6,6 @@
     <title>Web bán sách giá rẻ</title>
 
     <link rel="icon" th:href="@{/images/favicon.png}"/>
-    <!-- CSS tuyệt đối -->
     <link rel="stylesheet" th:href="@{/fonts/flaticon/flaticon.css}"/>
     <link rel="stylesheet" th:href="@{/fonts/icofont/icofont.min.css}"/>
     <link rel="stylesheet" th:href="@{/fonts/fontawesome/fontawesome.min.css}"/>
@@ -33,9 +32,10 @@
             </div>
             <div class="col-md-7 col-lg-6 col-xl-5">
                 <div class="payment-cancel-button">
-                    <a th:href="@{/'/}" class="btn btn-primary">Quay lại trang chủ</a>
-                    <!-- hoặc về giỏ hàng -->
-                    <!-- <a th:href="@{/cart}" class="btn btn-outline-primary">Về giỏ hàng</a> -->
+                    <!-- FIX: về trang chủ đúng cú pháp -->
+                    <a th:href="@{/}" class="btn btn-primary">Quay lại trang chủ</a>
+                    <!-- hoặc về giỏ hàng:
+                    <a th:href="@{/shoppingCart_checkout}" class="btn btn-outline-primary">Về giỏ hàng</a> -->
                 </div>
             </div>
         </div>
@@ -44,7 +44,6 @@
 
 <footer th:replace="~{/web/fragments/footer :: footer}"></footer>
 
-<!-- JS tuyệt đối -->
 <script th:src="@{/vendor/bootstrap/jquery-1.12.4.min.js}"></script>
 <script th:src="@{/vendor/bootstrap/popper.min.js}"></script>
 <script th:src="@{/vendor/bootstrap/bootstrap.min.js}"></script>

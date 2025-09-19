@@ -1,12 +1,13 @@
 package vn.fs.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-import org.springframework.ui.Model;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.ui.Model;
 import vn.fs.commom.CommomDataService;
 import vn.fs.dto.SessionUser;
 import vn.fs.entities.User;
@@ -14,63 +15,98 @@ import vn.fs.repository.UserRepository;
 
 import javax.servlet.http.HttpSession;
 
-@Component
-@ControllerAdvice
+/**
+ * Inject các dữ liệu dùng chung cho layout (header/footer/nav) theo mô hình MVC.
+ * QUAN TRỌNG:
+ * - Chỉ thực hiện READ-ONLY.
+ * - Việc bind số lượng giỏ hàng, danh sách item, tổng tiền... phải được CommomDataService triển khai ở chế độ readOnly.
+ */
+@ControllerAdvice(annotations = Controller.class)
+@RequiredArgsConstructor
 public class GlobalModelAdvice {
 
-    @Autowired private CommomDataService commomDataService;
-    @Autowired private UserRepository userRepository;
+    private final CommomDataService commomDataService;
+    private final UserRepository userRepository;
 
     @ModelAttribute
     public void injectCommonData(Model model, HttpSession session) {
-        User current = null;
+        // 1) Lấy user hiện tại (ưu tiên session, sau đó SecurityContext)
+        User current = resolveCurrentUser(session);
 
-        // 1) Ưu tiên lấy từ session "customer" (có thể là User hoặc SessionUser)
-        Object customer = (session != null) ? session.getAttribute("customer") : null;
-        if (customer instanceof User) {
-            current = (User) customer;
-        } else if (customer instanceof SessionUser) {
-            SessionUser su = (SessionUser) customer;
-            // theo id -> username -> email
-            if (su.getUserId() != null) {
-                current = userRepository.findById(su.getUserId()).orElse(null);
-            }
-            if (current == null && su.getUsername() != null) {
-                current = userRepository.findByUsernameIgnoreCase(su.getUsername()).orElse(null);
-            }
-            if (current == null && su.getEmail() != null) {
-                current = userRepository.findByEmailIgnoreCase(su.getEmail()).orElse(null);
-            }
-        }
-
-        // 2) Nếu chưa có, lấy qua SecurityContext (support username OR email)
-        if (current == null) {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-                String loginId = auth.getName(); // có thể là username hoặc email
-                current = userRepository.findByUsernameIgnoreCase(loginId)
-                        .orElseGet(() -> userRepository.findByEmailIgnoreCase(loginId).orElse(null));
-            }
-        }
-
-        // 3) Bơm dữ liệu chung cho header/footer/menu
+        // 2) Bơm dữ liệu dùng chung (PHẢI là read-only ở tầng service)
+        //    Ví dụ: totalCartItems, cartItems (DTO), totalPrice, categoryList, nxbList, totalSave...
         commomDataService.commonData(model, current);
 
-        // 4) QUAN TRỌNG: luôn gán 'user' KHÔNG NULL để Thymeleaf không nổ khi gọi ${user.name}
+        // 3) Đảm bảo luôn có 'user' để view không lỗi khi truy cập ${user.*}
         model.addAttribute("user", (current != null) ? current : new User());
 
-        // 5) Thêm displayName (nếu bạn muốn dùng ở đâu đó)
-        String displayName = "Khách";
-        if (current != null) {
-            if (current.getName() != null && !current.getName().isBlank())       displayName = current.getName();
-            else if (current.getUsername() != null && !current.getUsername().isBlank()) displayName = current.getUsername();
-            else if (current.getEmail() != null)                                  displayName = current.getEmail();
-        } else if (customer instanceof SessionUser) {
-            SessionUser su = (SessionUser) customer;
-            if (su.getName() != null && !su.getName().isBlank())                  displayName = su.getName();
-            else if (su.getUsername() != null && !su.getUsername().isBlank())     displayName = su.getUsername();
-            else if (su.getEmail() != null)                                       displayName = su.getEmail();
+        // 4) Thêm displayName & isLoggedIn cho tiện dùng ở header
+        model.addAttribute("displayName", buildDisplayName(session, current));
+        model.addAttribute("isLoggedIn", current != null);
+    }
+
+    /* ====================== Helpers ====================== */
+
+    private User resolveCurrentUser(HttpSession session) {
+        // a) Ưu tiên session attribute "customer"
+        if (session != null) {
+            Object customer = session.getAttribute("customer");
+            if (customer instanceof User) {
+                return (User) customer;
+            }
+            if (customer instanceof SessionUser) {
+                User u = resolveFromSessionUser((SessionUser) customer);
+                if (u != null) return u;
+            }
         }
-        model.addAttribute("displayName", displayName);
+
+        // b) Fallback: SecurityContext
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            return null;
+        }
+        String loginId = auth.getName(); // có thể là username hoặc email
+        User byUsername = userRepository.findByUsernameIgnoreCase(loginId).orElse(null);
+        if (byUsername != null) return byUsername;
+        return userRepository.findByEmailIgnoreCase(loginId).orElse(null);
+    }
+
+    private User resolveFromSessionUser(SessionUser su) {
+        if (su == null) return null;
+        if (su.getUserId() != null) {
+            User byId = userRepository.findById(su.getUserId()).orElse(null);
+            if (byId != null) return byId;
+        }
+        if (su.getUsername() != null && !su.getUsername().isBlank()) {
+            User byUsername = userRepository.findByUsernameIgnoreCase(su.getUsername()).orElse(null);
+            if (byUsername != null) return byUsername;
+        }
+        if (su.getEmail() != null && !su.getEmail().isBlank()) {
+            return userRepository.findByEmailIgnoreCase(su.getEmail()).orElse(null);
+        }
+        return null;
+    }
+
+    private String buildDisplayName(HttpSession session, User current) {
+        if (current != null) {
+            if (notBlank(current.getName()))     return current.getName();
+            if (notBlank(current.getUsername())) return current.getUsername();
+            if (notBlank(current.getEmail()))    return current.getEmail();
+        }
+        // nếu chưa đăng nhập, thử lấy thông tin hiển thị từ SessionUser (nếu có)
+        if (session != null) {
+            Object customer = session.getAttribute("customer");
+            if (customer instanceof SessionUser) {
+                SessionUser su = (SessionUser) customer;
+                if (notBlank(su.getName()))     return su.getName();
+                if (notBlank(su.getUsername())) return su.getUsername();
+                if (notBlank(su.getEmail()))    return su.getEmail();
+            }
+        }
+        return "Khách";
+    }
+
+    private boolean notBlank(String s) {
+        return s != null && !s.isBlank();
     }
 }

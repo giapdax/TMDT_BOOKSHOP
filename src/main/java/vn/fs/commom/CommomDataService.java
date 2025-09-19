@@ -37,31 +37,53 @@ public class CommomDataService {
     @Autowired TemplateEngine templateEngine;
 
     /**
-     * Dữ liệu dùng chung cho header/footer/menu:
-     * - countProductByCategory
-     * - categoryList (navbar)
-     * - nxbList (navbar)
-     * - totalSave, totalCartItems, cartItems
+     * Dữ liệu dùng chung cho header/footer/menu.
+     * - totalCartItems (giữ tương thích) = số mặt hàng KHÁC NHAU
+     * - totalCartDistinct: số mặt hàng KHÁC NHAU (badge header)
+     * - totalCartQtySum: tổng số lượng (mini-cart)
+     * - totalPrice: tổng tiền
+     * - cartItems: danh sách item mini-cart
      */
     public void commonData(Model model, User user) {
         listCategoryByProductName(model);
 
         Integer totalSave = 0;
-        if (user != null) totalSave = favoriteRepository.selectCountSave(user.getUserId());
+        if (user != null) {
+            totalSave = favoriteRepository.selectCountSave(user.getUserId());
+        }
 
-        Integer totalCartItems = shoppingCartService.getCount();
-        Collection<CartItem> cartItems = shoppingCartService.getCartItems();
+        int distinct = 0;
+        int qtySum   = 0;
+        double totalPrice = 0.0;
+        Collection<CartItem> cartItems = null;
+
+        try {
+            distinct   = shoppingCartService.getDistinctCount(); // <<=== thay cho getCount()
+            qtySum     = shoppingCartService.getQuantitySum();
+            totalPrice = shoppingCartService.getAmount();
+            cartItems  = shoppingCartService.getCartItems();
+        } catch (Exception ignore) {
+            // user chưa đăng nhập / giỏ trống -> để mặc định
+        }
 
         model.addAttribute("totalSave", totalSave);
-        model.addAttribute("totalCartItems", totalCartItems);
-        model.addAttribute("cartItems", cartItems);
 
-        // Navbar data
+        // Giữ biến cũ để không vỡ view
+        model.addAttribute("totalCartItems", distinct);
+
+        // Biến rõ nghĩa
+        model.addAttribute("totalCartDistinct", distinct);
+        model.addAttribute("totalCartQtySum", qtySum);
+
+        model.addAttribute("cartItems", cartItems);
+        model.addAttribute("totalPrice", totalPrice);
+
+        // Navbar
         model.addAttribute("categoryList", categoryRepository.findAll());
-        model.addAttribute("nxbList", nxbRepository.findAll()); // NEW
+        model.addAttribute("nxbList", nxbRepository.findAll());
     }
 
-    // count product by category (đặt đúng tên biến cho template)
+    // count product by category
     public void listCategoryByProductName(Model model) {
         List<Object[]> countProductByCategory = productRepository.listCategoryByProductName();
         model.addAttribute("countProductByCategory", countProductByCategory);

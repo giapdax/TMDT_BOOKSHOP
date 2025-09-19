@@ -3,11 +3,11 @@
       xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security5">
 <head>
-    <meta charset="utf-8" />
+    <meta charset="utf-8">
     <title>Header</title>
 
-    <!-- CSS mini-cart riêng -->
-    <link rel="stylesheet" th:href="@{/css/cart.css}" />
+    <link rel="stylesheet" th:href="@{/css/main.css}"/>
+    <link rel="stylesheet" th:href="@{/css/cart.css}"/>
 </head>
 <body>
 <th:block th:fragment="header">
@@ -15,7 +15,7 @@
     <div class="backdrop"></div>
     <a class="backtop fas fa-arrow-up" href="#"></a>
 
-    <!-- Top bar -->
+    <!-- Header top -->
     <div class="header-top">
         <div class="container">
             <div class="row">
@@ -44,7 +44,7 @@
         </div>
     </div>
 
-    <!-- Header -->
+    <!-- Header main -->
     <header class="header-part">
         <div class="container">
             <div class="header-content">
@@ -89,8 +89,8 @@
                         <i class="fas fa-tools"></i>
                     </a>
 
-                    <!-- Nút mở mini-cart -->
-                    <button class="header-widget header-cart js-open-cart" title="Giỏ hàng">
+                    <!-- Badge = số mặt hàng khác nhau -->
+                    <button class="header-widget header-cart js-open-cart" title="Giỏ hàng" type="button">
                         <i class="fas fa-shopping-basket"></i>
                         <sup th:text="${(totalCartItems != null) ? totalCartItems : 0}" id="totalCartItems">0</sup>
                     </button>
@@ -100,7 +100,7 @@
         </div>
     </header>
 
-    <!-- Navbar (giữ nguyên của bạn) -->
+    <!-- Navbar -->
     <nav class="navbar-part">
         <div class="container">
             <div class="row">
@@ -189,77 +189,98 @@
         </div>
     </nav>
 
-    <!-- Cart sidebar -->
+    <!-- Mini Cart (MVC links) -->
     <aside class="cart-sidebar" id="miniCart">
         <div class="cart-header">
             <div class="cart-total">
                 <i class="fas fa-shopping-basket"></i>
-                <span> Tổng số lượng giỏ hàng (<span id="miniCartCount" th:text="${(totalCartItems != null) ? totalCartItems : 0}">0</span>) </span>
+                <span> Tổng số lượng giỏ hàng (
+                    <!-- tổng quantity tất cả item -->
+                  <span id="miniCartCount" th:text="${(totalCartQtySum != null) ? totalCartQtySum : 0}">0</span>
+                ) </span>
             </div>
-            <button class="cart-close js-close-cart"><i class="icofont-close"></i></button>
+            <button class="cart-close js-close-cart" type="button"><i class="icofont-close"></i></button>
         </div>
 
-        <!-- Empty cart -->
-        <div id="miniCartEmpty" th:if="${(totalCartItems == null) or (totalCartItems == 0)}" class="text-center p-4">
-            <h4 style="color:#119744" class="mt-5">Hiện tại bạn chưa có sản phẩm nào trong giỏ hàng!</h4>
+        <!-- Empty -->
+        <div th:if="${(totalCartQtySum == null) or (totalCartQtySum == 0)}" class="text-center p-4">
+            <h4 class="mt-5" style="color:#119744">Hiện tại bạn chưa có sản phẩm nào trong giỏ hàng!</h4>
             <h5 style="color:#119744">Hãy mua sắm đi nào!</h5>
             <a th:href="@{/products}" style="text-decoration:underline;">Click tại đây!</a>
         </div>
 
         <!-- Has items -->
-        <th:block th:if="${(totalCartItems != null) and (totalCartItems > 0)}">
+        <th:block th:if="${(totalCartQtySum != null) and (totalCartQtySum > 0)}">
             <ul class="cart-list" id="miniCartList">
                 <li class="cart-item"
-                    th:each="item : ${(cartItems != null) ? cartItems : T(java.util.Collections).emptyList()}"
-                    th:attr="data-id=${item.product.productId}">
+                    th:each="item : ${(cartItems != null) ? cartItems : T(java.util.Collections).emptyList()}">
                     <div class="cart-media">
                         <a th:href="@{/productDetail(id=${item.product.productId})}">
                             <img th:src="@{'/loadImage?imageName=' + ${item.product.productImage}}" alt="product"/>
                         </a>
                     </div>
+
                     <div class="cart-info-group">
                         <div class="cart-info">
                             <h6 class="mb-1">
-                                <a th:href="@{/productDetail(id=${item.product.productId})}" class="prod-name" th:text="${item.product.productName}">Tên sp</a>
+                                <a th:href="@{/productDetail(id=${item.product.productId})}"
+                                   th:text="${item.product.productName}">Tên sp</a>
                             </h6>
-                            <div class="price-row">Đơn giá: <strong class="unit-price"
-                                                                    th:text="${#numbers.formatDecimal(item.product.price - (item.product.price * item.product.discount/100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong></div>
+                            <div class="price-row">
+                                Tạm tính:
+                                <strong class="line-total"
+                                        th:text="${#numbers.formatDecimal((item.product.price - (item.product.price * item.product.discount/100)) * item.quantity, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong>
+                            </div>
                         </div>
 
                         <div class="action-row">
                             <div class="qty-row">
-                                <button class="qty-btn js-dec" th:attr="data-id=${item.product.productId}">−</button>
-                                <input class="qty-input js-qty" type="tel" th:attr="data-id=${item.product.productId}" th:value="${item.quantity}" />
-                                <button class="qty-btn js-inc" th:attr="data-id=${item.product.productId}">+</button>
+                                <a class="qty-btn" th:href="@{/cart/dec(productId=${item.product.productId})}">−</a>
+                                <input class="qty-input" type="tel" th:value="${item.quantity}" readonly />
+                                <a class="qty-btn" th:href="@{/cart/inc(productId=${item.product.productId})}">+</a>
                             </div>
-                            <div class="stock-row">Còn: <span class="stock js-stock"
-                                                              th:text="${item.product.quantity - item.quantity}">0</span> đ</div>
-                            <button class="rm-btn js-remove" title="Xoá" th:attr="data-id=${item.product.productId}">
-                                <i class="icofont-trash"></i>
-                            </button>
-                        </div>
 
-                        <div class="line-row">
-                            <span>Tạm tính:</span>
-                            <strong class="line-total js-line"
-                                    th:text="${#numbers.formatDecimal((item.product.price - (item.product.price * item.product.discount/100)) * item.quantity, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong>
+                            <div class="stock-row">
+                                Còn: <span class="stock"
+                                           th:text="${item.product.quantity - item.quantity}">0</span>
+                            </div>
+
+                            <a class="rm-btn" title="Xoá"
+                               th:href="@{/remove/{id}(id=${item.product.productId})}">
+                                <i class="icofont-trash"></i>
+                            </a>
                         </div>
                     </div>
                 </li>
             </ul>
 
             <div class="cart-footer">
-                <div class="sum-row">Tổng cộng: <strong id="miniCartTotal"
-                                                        th:text="${#numbers.formatDecimal(totalPrice, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong></div>
-                <a class="cart-checkout-btn" th:href="@{/checkout}">
+                <div class="sum-row">Tổng cộng:
+                    <strong id="miniCartTotal"
+                            th:text="${#numbers.formatDecimal(totalPrice, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong>
+                </div>
+                <!-- ĐÚNG ROUTE GET -->
+                <a class="cart-checkout-btn" th:href="@{/shoppingCart_checkout}">
                     <span class="checkout-label">Thanh Toán</span>
                 </a>
             </div>
         </th:block>
     </aside>
 
-    <!-- JS mini-cart -->
-    <script defer th:src="@{/js/cart.js}"></script>
+    <!-- JS mở/đóng mini-cart (no AJAX) -->
+    <script>
+        (function(){
+            const openBtn = document.querySelector('.js-open-cart');
+            const closeBtn = document.querySelector('.js-close-cart');
+            const sidebar = document.getElementById('miniCart');
+            const backdrop = document.querySelector('.backdrop');
+            function open(){ sidebar && sidebar.classList.add('active'); backdrop && backdrop.classList.add('active'); }
+            function close(){ sidebar && sidebar.classList.remove('active'); backdrop && backdrop.classList.remove('active'); }
+            openBtn && openBtn.addEventListener('click', open);
+            closeBtn && closeBtn.addEventListener('click', close);
+            backdrop && backdrop.addEventListener('click', close);
+        })();
+    </script>
 </th:block>
 </body>
 </html>

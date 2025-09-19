@@ -5,108 +5,216 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import vn.fs.entities.CartItem;
-import vn.fs.entities.Product;
-import vn.fs.entities.User;
+import org.springframework.transaction.annotation.Transactional;
+import vn.fs.entities.*;
+import vn.fs.repository.CartItemRepository;
+import vn.fs.repository.CartRepository;
+import vn.fs.repository.ProductRepository;
 import vn.fs.repository.UserRepository;
 import vn.fs.service.ShoppingCartService;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-/**
- * Lưu giỏ hàng theo USER (in-memory).
- * Map: userId -> (productId -> CartItem)
- */
 @Service
 @RequiredArgsConstructor
 public class ShoppingCartServiceImpl implements ShoppingCartService {
 
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
 
-    private final Map<Long, Map<Long, CartItem>> store = new ConcurrentHashMap<>();
+    private static final int CART_TTL_DAYS = 30;
 
-    /* ===== Current user ===== */
-    private Long currentUserId() {
+    /* ============================ Helpers ============================ */
+
+    private User currentUserOrNull() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) return null;
         String login = auth.getName();
-        Optional<User> u = userRepository.findByUsernameIgnoreCase(login)
-                .or(() -> userRepository.findByEmailIgnoreCase(login))
-                .or(() -> userRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(login, login));
-        return u.map(User::getUserId).orElse(null);
+        return userRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(login, login).orElse(null);
     }
 
-    private Map<Long, CartItem> cart() {
-        Long uid = currentUserId();
-        if (uid == null) return new HashMap<>(); // anonymous -> empty (không xài session)
-        return store.computeIfAbsent(uid, k -> new ConcurrentHashMap<>());
+    private Cart activeCartOrNull() {
+        User user = currentUserOrNull();
+        if (user == null) return null;
+        return cartRepository.findByUser_UserIdAndStatus(user.getUserId(), CartStatus.ACTIVE).orElse(null);
+    }
+
+    private Cart getOrCreateActiveCart() {
+        User user = currentUserOrNull();
+        if (user == null) throw new IllegalStateException("Vui lòng đăng nhập để thao tác giỏ hàng.");
+        return cartRepository.findByUser_UserIdAndStatus(user.getUserId(), CartStatus.ACTIVE)
+                .orElseGet(() -> {
+                    Cart c = new Cart();
+                    c.setUser(user);
+                    c.setStatus(CartStatus.ACTIVE);
+                    Date now = Date.from(Instant.now());
+                    c.setCreatedAt(now);
+                    c.setUpdatedAt(now);
+                    c.setExpiresAt(Date.from(Instant.now().plus(CART_TTL_DAYS, ChronoUnit.DAYS)));
+                    return cartRepository.save(c);
+                });
+    }
+
+    private double unitPriceAfterDiscount(Product p) {
+        return p.getPrice() - (p.getPrice() * p.getDiscount() / 100.0);
+    }
+
+    private CartItem toDto(CartItemEntity e) {
+        CartItem dto = new CartItem();
+        dto.setId(e.getProduct().getProductId());
+        dto.setName(e.getProduct().getProductName());
+        dto.setProduct(e.getProduct());
+        dto.setQuantity(e.getQuantity());
+        dto.setUnitPrice(e.getUnitPrice() != null ? e.getUnitPrice() : unitPriceAfterDiscount(e.getProduct()));
+        return dto;
+    }
+
+    private int clampToStock(Product p, int desiredQty) {
+        int stock = Math.max(0, p.getQuantity());
+        return Math.max(0, Math.min(desiredQty, stock));
+    }
+
+    /* ============================ READ ============================ */
+
+    @Override
+    @Transactional(readOnly = true)
+    public int getQuantitySum() {
+        Cart cart = activeCartOrNull();
+        if (cart == null) return 0;
+        return cartItemRepository.findByCart(cart).stream()
+                .mapToInt(CartItemEntity::getQuantity).sum();
     }
 
     @Override
-    public void add(CartItem item) {
-        Map<Long, CartItem> c = cart();
-        CartItem existed = c.get(item.getId());
-        if (existed != null) {
-            existed.setQuantity(existed.getQuantity() + item.getQuantity());
-        } else {
-            c.put(item.getId(), item);
-        }
+    @Transactional(readOnly = true)
+    public int getDistinctCount() {
+        Cart cart = activeCartOrNull();
+        if (cart == null) return 0;
+        return cartItemRepository.findByCart(cart).size();
     }
 
     @Override
-    public void remove(CartItem item) {
-        cart().remove(item.getId());
-    }
-
-    @Override
-    public Collection<CartItem> getCartItems() {
-        return cart().values();
-    }
-
-    @Override
-    public void clear() {
-        cart().clear();
-    }
-
-    @Override
+    @Transactional(readOnly = true)
     public double getAmount() {
-        return cart().values().stream()
-                .mapToDouble(CartItem::getLineTotal)
+        Cart cart = activeCartOrNull();
+        if (cart == null) return 0.0;
+        return cartItemRepository.findByCart(cart).stream()
+                .mapToDouble(i -> (i.getUnitPrice() != null ? i.getUnitPrice() : unitPriceAfterDiscount(i.getProduct()))
+                        * Math.max(1, i.getQuantity()))
                 .sum();
     }
 
     @Override
-    public int getCount() {
-        // sum qty (chuẩn UX)
-        return cart().values().stream().mapToInt(CartItem::getQuantity).sum();
+    @Transactional(readOnly = true)
+    public Collection<CartItem> getCartItems() {
+        Cart cart = activeCartOrNull();
+        if (cart == null) return Collections.emptyList();
+        return cartItemRepository.findByCart(cart).stream().map(this::toDto).collect(Collectors.toList());
     }
 
     @Override
-    public void remove(Product product) {
-        if (product != null) cart().remove(product.getProductId());
-    }
-
-    @Override
+    @Transactional(readOnly = true)
     public CartItem getItem(Long productId) {
-        return cart().get(productId);
+        Cart cart = activeCartOrNull();
+        if (cart == null) return null;
+        return cartItemRepository.findByCart(cart).stream()
+                .filter(ci -> Objects.equals(ci.getProduct().getProductId(), productId))
+                .findFirst().map(this::toDto).orElse(null);
+    }
+
+    /* ============================ WRITE (stock-safe) ============================ */
+
+    @Override
+    @Transactional
+    public int addOrIncrease(Long productId, int addQty) {
+        Cart cart = getOrCreateActiveCart();
+        Product p = productRepository.findById(productId).orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại."));
+        int stock = Math.max(0, p.getQuantity());
+        if (stock == 0) return 0; // hết hàng
+
+        CartItemEntity row = cartItemRepository.findByCartAndProduct(cart, p).orElse(null);
+        Date now = Date.from(Instant.now());
+        if (row == null) {
+            int target = clampToStock(p, Math.max(1, addQty));
+            CartItemEntity e = new CartItemEntity();
+            e.setCart(cart);
+            e.setProduct(p);
+            e.setQuantity(target);
+            e.setUnitPrice(unitPriceAfterDiscount(p));
+            e.setCreatedAt(now);
+            e.setUpdatedAt(now);
+            e.setLastTouch(now);
+            cartItemRepository.save(e);
+            return target;
+        } else {
+            int target = clampToStock(p, row.getQuantity() + Math.max(1, addQty));
+            row.setQuantity(target);
+            row.setUpdatedAt(now);
+            row.setLastTouch(now);
+            cartItemRepository.save(row);
+            return target;
+        }
     }
 
     @Override
-    public void updateQuantity(Long productId, int quantity) {
-        CartItem ci = cart().get(productId);
-        if (ci != null) ci.setQuantity(Math.max(1, quantity));
+    @Transactional
+    public int updateQuantity(Long productId, int quantity) {
+        Cart cart = getOrCreateActiveCart();
+        Product p = productRepository.findById(productId).orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại."));
+        CartItemEntity row = cartItemRepository.findByCartAndProduct(cart, p)
+                .orElseThrow(() -> new IllegalStateException("Mục này chưa có trong giỏ."));
+        int target = clampToStock(p, Math.max(1, quantity));
+        row.setQuantity(target);
+        row.setUpdatedAt(Date.from(Instant.now()));
+        cartItemRepository.save(row);
+        return target;
     }
 
     @Override
-    public void increase(Long productId, int step) {
-        CartItem ci = cart().get(productId);
-        if (ci != null) ci.setQuantity(ci.getQuantity() + Math.max(1, step));
+    @Transactional
+    public int increase(Long productId, int step) {
+        return addOrIncrease(productId, Math.max(1, step));
     }
 
     @Override
-    public void decrease(Long productId, int step) {
-        CartItem ci = cart().get(productId);
-        if (ci != null) ci.setQuantity(Math.max(1, ci.getQuantity() - Math.max(1, step)));
+    @Transactional
+    public int decrease(Long productId, int step) {
+        Cart cart = getOrCreateActiveCart();
+        Product p = productRepository.findById(productId).orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại."));
+        CartItemEntity row = cartItemRepository.findByCartAndProduct(cart, p)
+                .orElseThrow(() -> new IllegalStateException("Mục này chưa có trong giỏ."));
+        int newQty = Math.max(1, row.getQuantity() - Math.max(1, step));
+        row.setQuantity(Math.min(newQty, Math.max(0, p.getQuantity())));
+        row.setUpdatedAt(Date.from(Instant.now()));
+        cartItemRepository.save(row);
+        return row.getQuantity();
+    }
+
+    @Override
+    @Transactional
+    public void remove(Product product) {
+        Cart cart = getOrCreateActiveCart();
+        cartItemRepository.findByCartAndProduct(cart, product).ifPresent(cartItemRepository::delete);
+    }
+
+    @Override
+    @Transactional
+    public void remove(CartItem item) {
+        if (item == null || item.getProduct() == null) return;
+        remove(item.getProduct());
+    }
+
+    @Override
+    @Transactional
+    public void clear() {
+        Cart cart = activeCartOrNull();
+        if (cart != null) {
+            cartItemRepository.deleteAll(cartItemRepository.findByCart(cart));
+        }
     }
 }

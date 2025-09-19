@@ -58,11 +58,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                         "/products","/productDetail","/productByCategory","/productByPublisher",
                         "/searchProduct","/aboutUs","/contact","/loadImage").permitAll()
 
-                // >>> QUÊN MẬT KHẨU: mở quyền FULL flow
-                .antMatchers("/forgotPassword",
-                        "/confirmOtpForgotPassword",
-                        "/resendOtpForgotPassword",
-                        "/changePassword").permitAll()
+                // Forgot password flow
+                .antMatchers("/forgotPassword","/confirmOtpForgotPassword",
+                        "/resendOtpForgotPassword","/changePassword").permitAll()
+
+                // Cart flow (YÊU CẦU LOGIN)
+                .antMatchers("/addToCart","/remove/**","/cart/**",
+                        "/shoppingCart_checkout","/checkout").authenticated()
 
                 // Admin
                 .antMatchers("/admin/reports","/admin/reportCategory","/admin/reportYear",
@@ -70,8 +72,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .hasRole("ADMIN")
                 .antMatchers("/admin/**").hasAnyRole("ADMIN","STAFF")
 
-                // Auth required
-                .antMatchers("/checkout","/favorite/**","/profile").authenticated()
+                // Favorites/Profile
+                .antMatchers("/favorite/**","/profile").authenticated()
+
                 .anyRequest().permitAll()
                 .and()
                 .formLogin()
