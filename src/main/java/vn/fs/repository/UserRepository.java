@@ -73,5 +73,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     int updatePasswordByEmail(@Param("email") String email,
                               @Param("hashed") String hashed);
 
+    @Query(value =
+            "select date(u.register_date) d, count(*) v " +
+                    "from user u " +
+                    "where u.register_date >= ?1 " +
+                    "group by date(u.register_date) order by d", nativeQuery = true)
+    List<Object[]> newUsersByDateFrom(java.time.LocalDate from);
+
+    @Query(value =
+            "select count(*) from user u where u.register_date >= ?1", nativeQuery = true)
+    long countNewUsersFrom(java.time.LocalDate from);
 
 }

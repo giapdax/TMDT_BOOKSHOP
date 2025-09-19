@@ -2,8 +2,7 @@ package vn.fs.repository;
 
 import java.util.List;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -28,7 +27,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "SELECT * FROM products WHERE product_name LIKE %?1%", nativeQuery = true)
     List<Product> searchProduct(String productName);
 
-    // ĐẾM SP THEO THỂ LOẠI (đang dùng cho sidebar)
+    // ĐẾM SP THEO THỂ LOẠI
     @Query(value = ""
             + "SELECT c.category_id, c.category_name, c.category_image, "
             + "       COUNT(p.product_id) AS so_luong "
@@ -49,10 +48,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "select * from products o where product_id in :ids", nativeQuery = true)
     List<Product> findByInventoryIds(@Param("ids") List<Integer> listProductId);
 
-    /* ========== NEW: lọc theo Nhà xuất bản (NXB) ========== */
+    /* ========== Lọc theo NXB ========== */
     @Query(value = "SELECT * FROM products WHERE nxb_id = :nxbId", nativeQuery = true)
     List<Product> listProductByNxb(@Param("nxbId") Long nxbId);
 
     @Query(value = "SELECT * FROM products WHERE nxb_id = :nxbId LIMIT 10", nativeQuery = true)
     List<Product> listProductByNxb10(@Param("nxbId") Long nxbId);
+
+    /* ========== NEW: Giảm tồn kho atomic (chỉ trừ khi đủ hàng) ========== */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE Product p SET p.quantity = p.quantity - :qty "
+            + "WHERE p.productId = :productId AND p.quantity >= :qty")
+    int decreaseStock(@Param("productId") Long productId, @Param("qty") int qty);
 }

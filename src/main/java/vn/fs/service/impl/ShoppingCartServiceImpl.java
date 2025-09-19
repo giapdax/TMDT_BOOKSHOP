@@ -1,69 +1,112 @@
 package vn.fs.service.impl;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
 import vn.fs.entities.CartItem;
 import vn.fs.entities.Product;
+import vn.fs.entities.User;
+import vn.fs.repository.UserRepository;
 import vn.fs.service.ShoppingCartService;
 
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
- * @author DongTHD
- *
+ * Lưu giỏ hàng theo USER (in-memory).
+ * Map: userId -> (productId -> CartItem)
  */
 @Service
+@RequiredArgsConstructor
 public class ShoppingCartServiceImpl implements ShoppingCartService {
 
-	private Map<Long, CartItem> map = new HashMap<Long, CartItem>(); // <Long, CartItem>
+    private final UserRepository userRepository;
 
-	@Override
-	public void add(CartItem item) {
-		CartItem existedItem = map.get(item.getId());
+    private final Map<Long, Map<Long, CartItem>> store = new ConcurrentHashMap<>();
 
-		if (existedItem != null) {
-			existedItem.setQuantity(item.getQuantity() + existedItem.getQuantity());
-			existedItem.setTotalPrice(item.getTotalPrice() + existedItem.getUnitPrice() * existedItem.getQuantity());
-		} else {
-			map.put(item.getId(), item);
-		}
-	}
+    /* ===== Current user ===== */
+    private Long currentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) return null;
+        String login = auth.getName();
+        Optional<User> u = userRepository.findByUsernameIgnoreCase(login)
+                .or(() -> userRepository.findByEmailIgnoreCase(login))
+                .or(() -> userRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(login, login));
+        return u.map(User::getUserId).orElse(null);
+    }
 
-	@Override
-	public void remove(CartItem item) {
+    private Map<Long, CartItem> cart() {
+        Long uid = currentUserId();
+        if (uid == null) return new HashMap<>(); // anonymous -> empty (không xài session)
+        return store.computeIfAbsent(uid, k -> new ConcurrentHashMap<>());
+    }
 
-		map.remove(item.getId());
+    @Override
+    public void add(CartItem item) {
+        Map<Long, CartItem> c = cart();
+        CartItem existed = c.get(item.getId());
+        if (existed != null) {
+            existed.setQuantity(existed.getQuantity() + item.getQuantity());
+        } else {
+            c.put(item.getId(), item);
+        }
+    }
 
-	}
+    @Override
+    public void remove(CartItem item) {
+        cart().remove(item.getId());
+    }
 
-	@Override
-	public Collection<CartItem> getCartItems() {
-		return map.values();
-	}
+    @Override
+    public Collection<CartItem> getCartItems() {
+        return cart().values();
+    }
 
-	@Override
-	public void clear() {
-		map.clear();
-	}
+    @Override
+    public void clear() {
+        cart().clear();
+    }
 
-	@Override
-	public double getAmount() {
-		return map.values().stream().mapToDouble(item -> item.getQuantity() * item.getUnitPrice()).sum();
-	}
+    @Override
+    public double getAmount() {
+        return cart().values().stream()
+                .mapToDouble(CartItem::getLineTotal)
+                .sum();
+    }
 
-	@Override
-	public int getCount() {
-		if (map.isEmpty()) {
-			return 0;
-		}
+    @Override
+    public int getCount() {
+        // sum qty (chuẩn UX)
+        return cart().values().stream().mapToInt(CartItem::getQuantity).sum();
+    }
 
-		return map.values().size();
-	}
+    @Override
+    public void remove(Product product) {
+        if (product != null) cart().remove(product.getProductId());
+    }
 
-	@Override
-	public void remove(Product product) {
+    @Override
+    public CartItem getItem(Long productId) {
+        return cart().get(productId);
+    }
 
-	}
+    @Override
+    public void updateQuantity(Long productId, int quantity) {
+        CartItem ci = cart().get(productId);
+        if (ci != null) ci.setQuantity(Math.max(1, quantity));
+    }
+
+    @Override
+    public void increase(Long productId, int step) {
+        CartItem ci = cart().get(productId);
+        if (ci != null) ci.setQuantity(ci.getQuantity() + Math.max(1, step));
+    }
+
+    @Override
+    public void decrease(Long productId, int step) {
+        CartItem ci = cart().get(productId);
+        if (ci != null) ci.setQuantity(Math.max(1, ci.getQuantity() - Math.max(1, step)));
+    }
 }

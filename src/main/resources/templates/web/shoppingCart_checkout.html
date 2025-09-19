@@ -32,7 +32,7 @@
     <link rel="stylesheet" href="css/checkout.css" />
   </head>
   <body>
-    
+
     <!--************************************
 				Header Start
 		*************************************-->
@@ -84,7 +84,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                    
+
                       <tr th:each="item,State : ${cartItems}">
                         <td class="table-serial"><h6>[[${State.index + 1}]]</h6></td>
                         <td class="table-image">
@@ -103,7 +103,7 @@
                             title="Chi tiết sản phẩm">
                             <i class="fas fa-eye"></i>
                             </a>
-                            
+
                             <a class="trash" href="javascript:void(0);" title="Xóa sản phẩm" th:data-id="${item.product.productId}" th:data-name="${item.product.productName}"
 										onclick="showConfigModalDialog(this.getAttribute('data-id'), this.getAttribute('data-name'))">
                             	<i class="icofont-trash"></i>
@@ -147,7 +147,7 @@
                                 readonly="readonly"
                             />
                         </div>
-                      
+
                         <div class="form-group">
                             <input
                                 type="text"
@@ -167,7 +167,7 @@
                                 required="required"
                             />
                         </div>
-                      
+
                         <div class="form-group">
                             <input
                                 type="tel"
@@ -183,7 +183,7 @@
                                 type="text"
                                 class="form-control"
                                 placeholder="Nội dung đơn hàng"
-                                
+
                             />
                         </div>
 
@@ -204,13 +204,13 @@
                     </form>
                 </div>
               </div>
-              
+
             </div>
           </div>
         </div>
       </div>
     </section>
-    
+
     <section
       class="news-part"
       style="background: url(images/newsletter.jpg) no-repeat center">
@@ -277,7 +277,7 @@
         </div>
       </div>
     </section>
-    
+
     	<script>
 		function showConfigModalDialog(id, name) {
 			$('#productName').text(name);
@@ -285,7 +285,7 @@
 			$('#configmationId').modal('show');
 		}
 		</script>
-		
+
 		<!-- Modal -->
 		<div class="modal" id="configmationId">
 			<div class="modal-dialog modal-dialog-centered">
@@ -305,22 +305,22 @@
 						<a id="yesOption" type="button" class="btn btn-success">Có</a>
 					</div>
 					</div>
-					
+
 				</div>
 			</div>
 		</div>
-    
-    
+
+
     <!--************************************
 				Footer Start
 		*************************************-->
 		<footer th:replace="~{/web/fragments/footer :: footer}"></footer>
-				
+
 		<!--************************************
 				Footer End
 		*************************************-->
-		
-		
+
+
     <script src="vendor/bootstrap/jquery-1.12.4.min.js"></script>
     <script src="vendor/bootstrap/popper.min.js"></script>
     <script src="vendor/bootstrap/bootstrap.min.js"></script>

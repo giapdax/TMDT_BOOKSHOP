@@ -1,31 +1,38 @@
 package vn.fs.service;
 
-import java.util.Collection;
-
 import org.springframework.stereotype.Service;
-
 import vn.fs.entities.CartItem;
 import vn.fs.entities.Product;
 
-/**
- * @author DongTHD
- *
- */
+import java.util.Collection;
+
 @Service
 public interface ShoppingCartService {
 
-	int getCount();
+    /** Tổng SỐ LƯỢNG (sum qty) của tất cả sản phẩm trong giỏ của USER hiện tại */
+    int getCount();
 
-	double getAmount();
+    /** Tổng TIỀN giỏ của USER hiện tại */
+    double getAmount();
 
-	void clear();
+    /** Xoá toàn bộ giỏ của USER hiện tại */
+    void clear();
 
-	Collection<CartItem> getCartItems();
+    /** Lấy các CartItem của USER hiện tại */
+    Collection<CartItem> getCartItems();
 
-	void remove(CartItem item);
+    /** Thêm mới / cộng dồn */
+    void add(CartItem item);
 
-	void add(CartItem item);
+    /** Xoá theo CartItem */
+    void remove(CartItem item);
 
-	void remove(Product product);
+    /** Xoá theo Product */
+    void remove(Product product);
 
+    /* Helpers cho thao tác nhanh */
+    CartItem getItem(Long productId);
+    void updateQuantity(Long productId, int quantity);
+    void increase(Long productId, int step);
+    void decrease(Long productId, int step);
 }

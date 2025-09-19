@@ -1,114 +1,83 @@
 package vn.fs.controller.admin;
 
 import java.security.Principal;
-import java.sql.SQLException;
-import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-
-import vn.fs.entities.OrderDetail;
-import vn.fs.entities.User;
 import vn.fs.repository.OrderDetailRepository;
 import vn.fs.repository.UserRepository;
 
-
 @Controller
+@RequestMapping("/admin")
+@RequiredArgsConstructor
 public class ReportController {
 
-	@Autowired
-	UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final OrderDetailRepository orderDetailRepository;
 
-	@Autowired
-	OrderDetailRepository orderDetailRepository;
+    /* Helper: bind user hiện tại vào model nếu đăng nhập */
+    private void bindCurrentUser(Model model, Principal principal) {
+        if (principal == null) return;
+        String login = principal.getName(); // có thể là username HOẶC email
+        userRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(login, login)
+                .ifPresent(u -> model.addAttribute("user", u));
+    }
 
-	// Statistics by product sold
-	@GetMapping(value = "/admin/reports")
-	public String report(Model model, Principal principal) throws SQLException {
-		User user = userRepository.findByEmail(principal.getName());
-		model.addAttribute("user", user);
+    /** Thống kê theo SẢN PHẨM */
+    @GetMapping("/reports")
+    public String reportByProduct(Model model, Principal principal) {
+        bindCurrentUser(model, principal);
+        model.addAttribute("title", "Thống kê theo sản phẩm");
+        model.addAttribute("listReportCommon", orderDetailRepository.repo());
+        return "admin/statistical";
+    }
 
-		OrderDetail orderDetail = new OrderDetail();
-		model.addAttribute("orderDetail", orderDetail);
-		List<Object[]> listReportCommon = orderDetailRepository.repo();
-		model.addAttribute("listReportCommon", listReportCommon);
+    /** Thống kê theo THỂ LOẠI */
+    @GetMapping("/reportCategory")
+    public String reportByCategory(Model model, Principal principal) {
+        bindCurrentUser(model, principal);
+        model.addAttribute("title", "Thống kê theo thể loại");
+        model.addAttribute("listReportCommon", orderDetailRepository.repoWhereCategory());
+        return "admin/statistical";
+    }
 
-		return "admin/statistical";
-	}
+    /** Thống kê theo NĂM */
+    @GetMapping("/reportYear")
+    public String reportByYear(Model model, Principal principal) {
+        bindCurrentUser(model, principal);
+        model.addAttribute("title", "Thống kê theo năm");
+        model.addAttribute("listReportCommon", orderDetailRepository.repoWhereYear());
+        return "admin/statistical";
+    }
 
-	// Statistics by category sold
-	@RequestMapping(value = "/admin/reportCategory")
-	public String reportcategory(Model model, Principal principal) throws SQLException {
-		User user = userRepository.findByEmail(principal.getName());
-		model.addAttribute("user", user);
+    /** Thống kê theo THÁNG */
+    @GetMapping("/reportMonth")
+    public String reportByMonth(Model model, Principal principal) {
+        bindCurrentUser(model, principal);
+        model.addAttribute("title", "Thống kê theo tháng");
+        model.addAttribute("listReportCommon", orderDetailRepository.repoWhereMonth());
+        return "admin/statistical";
+    }
 
-		OrderDetail orderDetail = new OrderDetail();
-		model.addAttribute("orderDetail", orderDetail);
-		List<Object[]> listReportCommon = orderDetailRepository.repoWhereCategory();
-		model.addAttribute("listReportCommon", listReportCommon);
+    /** Thống kê theo QUÝ */
+    @GetMapping("/reportQuarter")
+    public String reportByQuarter(Model model, Principal principal) {
+        bindCurrentUser(model, principal);
+        model.addAttribute("title", "Thống kê theo quý");
+        model.addAttribute("listReportCommon", orderDetailRepository.repoWhereQUARTER());
+        return "admin/statistical";
+    }
 
-		return "admin/statistical";
-	}
-
-	// Statistics of products sold by year
-	@RequestMapping(value = "/admin/reportYear")
-	public String reportyear(Model model, Principal principal) throws SQLException {
-		User user = userRepository.findByEmail(principal.getName());
-		model.addAttribute("user", user);
-
-		OrderDetail orderDetail = new OrderDetail();
-		model.addAttribute("orderDetail", orderDetail);
-		List<Object[]> listReportCommon = orderDetailRepository.repoWhereYear();
-		model.addAttribute("listReportCommon", listReportCommon);
-
-		return "admin/statistical";
-	}
-
-	// Statistics of products sold by month
-	@RequestMapping(value = "/admin/reportMonth")
-	public String reportmonth(Model model, Principal principal) throws SQLException {
-		User user = userRepository.findByEmail(principal.getName());
-		model.addAttribute("user", user);
-
-		OrderDetail orderDetail = new OrderDetail();
-		model.addAttribute("orderDetail", orderDetail);
-		List<Object[]> listReportCommon = orderDetailRepository.repoWhereMonth();
-		model.addAttribute("listReportCommon", listReportCommon);
-
-		return "admin/statistical";
-	}
-
-	// Statistics of products sold by quarter
-	@RequestMapping(value = "/admin/reportQuarter")
-	public String reportquarter(Model model, Principal principal) throws SQLException {
-		User user = userRepository.findByEmail(principal.getName());
-		model.addAttribute("user", user);
-
-		OrderDetail orderDetail = new OrderDetail();
-		model.addAttribute("orderDetail", orderDetail);
-		List<Object[]> listReportCommon = orderDetailRepository.repoWhereQUARTER();
-		model.addAttribute("listReportCommon", listReportCommon);
-
-		return "admin/statistical";
-	}
-
-	// Statistics by user
-	@RequestMapping(value = "/admin/reportOrderCustomer")
-	public String reportordercustomer(Model model, Principal principal) throws SQLException {
-		User user = userRepository.findByEmail(principal.getName());
-		model.addAttribute("user", user);
-
-		OrderDetail orderDetail = new OrderDetail();
-		model.addAttribute("orderDetail", orderDetail);
-		List<Object[]> listReportCommon = orderDetailRepository.reportCustommer();
-		model.addAttribute("listReportCommon", listReportCommon);
-
-		return "admin/statistical";
-	}
-	
-	// end task developer by DongTHD
-
+    /** Thống kê theo KHÁCH HÀNG */
+    @GetMapping("/reportOrderCustomer")
+    public String reportByCustomer(Model model, Principal principal) {
+        bindCurrentUser(model, principal);
+        model.addAttribute("title", "Thống kê theo khách hàng");
+        // SỬA Ở ĐÂY: dùng reportCustomer() (đúng chính tả)
+        model.addAttribute("listReportCommon", orderDetailRepository.reportCustomer());
+        return "admin/statistical";
+    }
 }

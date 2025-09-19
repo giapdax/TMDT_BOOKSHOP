@@ -3,8 +3,11 @@
       xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security5">
 <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>Header</title>
+
+    <!-- CSS mini-cart riêng -->
+    <link rel="stylesheet" th:href="@{/css/cart.css}" />
 </head>
 <body>
 <th:block th:fragment="header">
@@ -60,7 +63,6 @@
                     <img src="/images/logo.png" alt="logo"/>
                 </a>
 
-                <!-- Greeting: dùng displayName do GlobalModelAdvice bơm -->
                 <a href="javascript:void(0);" class="header-widget" title="Tên của bạn">
                     <img src="/images/user.png" alt="user"/>
                     <span>Hi! <strong><em>[[${displayName}]]</em></strong></span>
@@ -83,13 +85,12 @@
                         <sup th:text="${(totalSave != null) ? totalSave : 0}" id="totalSave">0</sup>
                     </a>
 
-                    <!-- Trang quản lý cho ADMIN/STAFF -->
-                    <a sec:authorize="hasAnyRole('ADMIN','STAFF')" th:href="@{/admin/home}"
-                       class="header-widget" title="Trang quản lý">
+                    <a sec:authorize="hasAnyRole('ADMIN','STAFF')" th:href="@{/admin/home}" class="header-widget" title="Trang quản lý">
                         <i class="fas fa-tools"></i>
                     </a>
 
-                    <button class="header-widget header-cart" title="Giỏ hàng">
+                    <!-- Nút mở mini-cart -->
+                    <button class="header-widget header-cart js-open-cart" title="Giỏ hàng">
                         <i class="fas fa-shopping-basket"></i>
                         <sup th:text="${(totalCartItems != null) ? totalCartItems : 0}" id="totalCartItems">0</sup>
                     </button>
@@ -99,7 +100,7 @@
         </div>
     </header>
 
-    <!-- Navbar -->
+    <!-- Navbar (giữ nguyên của bạn) -->
     <nav class="navbar-part">
         <div class="container">
             <div class="row">
@@ -136,6 +137,7 @@
                                     </li>
                                 </ul>
                             </li>
+
                             <li class="navbar-item dropdown">
                                 <a class="navbar-link dropdown-arrow" href="javascript:void(0);">Nhà xuất bản</a>
                                 <ul class="dropdown-position-list">
@@ -145,7 +147,6 @@
                                     </li>
                                 </ul>
                             </li>
-
 
                             <li class="navbar-item dropdown">
                                 <a class="navbar-link dropdown-arrow" href="javascript:void(0);">Liên hệ</a>
@@ -189,17 +190,17 @@
     </nav>
 
     <!-- Cart sidebar -->
-    <aside class="cart-sidebar">
+    <aside class="cart-sidebar" id="miniCart">
         <div class="cart-header">
             <div class="cart-total">
                 <i class="fas fa-shopping-basket"></i>
-                <span> Tổng số lượng giỏ hàng ([[${(totalCartItems != null) ? totalCartItems : 0}]]) </span>
+                <span> Tổng số lượng giỏ hàng (<span id="miniCartCount" th:text="${(totalCartItems != null) ? totalCartItems : 0}">0</span>) </span>
             </div>
-            <button class="cart-close"><i class="icofont-close"></i></button>
+            <button class="cart-close js-close-cart"><i class="icofont-close"></i></button>
         </div>
 
         <!-- Empty cart -->
-        <div th:if="${(totalCartItems == null) or (totalCartItems == 0)}" class="text-center">
+        <div id="miniCartEmpty" th:if="${(totalCartItems == null) or (totalCartItems == 0)}" class="text-center p-4">
             <h4 style="color:#119744" class="mt-5">Hiện tại bạn chưa có sản phẩm nào trong giỏ hàng!</h4>
             <h5 style="color:#119744">Hãy mua sắm đi nào!</h5>
             <a th:href="@{/products}" style="text-decoration:underline;">Click tại đây!</a>
@@ -207,9 +208,10 @@
 
         <!-- Has items -->
         <th:block th:if="${(totalCartItems != null) and (totalCartItems > 0)}">
-            <ul class="cart-list">
+            <ul class="cart-list" id="miniCartList">
                 <li class="cart-item"
-                    th:each="item : ${(cartItems != null) ? cartItems : T(java.util.Collections).emptyList()}">
+                    th:each="item : ${(cartItems != null) ? cartItems : T(java.util.Collections).emptyList()}"
+                    th:attr="data-id=${item.product.productId}">
                     <div class="cart-media">
                         <a th:href="@{/productDetail(id=${item.product.productId})}">
                             <img th:src="@{'/loadImage?imageName=' + ${item.product.productImage}}" alt="product"/>
@@ -217,26 +219,38 @@
                     </div>
                     <div class="cart-info-group">
                         <div class="cart-info">
-                            <h6>
-                                <label>Tên sản phẩm :</label>
-                                <a th:href="@{/productDetail(id=${item.product.productId})}" style="color:#119744"
-                                   th:text="${item.product.productName}">Tên sp</a>
+                            <h6 class="mb-1">
+                                <a th:href="@{/productDetail(id=${item.product.productId})}" class="prod-name" th:text="${item.product.productName}">Tên sp</a>
                             </h6>
-                            <label>Đơn giá :</label>
-                            <p th:text="${#numbers.formatDecimal(item.product.price - (item.product.price * item.product.discount/100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</p>
+                            <div class="price-row">Đơn giá: <strong class="unit-price"
+                                                                    th:text="${#numbers.formatDecimal(item.product.price - (item.product.price * item.product.discount/100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong></div>
                         </div>
-                        <div class="cart-action-group">
-                            <div class="product-action">
-                                <label>Số lượng :</label>
-                                <input class="action-input" title="Quantity Number" type="text"
-                                       name="quantity" th:value="${item.quantity}"/>
+
+                        <div class="action-row">
+                            <div class="qty-row">
+                                <button class="qty-btn js-dec" th:attr="data-id=${item.product.productId}">−</button>
+                                <input class="qty-input js-qty" type="tel" th:attr="data-id=${item.product.productId}" th:value="${item.quantity}" />
+                                <button class="qty-btn js-inc" th:attr="data-id=${item.product.productId}">+</button>
                             </div>
-                            <h6 th:text="${#numbers.formatDecimal((item.product.price - (item.product.price * item.product.discount/100)) * item.quantity, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</h6>
+                            <div class="stock-row">Còn: <span class="stock js-stock"
+                                                              th:text="${item.product.quantity - item.quantity}">0</span> đ</div>
+                            <button class="rm-btn js-remove" title="Xoá" th:attr="data-id=${item.product.productId}">
+                                <i class="icofont-trash"></i>
+                            </button>
+                        </div>
+
+                        <div class="line-row">
+                            <span>Tạm tính:</span>
+                            <strong class="line-total js-line"
+                                    th:text="${#numbers.formatDecimal((item.product.price - (item.product.price * item.product.discount/100)) * item.quantity, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong>
                         </div>
                     </div>
                 </li>
             </ul>
+
             <div class="cart-footer">
+                <div class="sum-row">Tổng cộng: <strong id="miniCartTotal"
+                                                        th:text="${#numbers.formatDecimal(totalPrice, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong></div>
                 <a class="cart-checkout-btn" th:href="@{/checkout}">
                     <span class="checkout-label">Thanh Toán</span>
                 </a>
@@ -244,6 +258,8 @@
         </th:block>
     </aside>
 
+    <!-- JS mini-cart -->
+    <script defer th:src="@{/js/cart.js}"></script>
 </th:block>
 </body>
 </html>

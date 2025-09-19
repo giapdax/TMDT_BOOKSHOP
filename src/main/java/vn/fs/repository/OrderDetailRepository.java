@@ -1,95 +1,120 @@
 package vn.fs.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import vn.fs.entities.OrderDetail;
 
-/**
- * @author DongTHD
- *
- */
 @Repository
 public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> {
 
-	@Query(value = "select * from order_details where order_id = ?;", nativeQuery = true)
-	List<OrderDetail> findByOrderId(Long id);
-	
-	// Statistics by product sold
-    @Query(value = "SELECT p.product_name , \r\n"
-    		+ "SUM(o.quantity) as quantity ,\r\n"
-    		+ "SUM(o.quantity * o.price) as sum,\r\n"
-    		+ "AVG(o.price) as avg,\r\n"
-    		+ "Min(o.price) as min, \r\n"
-    		+ "max(o.price) as max\r\n"
-    		+ "FROM order_details o\r\n"
-    		+ "INNER JOIN products p ON o.product_id = p.product_id\r\n"
-    		+ "GROUP BY p.product_name;", nativeQuery = true)
-    public List<Object[]> repo();
-    
-    // Statistics by category sold
-    @Query(value = "SELECT c.category_name , \r\n"
-    		+ "SUM(o.quantity) as quantity ,\r\n"
-    		+ "SUM(o.quantity * o.price) as sum,\r\n"
-    		+ "AVG(o.price) as avg,\r\n"
-    		+ "Min(o.price) as min,\r\n"
-    		+ "max(o.price) as max \r\n"
-    		+ "FROM order_details o\r\n"
-    		+ "INNER JOIN products p ON o.product_id = p.product_id\r\n"
-    		+ "INNER JOIN categories c ON p.category_id = c.category_id\r\n"
-    		+ "GROUP BY c.category_name;", nativeQuery = true)
-    public List<Object[]> repoWhereCategory();
-    
-    // Statistics of products sold by year
-    @Query(value = "Select YEAR(od.order_date) ,\r\n"
-    		+ "SUM(o.quantity) as quantity ,\r\n"
-    		+ "SUM(o.quantity * o.price) as sum,\r\n"
-    		+ "AVG(o.price) as avg,\r\n"
-    		+ "Min(o.price) as min,\r\n"
-    		+ "max(o.price) as max \r\n"
-    		+ "FROM order_details o\r\n"
-    		+ "INNER JOIN orders od ON o.order_id = od.order_id\r\n"
-    		+ "GROUP BY YEAR(od.order_date);", nativeQuery = true)
-    public List<Object[]> repoWhereYear();
-    
-    // Statistics of products sold by month
-    @Query(value = "Select month(od.order_date) ,\r\n"
-    		+ "SUM(o.quantity) as quantity ,\r\n"
-    		+ "SUM(o.quantity * o.price) as sum,\r\n"
-    		+ "AVG(o.price) as avg,\r\n"
-    		+ "Min(o.price) as min,\r\n"
-    		+ "max(o.price) as max\r\n"
-    		+ "FROM order_details o\r\n"
-    		+ "INNER JOIN orders od ON o.order_id = od.order_id\r\n"
-    		+ "GROUP BY month(od.order_date);", nativeQuery = true)
-    public List<Object[]> repoWhereMonth();
-    
-    // Statistics of products sold by quarter
-    @Query(value = "Select QUARTER(od.order_date),\r\n"
-    		+ "SUM(o.quantity) as quantity ,\r\n"
-    		+ "SUM(o.quantity * o.price) as sum,\r\n"
-    		+ "AVG(o.price) as avg,\r\n"
-    		+ "Min(o.price) as min,\r\n"
-    		+ "max(o.price) as max\r\n"
-    		+ "FROM order_details o\r\n"
-    		+ "INNER JOIN orders od ON o.order_id = od.order_id\r\n"
-    		+ "GROUP By QUARTER(od.order_date);", nativeQuery = true)
-    public List<Object[]> repoWhereQUARTER();
-    
-    // Statistics by user
-    @Query(value = "SELECT c.user_id,\r\n"
-    		+ "SUM(o.quantity) as quantity,\r\n"
-    		+ "SUM(o.quantity * o.price) as sum,\r\n"
-    		+ "AVG(o.price) as avg,\r\n"
-    		+ "Min(o.price) as min,\r\n"
-    		+ "max(o.price) as max\r\n"
-    		+ "FROM order_details o\r\n"
-    		+ "INNER JOIN orders p ON o.order_id = p.order_id\r\n"
-    		+ "INNER JOIN user c ON p.user_id = c.user_id\r\n"
-    		+ "GROUP BY c.user_id;", nativeQuery = true)
-    public List<Object[]> reportCustommer();
+    @Query(value = "select * from order_details where order_id = ?1", nativeQuery = true)
+    List<OrderDetail> findByOrderId(Long orderId);
 
+    // ===== THỐNG KÊ THEO SẢN PHẨM =====
+    @Query(value =
+            "SELECT p.product_name, " +
+                    "       SUM(o.quantity)           AS quantity, " +
+                    "       SUM(o.quantity * o.price) AS sum, " +
+                    "       AVG(o.price)              AS avg, " +
+                    "       MIN(o.price)              AS min, " +
+                    "       MAX(o.price)              AS max " +
+                    "FROM order_details o " +
+                    "JOIN products p ON o.product_id = p.product_id " +
+                    "GROUP BY p.product_name", nativeQuery = true)
+    List<Object[]> repo();
+
+    // ===== THỐNG KÊ THEO THỂ LOẠI =====
+    @Query(value =
+            "SELECT c.category_name, " +
+                    "       SUM(o.quantity)           AS quantity, " +
+                    "       SUM(o.quantity * o.price) AS sum, " +
+                    "       AVG(o.price)              AS avg, " +
+                    "       MIN(o.price)              AS min, " +
+                    "       MAX(o.price)              AS max " +
+                    "FROM order_details o " +
+                    "JOIN products p   ON o.product_id = p.product_id " +
+                    "JOIN categories c ON p.category_id = c.category_id " +
+                    "GROUP BY c.category_name", nativeQuery = true)
+    List<Object[]> repoWhereCategory();
+
+    // ===== THỐNG KÊ THEO NĂM =====
+    @Query(value =
+            "SELECT YEAR(od.order_date)       AS y, " +
+                    "       SUM(o.quantity)            AS quantity, " +
+                    "       SUM(o.quantity * o.price)  AS sum, " +
+                    "       AVG(o.price)               AS avg, " +
+                    "       MIN(o.price)               AS min, " +
+                    "       MAX(o.price)               AS max " +
+                    "FROM order_details o " +
+                    "JOIN orders od ON o.order_id = od.order_id " +
+                    "GROUP BY YEAR(od.order_date)", nativeQuery = true)
+    List<Object[]> repoWhereYear();
+
+    // ===== THỐNG KÊ THEO THÁNG =====
+    @Query(value =
+            "SELECT MONTH(od.order_date)      AS m, " +
+                    "       SUM(o.quantity)            AS quantity, " +
+                    "       SUM(o.quantity * o.price)  AS sum, " +
+                    "       AVG(o.price)               AS avg, " +
+                    "       MIN(o.price)               AS min, " +
+                    "       MAX(o.price)               AS max " +
+                    "FROM order_details o " +
+                    "JOIN orders od ON o.order_id = od.order_id " +
+                    "GROUP BY MONTH(od.order_date)", nativeQuery = true)
+    List<Object[]> repoWhereMonth();
+
+    // ===== THỐNG KÊ THEO QUÝ =====
+    @Query(value =
+            "SELECT QUARTER(od.order_date)    AS q, " +
+                    "       SUM(o.quantity)            AS quantity, " +
+                    "       SUM(o.quantity * o.price)  AS sum, " +
+                    "       AVG(o.price)               AS avg, " +
+                    "       MIN(o.price)               AS min, " +
+                    "       MAX(o.price)               AS max " +
+                    "FROM order_details o " +
+                    "JOIN orders od ON o.order_id = od.order_id " +
+                    "GROUP BY QUARTER(od.order_date)", nativeQuery = true)
+    List<Object[]> repoWhereQUARTER();
+
+    // ===== THỐNG KÊ THEO KHÁCH HÀNG =====
+    @Query(value =
+            "SELECT u.user_id, " +
+                    "       SUM(o.quantity)            AS quantity, " +
+                    "       SUM(o.quantity * o.price)  AS sum, " +
+                    "       AVG(o.price)               AS avg, " +
+                    "       MIN(o.price)               AS min, " +
+                    "       MAX(o.price)               AS max " +
+                    "FROM order_details o " +
+                    "JOIN orders od ON o.order_id = od.order_id " +
+                    "JOIN user   u  ON od.user_id   = u.user_id " +
+                    "GROUP BY u.user_id", nativeQuery = true)
+    List<Object[]> reportCustomer();
+
+    // ===== PHỤ TRỢ DASHBOARD =====
+
+    @Query(value =
+            "SELECT COALESCE(SUM(od.quantity), 0) " +
+                    "FROM order_details od " +
+                    "JOIN orders o ON o.order_id = od.order_id " +
+                    "WHERE o.order_date >= :from " +
+                    "  AND o.status IN (1,2,3)",
+            nativeQuery = true)
+    long totalSoldQtyFrom(@Param("from") LocalDate from);
+
+    @Query(value =
+            "SELECT DATE(o.order_date) AS d, COALESCE(SUM(od.quantity), 0) AS qty " +
+                    "FROM order_details od " +
+                    "JOIN orders o ON o.order_id = od.order_id " +
+                    "WHERE o.order_date >= :from " +
+                    "  AND o.status IN (1,2,3) " +
+                    "GROUP BY DATE(o.order_date) " +
+                    "ORDER BY d",
+            nativeQuery = true)
+    List<Object[]> soldQtyByDateFrom(@Param("from") LocalDate from);
 }
