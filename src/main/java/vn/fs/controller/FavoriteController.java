@@ -36,24 +36,47 @@ public class FavoriteController extends CommomController {
 		return "web/favorite";
 	}
 
-	@GetMapping(value = "/doFavorite")
-	public String doFavorite(Model model, Favorite favorite, User user, @RequestParam("id") Long id) {
+//	@GetMapping(value = "/doFavorite")
+//	public String doFavorite(Model model, Favorite favorite, User user, @RequestParam("id") Long id) {
+//		Product product = productRepository.findById(id).orElse(null);
+//		favorite.setProduct(product);
+//		favorite.setUser(user);
+//		product.setFavorite(true);
+//		favoriteRepository.save(favorite);
+//		commomDataService.commonData(model, user);
+//		return "redirect:/products";
+//	}
+//
+//	@GetMapping(value = "/doUnFavorite")
+//	public String doUnFavorite(Model model, Product product, User user, @RequestParam("id") Long id) {
+//		Favorite favorite = favoriteRepository.selectSaves(id, user.getUserId());
+//		product = productRepository.findById(id).orElse(null);
+//		product.setFavorite(false);
+//		favoriteRepository.delete(favorite);
+//		commomDataService.commonData(model, user);
+//		return "redirect:/products";
+//	}
+	@GetMapping("/doFavorite")
+	public String doFavorite(User user,
+							 @RequestParam("id") Long id,
+							 @RequestParam(value = "redirect", defaultValue = "/products") String redirect) {
 		Product product = productRepository.findById(id).orElse(null);
-		favorite.setProduct(product);
-		favorite.setUser(user);
-		product.setFavorite(true);
-		favoriteRepository.save(favorite);
-		commomDataService.commonData(model, user);
-		return "redirect:/products";
+		if (product != null && user != null) {
+			Favorite favorite = new Favorite();
+			favorite.setProduct(product);
+			favorite.setUser(user);
+			favoriteRepository.save(favorite);
+		}
+		return "redirect:" + redirect;
 	}
-
-	@GetMapping(value = "/doUnFavorite")
-	public String doUnFavorite(Model model, Product product, User user, @RequestParam("id") Long id) {
+	@GetMapping("/doUnFavorite")
+	public String doUnFavorite(User user,
+							 @RequestParam("id") Long id,
+							 @RequestParam(value = "redirect", defaultValue = "/products") String redirect) {
 		Favorite favorite = favoriteRepository.selectSaves(id, user.getUserId());
-		product = productRepository.findById(id).orElse(null);
-		product.setFavorite(false);
-		favoriteRepository.delete(favorite);
-		commomDataService.commonData(model, user);
-		return "redirect:/products";
+		if (favorite != null) {
+			favoriteRepository.delete(favorite);
+		}
+		return "redirect:" + redirect;
 	}
 }

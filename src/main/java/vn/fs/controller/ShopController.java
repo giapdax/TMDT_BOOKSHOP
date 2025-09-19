@@ -57,19 +57,17 @@ public class ShopController {
                        @RequestParam("page") Optional<Integer> page,
                        @RequestParam("size") Optional<Integer> size,
                        HttpSession session) {
-
+        User current = getCurrentUser(session);
         int currentPage = page.orElse(1);
         int pageSize = size.orElse(12);
 
         Page<Product> productPage = findPaginated(PageRequest.of(currentPage - 1, pageSize));
-
+        markFavorite(productPage.getContent(), current);
         int totalPages = productPage.getTotalPages();
         if (totalPages > 0) {
             List<Integer> pageNumbers = IntStream.rangeClosed(1, totalPages).boxed().collect(Collectors.toList());
             model.addAttribute("pageNumbers", pageNumbers);
         }
-
-        User current = getCurrentUser(session);
         commomDataService.commonData(model, current);
 
         model.addAttribute("products", productPage);
@@ -92,7 +90,6 @@ public class ShopController {
         }
         return new PageImpl<>(list, PageRequest.of(currentPage, pageSize), all.size());
     }
-
     @GetMapping(value = "/searchProduct")
     public String showsearch(Model model,
                              Pageable pageable,
@@ -100,19 +97,17 @@ public class ShopController {
                              @RequestParam("size") Optional<Integer> size,
                              @RequestParam("page") Optional<Integer> page,
                              HttpSession session) {
-
+        User current = getCurrentUser(session);
         int currentPage = page.orElse(1);
         int pageSize = size.orElse(12);
 
         Page<Product> productPage = findPaginatSearch(PageRequest.of(currentPage - 1, pageSize), keyword);
-
+        markFavorite(productPage.getContent(), current);
         int totalPages = productPage.getTotalPages();
         if (totalPages > 0) {
             List<Integer> pageNumbers = IntStream.rangeClosed(1, totalPages).boxed().collect(Collectors.toList());
             model.addAttribute("pageNumbers", pageNumbers);
         }
-
-        User current = getCurrentUser(session);
         commomDataService.commonData(model, current);
 
         model.addAttribute("products", productPage);
@@ -151,13 +146,21 @@ public class ShopController {
         for (Product product : products) {
             Product copy = new Product();
             BeanUtils.copyProperties(product, copy);
-
-            boolean isFav = false;
-            if (currentUserId != null) {
-                Favorite save = favoriteRepository.selectSaves(copy.getProductId(), currentUserId);
-                isFav = (save != null);
+//------------
+            Favorite save = favoriteRepository.selectSaves(copy.getProductId(), currentUserId);
+            if (save != null) {
+                copy.favorite = true;
             }
-            copy.favorite = isFav;
+            else {
+                copy.favorite = false;
+            }
+//------------------
+//            boolean isFav = false;
+//            if (currentUserId != null) {
+//                Favorite save = favoriteRepository.selectSaves(copy.getProductId(), currentUserId);
+//                isFav = (save != null);
+//            }
+//            copy.favorite = isFav;
 
             listProductNew.add(copy);
         }
@@ -182,12 +185,21 @@ public class ShopController {
             Product copy = new Product();
             BeanUtils.copyProperties(p, copy);
 
-            boolean fav = false;
-            if (currentUserId != null) {
-                Favorite save = favoriteRepository.selectSaves(copy.getProductId(), currentUserId);
-                fav = (save != null);
+//------------
+            Favorite save = favoriteRepository.selectSaves(copy.getProductId(), currentUserId);
+            if (save != null) {
+                copy.favorite = true;
             }
-            copy.favorite = fav;
+            else {
+                copy.favorite = false;
+            }
+//------------------
+//            boolean isFav = false;
+//            if (currentUserId != null) {
+//                Favorite save = favoriteRepository.selectSaves(copy.getProductId(), currentUserId);
+//                isFav = (save != null);
+//            }
+//            copy.favorite = isFav;
 
             listView.add(copy);
         }
@@ -195,5 +207,12 @@ public class ShopController {
         model.addAttribute("products", listView);
         commomDataService.commonData(model, current);
         return "web/shop";
+    }
+    private void markFavorite(List<Product> products, User user) {
+        if(user == null)return;
+        for (Product p : products) {
+            Favorite f = favoriteRepository.selectSaves(p.getProductId(), user.getUserId());
+            p.favorite = (f!=null);
+        }
     }
 }
