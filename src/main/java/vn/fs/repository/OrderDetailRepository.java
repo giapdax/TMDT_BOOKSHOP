@@ -94,23 +94,22 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
     List<Object[]> repoWhereQUARTER();
 
     /* ===== THỐNG KÊ THEO KHÁCH HÀNG =====
-       Lưu ý: bảng người dùng thường là 'users', không phải 'user'. */
+       Trả về groupLabel (full_name hoặc email) để hiển thị cột "Nhóm" trong bảng */
     @Query(value =
-            "SELECT u.user_id, " +
-                    "       SUM(o.quantity)            AS quantity, " +
-                    "       SUM(o.quantity * o.price)  AS sum, " +
-                    "       AVG(o.price)               AS avg, " +
-                    "       MIN(o.price)               AS min, " +
-                    "       MAX(o.price)               AS max " +
+            "SELECT COALESCE(u.full_name, u.email) AS grp, " +
+                    "       SUM(o.quantity)                AS quantity, " +
+                    "       SUM(o.quantity * o.price)      AS sum, " +
+                    "       AVG(o.price)                   AS avg, " +
+                    "       MIN(o.price)                   AS min, " +
+                    "       MAX(o.price)                   AS max " +
                     "FROM order_details o " +
                     "JOIN orders od ON o.order_id = od.order_id " +
-                    "JOIN users  u  ON od.user_id   = u.user_id " +
-                    "GROUP BY u.user_id",
+                    "JOIN users  u  ON od.user_id  = u.user_id " +
+                    "GROUP BY COALESCE(u.full_name, u.email)",
             nativeQuery = true)
     List<Object[]> reportCustomer();
 
     /* ===== PHỤ TRỢ DASHBOARD ===== */
-
     @Query(value =
             "SELECT COALESCE(SUM(od.quantity), 0) " +
                     "FROM order_details od " +
@@ -130,7 +129,4 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
                     "ORDER BY d",
             nativeQuery = true)
     List<Object[]> soldQtyByDateFrom(@Param("from") LocalDate from);
-
-
-
 }

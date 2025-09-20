@@ -210,6 +210,7 @@ public class ProductController {
         Optional<Product> opt = productRepository.findById(id);
         if (opt.isEmpty()) {
             ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
+            ra.addFlashAttribute("alertType", "danger");
             return "redirect:/admin/products";
         }
         Product p = opt.get();
@@ -217,23 +218,57 @@ public class ProductController {
         boolean referenced = orderDetailRepository.existsRefByProductId(id);
 
         if (referenced) {
-            p.setStatus(false);               // xoá mềm
+            // XÓA MỀM: set status=false
+            p.setStatus(false);
             productRepository.save(p);
-            ra.addFlashAttribute("message", "Sản phẩm đã có đơn hàng, chuyển sang trạng thái ẨN.");
+            ra.addFlashAttribute("message", "Đã xóa thành công và cập nhật trạng thái (đã ẨN).");
+            ra.addFlashAttribute("alertType", "success");
             return "redirect:/admin/products";
         }
 
         try {
             String img = p.getProductImage();
-            productRepository.deleteById(id);
+            productRepository.deleteById(id);   // XÓA CỨNG
             deleteImageQuietly(img);
-            ra.addFlashAttribute("message", "Xoá sản phẩm thành công");
+            ra.addFlashAttribute("message", "Xóa vĩnh viễn sản phẩm thành công.");
+            ra.addFlashAttribute("alertType", "success");
         } catch (Exception e) {
-            // fallback an toàn
+            // fallback an toàn: chuyển sang ẨN
             p.setStatus(false);
             productRepository.save(p);
-            ra.addFlashAttribute("message", "Sản phẩm đang được tham chiếu, đã chuyển sang ẨN.");
+            ra.addFlashAttribute("message", "Đã xóa thành công và cập nhật trạng thái (đã ẨN).");
+            ra.addFlashAttribute("alertType", "warning");
         }
+        return "redirect:/admin/products";
+    }
+    // Chuẩn: nhận POST/PUT
+    @RequestMapping(value = "/restoreProduct/{id}", method = {RequestMethod.POST, RequestMethod.PUT})
+    public String restoreProduct(@PathVariable("id") Long id, RedirectAttributes ra) {
+        return doRestoreProduct(id, ra);
+    }
+
+    // Fallback: nếu UI gọi GET cho nhanh, vẫn xử lý (có thể bỏ nếu không cần)
+    @GetMapping("/restoreProduct/{id}")
+    public String restoreProductGet(@PathVariable("id") Long id, RedirectAttributes ra) {
+        return doRestoreProduct(id, ra);
+    }
+
+    // Core logic dùng chung
+    private String doRestoreProduct(Long id, RedirectAttributes ra) {
+        Optional<Product> opt = productRepository.findById(id);
+        if (opt.isEmpty()) {
+            ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
+            ra.addFlashAttribute("alertType", "danger");
+            return "redirect:/admin/products";
+        }
+        Product p = opt.get();
+
+        // mở bán lại
+        p.setStatus(true);
+        productRepository.save(p);
+
+        ra.addFlashAttribute("message", "Đã mở bán lại sản phẩm.");
+        ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/products";
     }
 
