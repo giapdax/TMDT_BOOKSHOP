@@ -15,6 +15,13 @@ public class NXB {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long Id;
+    @Column(name = "id")         // PK duy nhất
+    private Long id;
+
+    @Column(name = "name")
     private String name;
+
+    // Nếu bảng nxb có cột status (tinyint(1))
+    @Column(name = "status")
+    private Boolean status;
 }
