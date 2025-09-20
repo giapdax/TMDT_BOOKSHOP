@@ -1,16 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security5">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
-    <meta name="author" content="mironcoder"/>
-    <meta name="email" content="mironcoder@gmail.com"/>
-    <meta name="profile" content="https://themeforest.net/user/mironcoder"/>
-    <meta name="template" content="book"/>
-    <meta name="title" content="book - Ecommerce Book Store HTML Template"/>
-    <meta name="keywords" content="organic, food, shop, ecommerce, store, html, bootstrap, template, agriculture, vegetables, products, farm, grocery, natural, online"/>
-    <title>Web bán sách giá rẻ</title>
+    <title>Chi tiết sản phẩm</title>
 
     <!-- Assets -->
     <link rel="icon" th:href="@{/images/favicon.png}"/>
@@ -22,6 +16,32 @@
     <link rel="stylesheet" th:href="@{/vendor/niceselect/nice-select.min.css}"/>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}"/>
     <link rel="stylesheet" th:href="@{/css/main.css}"/>
+
+    <!-- ====== CSS riêng cho trang chi tiết (có thể move sang main.css) ====== -->
+    <style>
+        .pd-card{background:#fff;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.08);padding:24px}
+        .pd-thumb{border-radius:14px;overflow:hidden;border:1px solid #eee;background:#fafafa}
+        .pd-price del{opacity:.55;margin-right:8px}
+        .badge-pill{border-radius:999px;padding:.35rem .7rem;font-size:.8rem}
+        .badge-sale{background:#ffe9ec;color:#e11d48;border:1px solid #fecdd3}
+        .badge-oos{background:#ffe6e6;color:#b91c1c;border:1px solid #fecaca}
+        .btn-gradient{background:linear-gradient(90deg,#10b981,#22c55e);border:none;color:#fff}
+        .btn-gradient:hover{filter:brightness(.95);color:#fff}
+        .btn-soft{background:#f8fafc;border:1px solid #e2e8f0}
+        .pd-meta li{display:flex;gap:8px;margin:.35rem 0}
+        .pd-meta li span:first-child{min-width:80px;color:#64748b}
+        .rating i{color:#fbbf24}
+        .sticky-lg{position:sticky;top:120px}
+        .btn-back{
+            display:inline-flex;align-items:center;gap:.5rem;
+            padding:.55rem .9rem;border-radius:999px;
+            background:rgba(15,23,42,.06);border:1px solid rgba(148,163,184,.35);
+        }
+        .btn-back:hover{background:rgba(15,23,42,.09)}
+        /* tránh overlay đè nút */
+        .btn, .product-add1 { position: relative; z-index: 2; }
+        .pd-thumb, .details-gallery, .product-details-content { position: relative; z-index: 1; }
+    </style>
 </head>
 <body>
 
@@ -32,222 +52,160 @@
 <section class="inner-section single-banner"
          th:style="|background: url(@{/images/single-banner.jpg}) no-repeat center|">
     <div class="container">
-        <h2>Sản phẩm</h2>
+        <h2>CHI TIẾT SẢN PHẨM</h2>
+
+        <!-- Nút quay lại (HTML thuần) -->
+        <div class="mt-2 mb-2">
+            <a class="btn btn-back" th:href="@{/products}">
+                <i class="icofont-long-arrow-left"></i> Quay lại
+            </a>
+        </div>
+
+        <!-- Breadcrumb sạch -->
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a th:href="@{/products}">Sản phẩm</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Chi tiết</li>
         </ol>
     </div>
 </section>
 
-<section class="inner-section shop-part">
+<!-- Nội dung -->
+<section class="inner-section"
+         th:with="p=(${product} ?: ${productDetail}),
+                  outOfStock=${p == null or p.quantity == null or p.quantity <= 0},
+                  finalPrice=${p != null ? (p.price - (p.price * p.discount/100)) : 0}">
     <div class="container">
-        <div class="row content-reverse">
 
-            <!-- ============ SIDEBAR TRÁI ============ -->
-            <div class="col-lg-3">
+        <!-- Không có dữ liệu -->
+        <div th:if="${p == null}" class="text-center my-5">
+            <h3 class="mb-3">Không tìm thấy sản phẩm</h3>
+            <a class="btn btn-gradient" th:href="@{/products}">Quay lại danh sách</a>
+        </div>
 
-                <!-- 1) THEO NHÀ XUẤT BẢN -->
-                <div class="shop-widget">
-                    <h6 class="shop-widget-title">Theo nhà xuất bản</h6>
-                    <ul class="shop-widget-list shop-widget-scroll">
-                        <li th:each="pub : ${nxbList}">
-                            <a class="shop-widget-content"
-                               th:href="@{/productByPublisher(id=${pub.id})}"
-                               th:text="${pub.name}">Nhà xuất bản</a>
+        <!-- Có dữ liệu -->
+        <div class="pd-card" th:if="${p != null}">
+            <div class="row g-4 align-items-start">
+
+                <!-- LEFT: ảnh -->
+                <div class="col-lg-5">
+                    <div class="sticky-lg">
+                        <div class="pd-thumb position-relative">
+                            <img th:src="@{'/loadImage?imageName=' + ${p.productImage}}" alt="product" class="w-100"/>
+                            <span class="badge badge-pill badge-sale position-absolute m-3"
+                                  th:if="${p.discount != null and p.discount > 0}">
+                - [[${p.discount}]]%
+              </span>
+                            <span class="badge badge-pill badge-oos position-absolute m-3"
+                                  style="right:0" th:if="${outOfStock}">
+                Hết hàng
+              </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: thông tin -->
+                <div class="col-lg-7 product-details-content">
+                    <h3 class="mb-2">[[${p.productName}]]</h3>
+
+                    <div class="d-flex align-items-center gap-2 mb-2 rating">
+                        <i class="icofont-star"></i><i class="icofont-star"></i>
+                        <i class="icofont-star"></i><i class="icofont-star"></i>
+                        <i class="icofont-star" style="opacity:.35"></i>
+                    </div>
+
+                    <div class="pd-price h4 mb-3">
+                        <del th:if="${p.discount != null && p.discount > 0}">
+                            [[${#numbers.formatDecimal(p.price,1,'DEFAULT',0,'DEFAULT')} + ' đ']]
+                        </del>
+                        <span class="text-success fw-bold">
+              [[${#numbers.formatDecimal(finalPrice,1,'DEFAULT',0,'DEFAULT')} + ' đ']]] <small class="text-muted">/kg</small>
+            </span>
+                    </div>
+
+                    <p class="text-muted mb-3" th:text="${p.description}">Mô tả sản phẩm…</p>
+
+                    <!-- ===== YÊU THÍCH (CHUẨN) + THÊM GIỎ ===== -->
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+
+                        <!-- Yêu thích -->
+                        <th:block sec:authorize="isAnonymous()">
+                            <a class="btn btn-soft" th:href="@{/login}">
+                                <i class="fas fa-heart me-1"></i> Thêm vào yêu thích
+                            </a>
+                        </th:block>
+
+                        <th:block sec:authorize="isAuthenticated()">
+                            <!-- chưa favorite (null hoặc false) -->
+                            <a class="btn btn-outline-danger"
+                               th:if="${p.favorite == null or !p.favorite}"
+                               th:href="@{/doFavorite(id=${p.productId})}">
+                                <i class="fas fa-heart me-1"></i> Thêm vào yêu thích
+                            </a>
+
+                            <!-- đã favorite -->
+                            <a class="btn btn-warning"
+                               th:if="${p.favorite != null and p.favorite}"
+                               th:href="@{/doUnFavorite(id=${p.productId})}">
+                                <i class="fas fa-heart me-1"></i> Bỏ yêu thích
+                            </a>
+                        </th:block>
+
+                        <!-- Thêm giỏ hàng (logic y như shop.html) -->
+                        <a class="btn btn-gradient"
+                           th:if="${!outOfStock}"
+                           th:href="@{/addToCart(productId=${p.productId})}">
+                            <i class="fas fa-shopping-basket me-1"></i> Thêm giỏ hàng
+                        </a>
+                        <button class="btn btn-secondary" th:if="${outOfStock}" disabled>
+                            <i class="fas fa-box-open me-1"></i> Hết hàng
+                        </button>
+                    </div>
+
+                    <!-- Meta -->
+                    <ul class="pd-meta list-unstyled">
+                        <li><span>SKU:</span> <strong th:text="${p.productId}">ID</strong></li>
+                        <li><span>Kho:</span>
+                            <strong th:text="${outOfStock} ? 'Hết hàng' : 'Còn ' + ${p.quantity}">Kho</strong>
+                        </li>
+                        <li><span>Danh mục:</span>
+                            <strong th:text="${p.category != null ? p.category.categoryName : 'Khác'}">Danh mục</strong>
                         </li>
                     </ul>
                 </div>
 
-                <!-- 2) THEO THỂ LOẠI -->
-                <div class="shop-widget">
-                    <h6 class="shop-widget-title">Theo thể loại</h6>
-                    <ul class="shop-widget-list shop-widget-scroll">
-                        <li th:each="item : ${countProductByCategory}">
-                            <a class="shop-widget-content"
-                               th:href="@{/productByCategory(id=${item[0]})}"
-                               th:text="${item[1]}">Thể loại</a>
-                        </li>
-                    </ul>
-                </div>
             </div>
-
-            <!-- ============ NỘI DUNG PHẢI ============ -->
-            <div class="col-lg-9">
-
-                <!-- Top filter (để nguyên layout) -->
-                <div class="row">
-                    <div class="col-lg-12">
-                        <div class="top-filter">
-                            <div class="filter-show"><label class="filter-label"></label></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Danh sách sản phẩm -->
-                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-3 row-cols-xl-4">
-                    <div class="col" th:each="item : ${products}">
-                        <div class="product-card">
-                            <div class="product-media">
-                                <div class="product-label">
-                                    <label class="label-text sale">- [[${item.discount + '%'}]]</label>
-                                </div>
-
-                                <!-- trạng thái yêu thích -->
-                                <th:block sec:authorize="isAuthenticated()">
-                                    <button class="product-wish" th:if="${!item.favorite}">
-                                        <i class="fas fa-heart"></i>
-                                    </button>
-                                    <button class="product-wish" th:if="${item.favorite}" style="color:#fd7e14">
-                                        <i class="fas fa-heart"></i>
-                                    </button>
-                                </th:block>
-                                <th:block sec:authorize="isAnonymous()">
-                                    <button class="product-wish"><i class="fas fa-heart"></i></button>
-                                </th:block>
-
-                                <a class="product-image" href="javascript:void(0);">
-                                    <img th:src="@{'/loadImage?imageName=' + ${item.productImage}}" alt="product"/>
-                                </a>
-
-                                <div class="product-widget">
-                                    <th:block sec:authorize="isAnonymous()">
-                                        <a title="Hãy đăng nhập" th:href="@{/login}" class="fas fa-heart"></a>
-                                    </th:block>
-                                    <th:block sec:authorize="isAuthenticated()">
-                                        <a th:if="${!item.favorite}" title="Yêu thích"
-                                           th:href="@{/doFavorite(id=${item.productId})}" class="fas fa-heart"></a>
-                                        <a th:if="${item.favorite}" title="Xóa Yêu thích"
-                                           th:href="@{/doUnFavorite(id=${item.productId})}"
-                                           style="background-color:#fd7e14" class="fas fa-heart"></a>
-                                    </th:block>
-
-                                    <a title="Video về sản phẩm" href="https://youtu.be/9xzcVxSBbG8"
-                                       class="venobox fas fa-play" data-autoplay="true" data-vbtype="video"></a>
-                                    <a title="Chi tiết sản phẩm"
-                                       th:href="@{/productDetail(id=${item.productId})}" class="fas fa-eye"></a>
-                                </div>
-                            </div>
-
-                            <div class="product-content">
-                                <div class="product-rating">
-                                    <i class="active icofont-star"></i>
-                                    <i class="active icofont-star"></i>
-                                    <i class="active icofont-star"></i>
-                                    <i class="active icofont-star"></i>
-                                    <i class="icofont-star"></i>
-                                </div>
-
-                                <h6 class="product-name">
-                                    <a href="javascript:void(0);">[[${item.productName}]]</a>
-                                </h6>
-
-                                <h6 class="product-price">
-                                    <del>[[${#numbers.formatDecimal(item.price, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]</del>
-                                    <span>
-                                        [[${#numbers.formatDecimal(item.price - (item.price * item.discount/100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]]
-                                        <small>/kg</small>
-                                    </span>
-                                </h6>
-
-                                <!-- Nút Thêm giỏ hàng: khóa khi hết hàng -->
-                                <th:block th:if="${item.quantity > 0}">
-                                    <a class="product-add1" title="Thêm Giỏ Hàng"
-                                       th:href="@{/addToCart(productId=${item.productId})}">
-                                        <i class="fas fa-shopping-basket"></i><span>Thêm Giỏ Hàng</span>
-                                    </a>
-                                </th:block>
-                                <th:block th:unless="${item.quantity > 0}">
-                                    <a class="product-add1" title="Hết hàng" href="javascript:void(0);"
-                                       style="pointer-events:none; opacity:.6; background:#bbb;">
-                                        <i class="fas fa-ban"></i><span>Hết hàng</span>
-                                    </a>
-                                </th:block>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Phân trang -->
-                <div class="row" th:if="${pageNumbers != null}">
-                    <div class="col-lg-12">
-                        <div class="bottom-paginate">
-                            <p class="page-info"></p>
-                            <ul class="pagination">
-                                <li th:each="pageNumber : ${pageNumbers}" class="page-item">
-                                    <a class="page-link"
-                                       th:href="@{/products(size=${products.size}, page=${pageNumber})}"
-                                       th:classappend="${pageNumber == products.number + 1} ? ' active'">
-                                        [[${pageNumber}]]
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-            </div><!-- /col-lg-9 -->
         </div>
+
     </div>
 </section>
 
-<!-- Newsletter -->
-<section class="news-part"
-         th:style="|background: url(@{/images/newsletter.jpg}) no-repeat center|">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-5 col-lg-6 col-xl-7">
-                <div class="news-text">
-                    <h2>Nhận Chiết Khấu 20% Cho Người Đăng Ký</h2>
-                    <p>Nhận Chiết Khấu 20% Cho Người Đăng Ký</p>
-                </div>
-            </div>
-            <div class="col-md-7 col-lg-6 col-xl-5">
-                <form class="news-form">
-                    <input type="text" placeholder="Nhập Địa Chỉ Email Của Bạn"/>
-                    <button><span><i class="icofont-ui-email"></i>Gửi</span></button>
-                </form>
-            </div>
-        </div>
-    </div>
-</section>
-
+<!-- Intro giữ nguyên theme -->
 <section class="intro-part">
     <div class="container">
         <div class="row intro-content">
             <div class="col-sm-6 col-lg-3">
                 <div class="intro-wrap">
                     <div class="intro-icon"><i class="fas fa-truck"></i></div>
-                    <div class="intro-content">
-                        <h5>Giao Hàng Tận Nhà Miễn Phí</h5>
-                        <p>Lorem ipsum dolor sit amet adipisicing elit nobis.</p>
-                    </div>
+                    <div class="intro-content"><h5>Giao Hàng Tận Nhà Miễn Phí</h5><p>Lorem ipsum dolor sit amet adipisicing elit nobis.</p></div>
                 </div>
             </div>
             <div class="col-sm-6 col-lg-3">
                 <div class="intro-wrap">
                     <div class="intro-icon"><i class="fas fa-sync-alt"></i></div>
-                    <div class="intro-content">
-                        <h5>Chính Sách Hoàn Trả</h5>
-                        <p>Lorem ipsum dolor sit amet adipisicing elit nobis.</p>
-                    </div>
+                    <div class="intro-content"><h5>Chính Sách Hoàn Trả</h5><p>Lorem ipsum dolor sit amet adipisicing elit nobis.</p></div>
                 </div>
             </div>
             <div class="col-sm-6 col-lg-3">
                 <div class="intro-wrap">
                     <div class="intro-icon"><i class="fas fa-headset"></i></div>
-                    <div class="intro-content">
-                        <h5>Hệ Thống Hỗ Trợ</h5>
-                        <p>Lorem ipsum dolor sit amet adipisicing elit nobis.</p>
-                    </div>
+                    <div class="intro-content"><h5>Hệ Thống Hỗ Trợ</h5><p>Lorem ipsum dolor sit amet adipisicing elit nobis.</p></div>
                 </div>
             </div>
             <div class="col-sm-6 col-lg-3">
                 <div class="intro-wrap">
                     <div class="intro-icon"><i class="fas fa-lock"></i></div>
-                    <div class="intro-content">
-                        <h5>Cách Thanh Toán An Toàn</h5>
-                        <p>Lorem ipsum dolor sit amet adipisicing elit nobis.</p>
-                    </div>
+                    <div class="intro-content"><h5>Cách Thanh Toán An Toàn</h5><p>Lorem ipsum dolor sit amet adipisicing elit nobis.</p></div>
                 </div>
             </div>
         </div>
@@ -257,7 +215,7 @@
 <!-- Footer -->
 <footer th:replace="~{/web/fragments/footer :: footer}"></footer>
 
-<!-- JS -->
+<!-- Vendor JS của theme (nếu cần) -->
 <script th:src="@{/vendor/bootstrap/jquery-1.12.4.min.js}"></script>
 <script th:src="@{/vendor/bootstrap/popper.min.js}"></script>
 <script th:src="@{/vendor/bootstrap/bootstrap.min.js}"></script>

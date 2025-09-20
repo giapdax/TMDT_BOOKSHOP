@@ -1,31 +1,17 @@
 package vn.fs.controller.admin;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.security.Principal;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.WebDataBinder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import vn.fs.entities.Category;
 import vn.fs.entities.NXB;
 import vn.fs.entities.Product;
@@ -34,114 +20,67 @@ import vn.fs.repository.CategoryRepository;
 import vn.fs.repository.NxbRepository;
 import vn.fs.repository.ProductRepository;
 import vn.fs.repository.UserRepository;
+import vn.fs.repository.OrderDetailRepository;
+// (Tuỳ dự án) import thêm nếu có bảng giỏ hàng / yêu thích
+// import vn.fs.repository.CartItemRepository;
+// import vn.fs.repository.FavoriteRepository;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.Principal;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+@Slf4j
 @Controller
 @RequestMapping("/admin")
+@RequiredArgsConstructor
 public class ProductController {
 
-    @Value("${upload.path}")
-    private String pathUploadImage;
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final NxbRepository nxbRepository;
+    private final UserRepository userRepository;
+    private final OrderDetailRepository orderDetailRepository;
+    // private final CartItemRepository cartItemRepository;
+    // private final FavoriteRepository favoriteRepository;
 
-    @Autowired ProductRepository productRepository;
-    @Autowired CategoryRepository categoryRepository;
-    @Autowired NxbRepository nxbRepository;
-    @Autowired UserRepository userRepository;
+    /** Thư mục upload ảnh (có thể override bằng -Dupload.path hoặc ENV) */
+    private final String pathUploadImage = System.getProperty(
+            "upload.path",
+            System.getProperty("user.dir") + File.separator + "upload" + File.separator + "images"
+    );
 
-    @ModelAttribute(value = "user")
-    public User user(Model model, Principal principal, User user) {
-        if (principal != null) {
-            model.addAttribute("user", new User());
-            user = userRepository.findByEmail(principal.getName());
-            model.addAttribute("user", user);
-        }
-        return user;
+    /* ===== COMMON BINDINGS ===== */
+
+    @ModelAttribute("user")
+    public User bindUser(Model model, Principal principal) {
+        if (principal == null) return null;
+        User u = userRepository.findByEmail(principal.getName());
+        model.addAttribute("user", u);
+        return u;
     }
 
-    public ProductController(CategoryRepository categoryRepository,
-                             ProductRepository productRepository) {
-        this.productRepository = productRepository;
-        this.categoryRepository = categoryRepository;
-    }
-
-    // show list product - table list
     @ModelAttribute("products")
-    public List<Product> showProduct(Model model) {
-        List<Product> products = productRepository.findAll();
-        model.addAttribute("products", products);
-        return products;
+    public List<Product> products(Model model) {
+        List<Product> list = productRepository.findAll();
+        model.addAttribute("products", list);
+        return list;
     }
 
-    @GetMapping(value = "/products")
-    public String products(Model model, Principal principal) {
-        Product product = new Product();
-        model.addAttribute("product", product);
-        return "admin/products";
-    }
-
-    /* === NEW: load NXB cho form thêm/sửa sản phẩm === */
-    @ModelAttribute("nxbList")
-    public List<NXB> loadNxbList(Model model) {
-        List<NXB> nxbs = nxbRepository.findAll();
-        model.addAttribute("nxbList", nxbs);
-        return nxbs;
-    }
-
-    // add product
-    @PostMapping(value = "/addProduct")
-    public String addProduct(@ModelAttribute("product") Product product, ModelMap model,
-                             @RequestParam("file") MultipartFile file,
-                             @RequestParam(value = "nxbId", required = false) Long nxbId,
-                             HttpServletRequest httpServletRequest) {
-
-        // Gán NXB từ select
-        if (nxbId != null) {
-            nxbRepository.findById(nxbId).ifPresent(product::setNxb);
-        } else {
-            product.setNxb(null);
-        }
-
-        // Upload ảnh (nếu có)
-        if (file != null && !file.isEmpty()) {
-            try {
-                File convFile = new File(pathUploadImage + "/" + file.getOriginalFilename());
-                try (FileOutputStream fos = new FileOutputStream(convFile)) {
-                    fos.write(file.getBytes());
-                }
-                product.setProductImage(file.getOriginalFilename());
-            } catch (IOException ignored) {}
-        }
-
-        Product p = productRepository.save(product);
-        if (p != null) model.addAttribute("message", "Update success");
-        else model.addAttribute("message", "Update failure");
-
-        model.addAttribute("product", product);
-        return "redirect:/admin/products";
-    }
-
-    // show select option ở add product
     @ModelAttribute("categoryList")
-    public List<Category> showCategory(Model model) {
-        List<Category> categoryList = categoryRepository.findAll();
-        model.addAttribute("categoryList", categoryList);
-        return categoryList;
+    public List<Category> categories(Model model) {
+        List<Category> cats = categoryRepository.findAll();
+        model.addAttribute("categoryList", cats);
+        return cats;
     }
 
-    // get Edit product
-    @GetMapping(value = "/editProduct/{id}")
-    public String editCategory(@PathVariable("id") Long id, ModelMap model,
-                               @ModelAttribute("product") Product updatedProduct) {
-        Product product = productRepository.findById(id).orElse(null);
-        model.addAttribute("product", product);
-        return "admin/editProduct";
-    }
-
-    // delete product
-    @GetMapping("/deleteProduct/{id}")
-    public String delProduct(@PathVariable("id") Long id, Model model) {
-        productRepository.deleteById(id);
-        model.addAttribute("message", "Delete successful!");
-        return "redirect:/admin/products";
+    @ModelAttribute("nxbList")
+    public List<NXB> publishers(Model model) {
+        List<NXB> list = nxbRepository.findAll();
+        model.addAttribute("nxbList", list);
+        return list;
     }
 
     @InitBinder
@@ -149,5 +88,199 @@ public class ProductController {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         sdf.setLenient(true);
         binder.registerCustomEditor(Date.class, new CustomDateEditor(sdf, true));
+    }
+
+    /* ===== PAGES ===== */
+
+    @GetMapping("/products")
+    public String productsPage(Model model) {
+        model.addAttribute("product", new Product()); // form thêm
+        return "admin/products";
+    }
+
+    @GetMapping("/editProduct/{id}")
+    public String editPage(@PathVariable("id") Long id, ModelMap model, RedirectAttributes ra) {
+        Product product = productRepository.findById(id).orElse(null);
+        if (product == null) {
+            ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
+            return "redirect:/admin/products";
+        }
+        model.addAttribute("product", product);
+        return "admin/editProduct";
+    }
+
+    /* ===== CREATE ===== */
+
+    @PostMapping("/addProduct")
+    public String addProduct(@ModelAttribute("product") Product product,
+                             @RequestParam("file") MultipartFile file,
+                             @RequestParam(value = "nxb.id", required = false) Long nxbId,
+                             RedirectAttributes ra) {
+
+        if (StringUtils.isBlank(product.getProductName())) {
+            ra.addFlashAttribute("message", "Tên sản phẩm không được để trống!");
+            return "redirect:/admin/products";
+        }
+        if (product.getCategory() == null || product.getCategory().getCategoryId() == null) {
+            ra.addFlashAttribute("message", "Vui lòng chọn thể loại!");
+            return "redirect:/admin/products";
+        }
+
+        if (nxbId != null) nxbRepository.findById(nxbId).ifPresent(product::setNxb);
+        else product.setNxb(null);
+
+        if (product.getEnteredDate() == null) product.setEnteredDate(new Date());
+        if (product.getDiscount() < 0) product.setDiscount(0);
+        if (product.getQuantity() < 0) product.setQuantity(0);
+        if (product.getPrice() < 0) product.setPrice(0.0);
+        if (product.getStatus() == null) product.setStatus(true); // mặc định hiển thị
+
+        String savedName = saveImageIfPresent(file);
+        if (savedName == null) {
+            ra.addFlashAttribute("message", "Vui lòng chọn ảnh hợp lệ (jpg, jpeg, png, webp)!");
+            return "redirect:/admin/products";
+        }
+        product.setProductImage(savedName);
+
+        productRepository.save(product);
+        ra.addFlashAttribute("message", "Thêm sản phẩm thành công");
+        return "redirect:/admin/products";
+    }
+
+    /* ===== UPDATE ===== */
+
+    @PostMapping("/editProduct/{id}")
+    public String updateProduct(@PathVariable("id") Long id,
+                                @ModelAttribute("product") Product form,
+                                @RequestParam(value = "file", required = false) MultipartFile file,
+                                @RequestParam(value = "existingImage", required = false) String existingImage,
+                                @RequestParam(value = "nxb.id", required = false) Long nxbId,
+                                RedirectAttributes ra) {
+
+        Optional<Product> opt = productRepository.findById(id);
+        if (opt.isEmpty()) {
+            ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
+            return "redirect:/admin/products";
+        }
+        Product p = opt.get();
+
+        p.setProductName(form.getProductName());
+        p.setDescription(form.getDescription());
+        p.setPrice(Math.max(0.0, form.getPrice()));
+        p.setQuantity(Math.max(0, form.getQuantity()));
+        p.setDiscount(Math.max(0, form.getDiscount()));
+        p.setEnteredDate(form.getEnteredDate() != null ? form.getEnteredDate() : p.getEnteredDate());
+        p.setStatus(form.getStatus() != null ? form.getStatus() : p.getStatus());
+
+        if (form.getCategory() != null && form.getCategory().getCategoryId() != null) {
+            categoryRepository.findById(form.getCategory().getCategoryId()).ifPresent(p::setCategory);
+        }
+
+        if (nxbId != null) nxbRepository.findById(nxbId).ifPresent(p::setNxb);
+        else p.setNxb(null);
+
+        String oldImage = p.getProductImage();
+        if (file != null && !file.isEmpty()) {
+            String newName = saveImageIfPresent(file);
+            if (newName == null) {
+                ra.addFlashAttribute("message", "Ảnh tải lên không hợp lệ!");
+                return "redirect:/admin/editProduct/" + id;
+            }
+            p.setProductImage(newName);
+            deleteImageQuietly(oldImage);
+        } else {
+            p.setProductImage(existingImage);
+        }
+
+        productRepository.save(p);
+        ra.addFlashAttribute("message", "Cập nhật sản phẩm thành công");
+        return "redirect:/admin/products";
+    }
+
+    /* ===== DELETE: xoá cứng nếu không bị tham chiếu, ngược lại xoá mềm ===== */
+
+    // ===== DELETE: xoá cứng nếu không bị tham chiếu, ngược lại xoá mềm =====
+    @RequestMapping(value = "/deleteProduct/{id}", method = {RequestMethod.POST, RequestMethod.DELETE})
+    public String deleteProduct(@PathVariable("id") Long id, RedirectAttributes ra) {
+        Optional<Product> opt = productRepository.findById(id);
+        if (opt.isEmpty()) {
+            ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
+            return "redirect:/admin/products";
+        }
+        Product p = opt.get();
+
+        // CHECK: có OrderDetail tham chiếu không?
+        boolean referenced = orderDetailRepository.existsRefByProductId(id);
+
+        if (referenced) {
+            p.setStatus(false);               // xoá mềm
+            productRepository.save(p);
+            ra.addFlashAttribute("message", "Sản phẩm đã có đơn hàng, không xoá cứng. Đã chuyển sang trạng thái ẨN.");
+            return "redirect:/admin/products";
+        }
+
+        try {
+            String img = p.getProductImage();
+            productRepository.deleteById(id);
+            deleteImageQuietly(img);
+            ra.addFlashAttribute("message", "Xoá sản phẩm thành công");
+        } catch (Exception e) {
+            // fallback an toàn
+            p.setStatus(false);
+            productRepository.save(p);
+            ra.addFlashAttribute("message", "Sản phẩm đang được tham chiếu, đã chuyển sang ẨN.");
+        }
+        return "redirect:/admin/products";
+    }
+
+
+
+    /* ===== HELPERS ===== */
+
+    private String saveImageIfPresent(MultipartFile file) {
+        if (file == null || file.isEmpty()) return null;
+
+        String original = StringUtils.defaultString(file.getOriginalFilename()).trim();
+        String ext = getExtension(original).toLowerCase(Locale.ROOT);
+        if (!(ext.equals("jpg") || ext.equals("jpeg") || ext.equals("png") || ext.equals("webp"))) {
+            log.warn("Invalid image extension: {}", ext);
+            return null;
+        }
+
+        ensureUploadDir();
+        String uniqueName = UUID.randomUUID().toString().replace("-", "") + "." + ext;
+        File target = new File(pathUploadImage, uniqueName);
+
+        try (FileOutputStream fos = new FileOutputStream(target)) {
+            fos.write(file.getBytes());
+            return uniqueName;
+        } catch (IOException e) {
+            log.error("Save image error", e);
+            return null;
+        }
+    }
+
+    private void ensureUploadDir() {
+        File dir = new File(pathUploadImage);
+        if (!dir.exists() && !dir.mkdirs()) {
+            log.warn("Cannot create upload dir: {}", pathUploadImage);
+        }
+    }
+
+    private void deleteImageQuietly(String name) {
+        if (StringUtils.isBlank(name)) return;
+        try {
+            File f = new File(pathUploadImage, name);
+            if (f.exists() && f.isFile() && !f.delete()) {
+                log.warn("Cannot delete old image: {}", f.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            log.warn("Delete old image error: {}", name, e);
+        }
+    }
+
+    private String getExtension(String filename) {
+        int i = filename.lastIndexOf('.');
+        return (i >= 0 && i < filename.length() - 1) ? filename.substring(i + 1) : "";
     }
 }

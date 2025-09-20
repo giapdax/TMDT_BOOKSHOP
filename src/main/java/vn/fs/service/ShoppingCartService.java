@@ -38,4 +38,5 @@ public interface ShoppingCartService {
 
     /** Xoá sạch giỏ */
     void clear();
+    int decreaseOrRemove(Long productId, int step);
 }

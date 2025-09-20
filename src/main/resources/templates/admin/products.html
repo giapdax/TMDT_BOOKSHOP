@@ -94,11 +94,10 @@
                                                         </div>
                                                     </div>
 
-                                                    <!-- NXB: bind *{nxb.id} -->
                                                     <div class="col-md-6 pl-0">
                                                         <div class="form-group form-group-default">
                                                             <label>Nhà xuất bản</label>
-                                                            <select class="form-control" th:field="*{nxb.id}" required>
+                                                            <select class="form-control" th:field="*{nxb.id}">
                                                                 <option value="">-- Chọn NXB --</option>
                                                                 <option th:each="pub : ${nxbList}" th:value="${pub.id}" th:text="${pub.name}"></option>
                                                             </select>
@@ -167,7 +166,7 @@
                                         <th>Ảnh</th>
                                         <th>Tên sản phẩm</th>
                                         <th>Thể loại</th>
-                                        <th>NXB</th><!-- NEW -->
+                                        <th>NXB</th>
                                         <th>Đơn giá</th>
                                         <th>Giảm giá</th>
                                         <th>Số lượng</th>
@@ -182,7 +181,7 @@
                                         <th>Ảnh</th>
                                         <th>Tên sản phẩm</th>
                                         <th>Thể loại</th>
-                                        <th>NXB</th><!-- NEW -->
+                                        <th>NXB</th>
                                         <th>Đơn giá</th>
                                         <th>Giảm giá</th>
                                         <th>Số lượng</th>
@@ -197,7 +196,7 @@
                                         <td><img th:src="@{'/loadImage?imageName='+${item.productImage}}" class="tbl-thumb" alt="product"></td>
                                         <td>[[${item.productName}]]</td>
                                         <td>[[${item.category.categoryName}]]</td>
-                                        <td>[[${item.nxb != null ? item.nxb.name : '—'}]]</td><!-- NEW -->
+                                        <td>[[${item.nxb != null ? item.nxb.name : '—'}]]</td>
                                         <td th:text="${#numbers.formatDecimal(item.price, 1, 'DEFAULT', 0, 'DEFAULT')}+' đ'"></td>
                                         <td>[[${#numbers.formatDecimal(item?.discount, 1, 'DEFAULT', 0, 'DEFAULT')}+' %']]</td>
                                         <td>[[${item.quantity}]]</td>
@@ -205,50 +204,24 @@
                                         <td>[[${item.description}]]</td>
                                         <td>
                                             <div class="form-button-action">
-                                                <a th:href="@{/admin/editProduct/{productId}(productId=${item.productId})}"
+                                                <a th:href="@{/admin/editProduct/{id}(id=${item.productId})}"
                                                    class="btn btn-link btn-primary btn-lg" data-toggle="tooltip" title="Chỉnh sửa">
                                                     <i class="fa fa-edit"></i>
                                                 </a>
-                                                <button th:data-id="${item.productId}" th:data-name="${item.productName}"
-                                                        onclick="showConfigModalDialog(this.getAttribute('data-id'), this.getAttribute('data-name'))"
-                                                        class="btn btn-link btn-danger" data-toggle="tooltip" title="Xóa">
-                                                    <i class="fa fa-times"></i>
-                                                </button>
+
+                                                <!-- XÓA 1 CHẠM: POST + confirm() -->
+                                                <form th:action="@{/admin/deleteProduct/{id}(id=${item.productId})}"
+                                                      method="post" class="d-inline"
+                                                      onsubmit="return confirm('Xoá [[${item.productName}]] ?');">
+                                                    <button type="submit" class="btn btn-link btn-danger" data-toggle="tooltip" title="Xóa">
+                                                        <i class="fa fa-times"></i>
+                                                    </button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>
                                     </tbody>
                                 </table>
-
-                                <script>
-                                    function showConfigModalDialog(id, name) {
-                                        $('#name').text(name);
-                                        $('#yesOption').attr('href', '/admin/deleteProduct/' + id);
-                                        $('#configmationId').modal('show');
-                                    }
-                                </script>
-
-                                <!-- Modal xác nhận xoá -->
-                                <div class="modal" tabindex="-1" role="dialog" id="configmationId">
-                                    <div class="modal-dialog" role="document">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" style="color:black">Xác nhận</h5>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p style="color:black">Bạn muốn xóa sản phẩm này không?</p>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <a id="yesOption" type="button" class="btn btn-primary">Có</a>
-                                                <button type="button" class="btn btn-danger" data-dismiss="modal">Không</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
                             </div><!-- /table-responsive -->
                         </div>
                     </div>

@@ -312,4 +312,31 @@ public class CartController extends CommomController {
         model.addAttribute("message", "Bạn đã hủy thanh toán qua PayPal.");
         return "web/payment_cancel";
     }
+    @GetMapping("/cart/inc")
+    public String inc(@RequestParam Long productId,
+                      @RequestParam(required=false) String redirect,
+                      @RequestParam(required=false) String anchor) {
+        shoppingCartService.increase(productId, 1);
+        if ("checkout".equalsIgnoreCase(redirect)) {
+            return "redirect:/checkout" + (anchor != null ? "#" + anchor : "");
+        }
+        return "redirect:/products";
+    }
+
+    @GetMapping("/cart/dec")
+    public String dec(@RequestParam Long productId,
+                      @RequestParam(required=false) String redirect,
+                      @RequestParam(required=false) String anchor) {
+        int after = shoppingCartService.decrease(productId, 1);
+        if (after <= 0) {
+            // xoá item khi về 0 (dùng API bạn sẵn có)
+            CartItem ci = shoppingCartService.getItem(productId);
+            if (ci != null) shoppingCartService.remove(ci);
+            // Nếu xoá dòng vừa đứng, vẫn nhảy tới anchor (nếu tồn tại) — không sao
+        }
+        if ("checkout".equalsIgnoreCase(redirect)) {
+            return "redirect:/checkout" + (anchor != null ? "#" + anchor : "");
+        }
+        return "redirect:/products";
+}
 }

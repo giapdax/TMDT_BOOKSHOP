@@ -162,6 +162,19 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     }
 
     @Override
+    public int decreaseOrRemove(Long productId, int step) {
+        int after = decrease(productId, step); // bạn đã có decrease(...)
+        if (after <= 0) {
+            CartItem item = getItem(productId);
+            if (item != null) {
+                remove(item); // hoặc remove(product) tùy bạn dùng giỏ kiểu gì
+            }
+            return 0;
+        }
+        return after;
+    }
+
+    @Override
     @Transactional
     public int updateQuantity(Long productId, int quantity) {
         Cart cart = getOrCreateActiveCart();

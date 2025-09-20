@@ -11,6 +11,7 @@
     <meta name="title" content="book - Ecommerce Book Store HTML Template" />
     <meta name="keywords" content="organic, food, shop, ecommerce, store, html, bootstrap, template, agriculture, vegetables, products, farm, grocery, natural, online"/>
     <title>Web bán sách giá rẻ</title>
+
     <link rel="icon" th:href="@{/images/favicon.png}" />
     <link rel="stylesheet" th:href="@{/fonts/flaticon/flaticon.css}" />
     <link rel="stylesheet" th:href="@{/fonts/icofont/icofont.min.css}" />
@@ -21,6 +22,13 @@
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}" />
     <link rel="stylesheet" th:href="@{/css/main.css}" />
     <link rel="stylesheet" th:href="@{/css/checkout.css}" />
+
+    <!-- Patch nhỏ: khoá click khi aria-disabled="true" -->
+    <style>
+        a[aria-disabled="true"] { pointer-events: none; opacity: .5; }
+        .qty-row .btn{min-width:32px}
+        .table-list img{max-width:72px;border:1px solid #eee;border-radius:8px;background:#fff}
+    </style>
 </head>
 <body>
 
@@ -68,28 +76,56 @@
                                 <tbody>
                                 <tr th:each="item,State : ${cartItems}">
                                     <td class="table-serial"><h6>[[${State.index + 1}]]</h6></td>
+
                                     <td class="table-image">
                                         <img th:src="@{'/loadImage?imageName='+${item.product.productImage}}" alt="product" />
                                     </td>
-                                    <td class="table-name"><h6>[[${item.product.productName}]]</h6></td>
+
+                                    <td class="table-name">
+                                        <h6>
+                                            <a th:href="@{/productDetail(id=${item.product.productId})}"
+                                               th:text="${item.product.productName}">Tên sản phẩm</a>
+                                        </h6>
+                                    </td>
+
                                     <td class="table-price">
                                         <h6>
                                             [[${#numbers.formatDecimal(item.product.price - (item.product.price * item.product.discount/100), 1, 'DEFAULT', 0, 'DEFAULT')} +' đ']]
                                             <small>/kg</small>
                                         </h6>
                                     </td>
-                                    <td class="table-brand"><h6>[[${item.product.category.categoryName}]]</h6></td>
 
+                                    <td class="table-brand">
+                                        <h6>[[${item.product.category.categoryName}]]</h6>
+                                    </td>
+
+                                    <!-- PATCH: cụm số lượng với redirect='checkout' + aria-disabled + null-safe stock -->
                                     <td class="table-quantity">
-                                        <div class="qty-row" style="display:flex; gap:8px; align-items:center;">
+                                        <div class="qty-row" style="display:flex; gap:8px; align-items:center;"
+                                             th:with="
+                                                q=${item.quantity},
+                                                rawMax=${item.product.quantity},
+                                                max=${rawMax == null ? 999999 : rawMax}
+                                             ">
+                                            <!-- Giảm -->
                                             <a class="btn btn-sm btn-outline-secondary"
-                                               th:href="@{/cart/dec(productId=${item.product.productId})}">−</a>
-                                            <span><strong>[[${item.quantity}]]</strong></span>
+                                               th:href="@{/cart/dec(productId=${item.product.productId}, redirect='checkout')}"
+                                               th:attr="aria-disabled=${q <= 1}"
+                                               title="Giảm">−</a>
+
+                                            <span><strong>[[${q}]]</strong></span>
+
+                                            <!-- Tăng -->
                                             <a class="btn btn-sm btn-outline-secondary"
-                                               th:href="@{/cart/inc(productId=${item.product.productId})}">+</a>
+                                               th:href="@{/cart/inc(productId=${item.product.productId}, redirect='checkout')}"
+                                               th:attr="aria-disabled=${q >= max}"
+                                               title="Tăng">+</a>
                                         </div>
-                                        <div class="text-muted" style="font-size:12px;">
-                                            Còn: [[${item.product.quantity - item.quantity}]]
+
+                                        <div class="text-muted" style="font-size:12px;"
+                                             th:with="left=${(item.product.quantity == null) ? null : (item.product.quantity - item.quantity)}">
+                                            <span th:if="${left == null}">Kho: cập nhật</span>
+                                            <span th:if="${left != null}">Còn: [[${left < 0 ? 0 : left}]]</span>
                                         </div>
                                     </td>
 
@@ -199,6 +235,14 @@
         $('#yesOption').attr('href', '/remove/'+id);
         $('#configmationId').modal('show');
     }
+
+    // (Tùy chọn) chặn cố tình click nút đã disabled
+    document.addEventListener('click', function(e){
+        const a = e.target.closest('a.btn, a.qty-btn');
+        if (a && a.getAttribute('aria-disabled') === 'true') {
+            e.preventDefault(); e.stopPropagation();
+        }
+    });
 </script>
 
 <!-- Modal xác nhận xoá -->
