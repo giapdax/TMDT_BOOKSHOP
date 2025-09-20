@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security5">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
@@ -86,11 +87,38 @@
                                     </label>
                                     <label class="label-text" th:if="${outOfStock}" style="background:#dc3545">Hết hàng</label>
                                 </div>
-                                <button class="product-wish wish"><i class="fas fa-heart"></i></button>
+
+
+<!--                                <button class="product-wish wish"><i class="fas fa-heart"></i></button>-->
+                                <th:block sec:authorize="isAuthenticated()">
+                                    <button class="product-wish" th:if="${!item.favorite}">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    <button class="product-wish" th:if="${item.favorite}" style="color:#fd7e14">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                </th:block>
+                                <th:block sec:authorize="isAnonymous()">
+                                    <button class="product-wish"><i class="fas fa-heart"></i></button>
+                                </th:block>
+
+
                                 <a class="product-image" th:href="@{/productDetail(id=${item.productId})}">
                                     <img th:src="@{'/loadImage?imageName=' + ${item.productImage}}" alt="product" />
                                 </a>
                                 <div class="product-widget">
+
+                                    <th:block sec:authorize="isAnonymous()">
+                                        <a title="Hãy đăng nhập" th:href="@{/login}" class="fas fa-heart"></a>
+                                    </th:block>
+                                    <th:block sec:authorize="isAuthenticated()">
+                                        <a th:if="${!item.favorite}" title="Yêu thích"
+                                           th:href="@{/doFavorite(id=${item.productId}, redirect = '/')}" class="fas fa-heart"></a>
+                                        <a th:if="${item.favorite}" title="Xóa Yêu thích"
+                                           th:href="@{/doUnFavorite(id=${item.productId}, redirect = '/')}"
+                                           style="background-color:#fd7e14" class="fas fa-heart"></a>
+                                    </th:block>
+
                                     <a title="Video sản phẩm" href="https://youtu.be/9xzcVxSBbG8" class="venobox fas fa-play" data-autoplay="true" data-vbtype="video"></a>
                                     <a title="Chi tiết sản phẩm" th:href="@{/productDetail(id=${item.productId})}" class="fas fa-eye"></a>
                                 </div>
@@ -159,11 +187,36 @@
                                     </label>
                                     <label class="label-text" th:if="${outOfStock}" style="background:#dc3545">Hết hàng</label>
                                 </div>
-                                <button class="product-wish wish"><i class="fas fa-heart"></i></button>
+<!--                                <button class="product-wish wish"><i class="fas fa-heart"></i></button>-->
+
+                                <th:block sec:authorize="isAuthenticated()">
+                                    <button class="product-wish" th:if="${!item.favorite}">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    <button class="product-wish" th:if="${item.favorite}" style="color:#fd7e14">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                </th:block>
+                                <th:block sec:authorize="isAnonymous()">
+                                    <button class="product-wish"><i class="fas fa-heart"></i></button>
+                                </th:block>
+
                                 <a class="product-image" th:href="@{/productDetail(id=${item.productId})}">
                                     <img th:src="@{'/loadImage?imageName=' + ${item.productImage}}" alt="product" />
                                 </a>
                                 <div class="product-widget">
+
+                                    <th:block sec:authorize="isAnonymous()">
+                                        <a title="Hãy đăng nhập" th:href="@{/login}" class="fas fa-heart"></a>
+                                    </th:block>
+                                    <th:block sec:authorize="isAuthenticated()">
+                                        <a th:if="${!item.favorite}" title="Yêu thích"
+                                           th:href="@{/doFavorite(id=${item.productId}, redirect = '/')}" class="fas fa-heart"></a>
+                                        <a th:if="${item.favorite}" title="Xóa Yêu thích"
+                                           th:href="@{/doUnFavorite(id=${item.productId}, redirect = '/')}"
+                                           style="background-color:#fd7e14" class="fas fa-heart"></a>
+                                    </th:block>
+
                                     <a title="Product Video" href="https://youtu.be/9xzcVxSBbG8" class="venobox fas fa-play" data-autoplay="true" data-vbtype="video"></a>
                                     <a title="Chi tiết sản phẩm" th:href="@{/productDetail(id=${item.productId})}" class="fas fa-eye"></a>
                                 </div>
@@ -249,11 +302,36 @@
                                     </label>
                                     <label class="label-text" th:if="${outOfStock}" style="background:#dc3545">Hết hàng</label>
                                 </div>
-                                <button class="product-wish wish"><i class="fas fa-heart"></i></button>
+<!--                                <button class="product-wish wish"><i class="fas fa-heart"></i></button>-->
+
+                                <th:block sec:authorize="isAuthenticated()">
+                                    <button class="product-wish" th:if="${!item.favorite}">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                    <button class="product-wish" th:if="${item.favorite}" style="color:#fd7e14">
+                                        <i class="fas fa-heart"></i>
+                                    </button>
+                                </th:block>
+                                <th:block sec:authorize="isAnonymous()">
+                                    <button class="product-wish"><i class="fas fa-heart"></i></button>
+                                </th:block>
+
                                 <a class="product-image" th:href="@{/productDetail(id=${item.productId})}">
                                     <img th:src="@{'/loadImage?imageName=' + ${item.productImage}}" alt="product" />
                                 </a>
                                 <div class="product-widget">
+
+                                    <th:block sec:authorize="isAnonymous()">
+                                        <a title="Hãy đăng nhập" th:href="@{/login}" class="fas fa-heart"></a>
+                                    </th:block>
+                                    <th:block sec:authorize="isAuthenticated()">
+                                        <a th:if="${!item.favorite}" title="Yêu thích"
+                                           th:href="@{/doFavorite(id=${item.productId}, redirect = '/')}" class="fas fa-heart"></a>
+                                        <a th:if="${item.favorite}" title="Xóa Yêu thích"
+                                           th:href="@{/doUnFavorite(id=${item.productId}, redirect = '/')}"
+                                           style="background-color:#fd7e14" class="fas fa-heart"></a>
+                                    </th:block>
+
                                     <a title="Product Video" href="https://youtu.be/9xzcVxSBbG8" class="venobox fas fa-play" data-autoplay="true" data-vbtype="video"></a>
                                     <a title="Chi tiết sản phẩm" th:href="@{/productDetail(id=${item.productId})}" class="fas fa-eye"></a>
                                 </div>

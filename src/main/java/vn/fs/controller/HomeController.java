@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import vn.fs.commom.CommomDataService;
 import vn.fs.entities.Product;
 import vn.fs.entities.User;
+import vn.fs.repository.FavoriteRepository;
 import vn.fs.repository.ProductRepository;
 import vn.fs.repository.UserRepository;
 import vn.fs.util.SessionUtils;
@@ -23,6 +24,7 @@ public class HomeController {
     @Autowired private CommomDataService commomDataService;
     @Autowired private UserRepository userRepository;
     @Autowired private ProductRepository productRepository;
+    @Autowired private FavoriteRepository favoriteRepository;
 
     @GetMapping({"/", "/home"})
     public String home(Model model, HttpSession session) {
@@ -36,7 +38,7 @@ public class HomeController {
         // 3) FEATURED (giảm giá cao)
         List<Product> featured = safe(productRepository.topDiscount20());
 
-        // 4) BEST SELLERS: lấy id theo thứ tự, truy vấn products và sort lại đúng thứ tự
+        // 4) BEST SELLERS
         List<Object[]> rows = safe(productRepository.bestSaleProduct20());
         List<Long> ids = rows.stream()
                 .map(r -> r[0] == null ? null : ((Number) r[0]).longValue())
@@ -49,7 +51,12 @@ public class HomeController {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        // 5) Bơm model
+        // 5) Gắn cờ favorite cho user
+        markFavorites(current, newArrivals);
+        markFavorites(current, featured);
+        markFavorites(current, bestSellers);
+
+        // 6) Bơm model
         model.addAttribute("productList", newArrivals);          // Mặt hàng mới về
         model.addAttribute("featuredProducts", featured);        // Sách nổi bật
         model.addAttribute("bestSaleProduct20", bestSellers);    // Sách bán chạy
@@ -62,6 +69,24 @@ public class HomeController {
         return "web/home";
     }
 
+    /** Đánh dấu sản phẩm user đã favorite */
+    private void markFavorites(User user, List<Product> products) {
+        if (user == null || products == null || products.isEmpty()) return;
+
+        List<Long> ids = products.stream()
+                .map(Product::getProductId)
+                .collect(Collectors.toList());
+
+        List<Long> favIds = favoriteRepository.findProductIdsByUserIdAndProductIds(user.getUserId(), ids);
+
+        for (Product p : products) {
+            if (favIds.contains(p.getProductId())) {
+                p.setFavorite(true);
+            }
+        }
+    }
+
+    /** Lấy user hiện tại từ session hoặc SecurityContext */
     private User resolveCurrentUser(HttpSession session) {
         Long uid = SessionUtils.getUserId(session);
         if (uid != null) return userRepository.findById(uid).orElse(null);

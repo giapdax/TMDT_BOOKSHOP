@@ -135,21 +135,39 @@
                             </a>
                         </th:block>
 
+<!--                        <th:block sec:authorize="isAuthenticated()">-->
+<!--                            &lt;!&ndash; chưa favorite (null hoặc false) &ndash;&gt;-->
+<!--                            <a class="btn btn-outline-danger"-->
+<!--                               th:if="${p.favorite == null or !p.favorite}"-->
+<!--                               th:href="@{/doFavorite(id=${p.productId}, redirect = '/favorite' )}">-->
+<!--                                <i class="fas fa-heart me-1"></i> Thêm vào yêu thích-->
+<!--                            </a>-->
+
+<!--                             đã favorite-->
+<!--                            <a class="btn btn-warning"-->
+<!--                               th:if="${p.favorite != null and p.favorite}"-->
+<!--                               th:href="@{/doUnFavorite(id=${p.productId}, redirect = '/favorite')}">-->
+<!--                                <i class="fas fa-heart me-1"></i> Bỏ yêu thích-->
+<!--                            </a>-->
+<!--                        </th:block>-->
                         <th:block sec:authorize="isAuthenticated()">
-                            <!-- chưa favorite (null hoặc false) -->
-                            <a class="btn btn-outline-danger"
-                               th:if="${p.favorite == null or !p.favorite}"
-                               th:href="@{/doFavorite(id=${p.productId})}">
+
+                            <!-- Nếu chưa favorite -->
+                            <a th:if="${p.favorite == null or !p.favorite}"
+                               class="btn btn-outline-danger"
+                               th:href="@{/doFavorite(id=${p.productId}, redirect='/productDetail?id=' + ${p.productId})}">
                                 <i class="fas fa-heart me-1"></i> Thêm vào yêu thích
                             </a>
 
-                            <!-- đã favorite -->
-                            <a class="btn btn-warning"
-                               th:if="${p.favorite != null and p.favorite}"
-                               th:href="@{/doUnFavorite(id=${p.productId})}">
+                            <!-- Nếu đã favorite -->
+                            <a th:if="${p.favorite != null and p.favorite}"
+                               class="btn btn-danger"
+                               th:href="@{/doUnFavorite(id=${p.productId}, redirect='/productDetail?id=' + ${p.productId})}">
                                 <i class="fas fa-heart me-1"></i> Bỏ yêu thích
                             </a>
+
                         </th:block>
+
 
                         <!-- Thêm giỏ hàng (logic y như shop.html) -->
                         <a class="btn btn-gradient"
@@ -164,7 +182,7 @@
 
                     <!-- Meta -->
                     <ul class="pd-meta list-unstyled">
-                        <li><span>SKU:</span> <strong th:text="${p.productId}">ID</strong></li>
+<!--                        <li><span>SKU:</span> <strong th:text="${p.productId}">ID</strong></li>-->
                         <li><span>Kho:</span>
                             <strong th:text="${outOfStock} ? 'Hết hàng' : 'Còn ' + ${p.quantity}">Kho</strong>
                         </li>

@@ -3,6 +3,8 @@ package vn.fs.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +16,10 @@ import vn.fs.entities.Product;
 import vn.fs.entities.User;
 import vn.fs.repository.FavoriteRepository;
 import vn.fs.repository.ProductRepository;
+import vn.fs.repository.UserRepository;
+import vn.fs.util.SessionUtils;
+
+import javax.servlet.http.HttpSession;
 
 
 @Controller
@@ -28,6 +34,7 @@ public class FavoriteController extends CommomController {
 	@Autowired
 	CommomDataService commomDataService;
 
+
 	@GetMapping(value = "/favorite")
 	public String favorite(Model model, User user) {
 		List<Favorite> favorites = favoriteRepository.selectAllSaves(user.getUserId());
@@ -35,6 +42,7 @@ public class FavoriteController extends CommomController {
 		model.addAttribute("favorites", favorites);
 		return "web/favorite";
 	}
+
 
 //	@GetMapping(value = "/doFavorite")
 //	public String doFavorite(Model model, Favorite favorite, User user, @RequestParam("id") Long id) {
