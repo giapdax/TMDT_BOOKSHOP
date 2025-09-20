@@ -94,20 +94,23 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
     List<Object[]> repoWhereQUARTER();
 
     /* ===== THỐNG KÊ THEO KHÁCH HÀNG =====
-       Trả về groupLabel (full_name hoặc email) để hiển thị cột "Nhóm" trong bảng */
+   Trả về: [groupLabel, qty, sum, avg, min, max]
+   LƯU Ý: DB của bạn đang dùng bảng `user` và cột tên `name` (theo log + navbar)
+*/
     @Query(value =
-            "SELECT COALESCE(u.full_name, u.email) AS grp, " +
-                    "       SUM(o.quantity)                AS quantity, " +
-                    "       SUM(o.quantity * o.price)      AS sum, " +
-                    "       AVG(o.price)                   AS avg, " +
-                    "       MIN(o.price)                   AS min, " +
-                    "       MAX(o.price)                   AS max " +
-                    "FROM order_details o " +
-                    "JOIN orders od ON o.order_id = od.order_id " +
-                    "JOIN users  u  ON od.user_id  = u.user_id " +
-                    "GROUP BY COALESCE(u.full_name, u.email)",
-            nativeQuery = true)
+            "SELECT COALESCE(u.name, u.email)      AS grp, " +
+                    "       SUM(odt.quantity)              AS quantity, " +
+                    "       SUM(odt.quantity * odt.price)  AS sum, " +
+                    "       AVG(odt.price)                 AS avg, " +
+                    "       MIN(odt.price)                 AS min, " +
+                    "       MAX(odt.price)                 AS max " +
+                    "FROM order_details odt " +
+                    "JOIN orders o  ON odt.order_id = o.order_id " +
+                    "JOIN user   u  ON o.user_id    = u.user_id " +
+            "GROUP BY COALESCE(u.name, u.email)",
+    nativeQuery = true)
     List<Object[]> reportCustomer();
+
 
     /* ===== PHỤ TRỢ DASHBOARD ===== */
     @Query(value =

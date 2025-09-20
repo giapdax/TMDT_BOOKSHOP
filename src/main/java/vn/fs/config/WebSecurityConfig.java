@@ -53,26 +53,33 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/css/**","/js/**","/images/**","/vendor/**","/fonts/**",
                         "/assets/**","/uploads/**").permitAll()
 
-                // Public pages
+                // Public
                 .antMatchers("/","/login","/register",
                         "/products","/productDetail","/productByCategory","/productByPublisher",
                         "/searchProduct","/aboutUs","/contact","/loadImage").permitAll()
 
-                // Forgot password flow
+                // Forgot password
                 .antMatchers("/forgotPassword","/confirmOtpForgotPassword",
                         "/resendOtpForgotPassword","/changePassword").permitAll()
 
-                // Cart flow (YÊU CẦU LOGIN)
+                // Cart (login)
                 .antMatchers("/addToCart","/remove/**","/cart/**",
                         "/shoppingCart_checkout","/checkout").authenticated()
 
-                // Admin
-                .antMatchers("/admin/reports","/admin/reportCategory","/admin/reportYear",
-                        "/admin/reportMonth","/admin/reportQuarter","/admin/reportOrderCustomer")
+                // Admin – cho phép tất cả alias
+                .antMatchers("/admin/reports",
+                        "/admin/reportCategory",
+                        "/admin/reportYear",
+                        "/admin/reportMonth",
+                        "/admin/reportQuarter",
+                        "/admin/reportOrderCustomer",
+                        "/admin/report-order-customer",
+                        "/admin/report/customer")
                 .hasRole("ADMIN")
+
                 .antMatchers("/admin/**").hasAnyRole("ADMIN","STAFF")
 
-                // Favorites/Profile
+                // Favorite/Profile
                 .antMatchers("/favorite/**","/profile").authenticated()
 
                 .anyRequest().permitAll()
