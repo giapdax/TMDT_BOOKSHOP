@@ -3599,7 +3599,7 @@ tbody tr td:last-child {
   margin-left: 20px;
 }
 .header-widget-group .header-widget:first-child {
-  margin-left: 0px;
+  margin-left: 0;
 }
 .header-widget {
   position: relative;
