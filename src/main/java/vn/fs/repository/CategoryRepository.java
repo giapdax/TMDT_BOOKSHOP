@@ -22,4 +22,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     /* Đọc thô để kiểm tra status khi user vào URL */
     @Query(value = "SELECT * FROM categories WHERE category_id = ?1", nativeQuery = true)
     Category findRaw(Long id);
+
+    @Query("select c from Category c order by c.status desc, c.categoryName asc")
+    List<Category> findAllForDropdown();
+
+    // Chỉ active — dùng cho trang THÊM
+    List<Category> findByStatusTrueOrderByCategoryNameAsc();
 }

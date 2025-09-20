@@ -23,14 +23,14 @@
   --blue: #1494a9;
   --white: #ffffff;
   --chalk: #f5f5f5;
-  --green: #11b76b;
+  --green: #00acee;
   --purple: #b12fad;
   --orange: #e86121;
   --yellow: #ffab10;
   --body: #f5f6f7;
   --border: #e8e8e8;
   --heading: #39404a;
-  --primary: #119744;
+  --primary: #00acee;
   --sub-heading: #565765;
   --green-chalk: #ddffd5;
   --green-dark: #072f17;
@@ -224,13 +224,13 @@ button:focus {
   padding: 20px 20px;
   border-radius: 3px;
   background: var(--white);
-  border-top: 3px solid var(--primary);
+  border-top: 3px solid #0a53be;
   -webkit-box-shadow: 0 2px 48px 0 rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 48px 0 rgba(0, 0, 0, 0.08);
 }
 .alert-info p {
   font-weight: 500;
-  color: var(--primary);
+  color: #0a53be;
   text-shadow: var(--primary-shadow);
 }
 .alert-info p a {
@@ -259,13 +259,20 @@ button:focus {
   color: var(--chalk);
 }
 .breadcrumb-item a:hover {
-  color: var(--primary);
+  color: #0a53be;
   text-decoration: underline;
 }
 .breadcrumb-item + .breadcrumb-item::before {
   color: var(--white);
   padding: 0px 8px;
 }
+.breadcrumb-item + .breadcrumb-item::before{
+    content: "\203A"; /* › */
+    font-family: inherit !important;
+    margin: 0 .5rem;
+    color: #9aa0a6;
+}
+
 .backdrop {
   position: fixed;
   top: 0px;
@@ -289,9 +296,9 @@ button:focus {
   text-align: center;
   display: none;
   border-radius: 50%;
-  background: var(--primary);
-  -webkit-box-shadow: 0px 0px 15px 3px rgba(71, 254, 126, 0.5);
-  box-shadow: 0px 0px 15px 3px rgba(71, 254, 126, 0.5);
+  background: #0a53be;
+  -webkit-box-shadow: 0px 0px 15px 3px #0a53be;
+  box-shadow: 0px 0px 15px 3px #0a53be;
   -webkit-animation: mahmud 2s infinite;
   animation: mahmud 2s infinite;
   transition: all linear 0.3s;
@@ -339,7 +346,7 @@ button:focus {
   text-transform: uppercase;
   padding: 14px 32px;
   border-radius: 6px;
-  border: 2px solid var(--primary);
+  border: 2px solid #0a53be;
 }
 .btn:focus {
   -webkit-box-shadow: none !important;
@@ -1502,49 +1509,68 @@ tbody tr td:last-child {
     font-size: 16px;
   }
 }
-.suggest-card {
-  position: relative;
+/* ===== Suggest card: vuông 1:1 + overlay brand #0a84ff ===== */
+.suggest-card{
+    position: relative;
+    display: block;
+    aspect-ratio: 1 / 1;      /* auto height = width => vuông chuẩn */
+    border-radius: 8px;
+    overflow: hidden;          /* cắt phần thừa khi crop ảnh */
 }
-.suggest-card::before {
-  position: absolute;
-  content: "";
-  top: 0px;
-  left: 0px;
-  width: 100%;
-  height: 100%;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.4);
-  transition: all linear 0.3s;
-  -webkit-transition: all linear 0.3s;
-  -moz-transition: all linear 0.3s;
-  -ms-transition: all linear 0.3s;
-  -o-transition: all linear 0.3s;
+
+/* ảnh fill full ô, không méo */
+.suggest-card img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 0;          /* dùng radius của .suggest-card */
 }
-.suggest-card:hover::before {
-  background: rgba(17, 151, 68, 0.9);
+
+/* lớp overlay */
+.suggest-card::before{
+    content: "";
+    position: absolute;
+    inset: 0;                  /* top/right/bottom/left: 0 */
+    border-radius: inherit;
+    background: rgba(0, 0, 0, 0.40);
+    transition: background .3s linear;
 }
-.suggest-card img {
-  width: 100%;
-  border-radius: 8px;
+
+/* màu hover: #0a84ff trong suốt */
+.suggest-card:hover::before{
+    background: rgba(10, 132, 255, 0.90);
 }
-.suggest-card h5 {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  text-align: center;
-  -webkit-transform: translate(-50%, -50%);
-  transform: translate(-50%, -50%);
-  color: var(--white);
-  font-weight: 400;
-  text-transform: capitalize;
-  text-shadow: var(--primary-tshadow);
+
+/* text giữa ô */
+.suggest-card h5{
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;       /* căn giữa cả trục */
+    padding: 8px;
+    text-align: center;
+    color: var(--white);
+    font-weight: 400;
+    text-transform: capitalize;
+    text-shadow: var(--primary-tshadow);
 }
-.suggest-card h5 span {
-  display: block;
-  font-size: 15px;
-  font-weight: 300;
+
+.suggest-card h5 span{
+    display: block;
+    font-size: 15px;
+    font-weight: 300;
+    opacity: .95;
 }
+
+/* ===== Fallback cho trình duyệt không có aspect-ratio ===== */
+@supports not (aspect-ratio: 1 / 1){
+    .suggest-card{ height: 0; padding-top: 100%; }
+    .suggest-card img,
+    .suggest-card h5,
+    .suggest-card::before{ position: absolute; inset: 0; }
+}
+
 @media (max-width: 400px) {
   .suggest-card h5 {
     font-size: 16px;
@@ -3424,6 +3450,7 @@ tbody tr td:last-child {
 .header-top {
   padding: 8px 0px;
   background: var(--primary);
+    background-color: #0a84ff
 }
 .header-top-welcome p {
   font-size: 14px;
@@ -6174,3 +6201,82 @@ tbody tr td:last-child {
 .quantity-group{display:flex;align-items:center;gap:8px}
 .qty-input{width:72px;text-align:center;border-radius:10px;border:1px solid #e5e7eb;padding:.35rem .6rem}
 .sticky-lg{position:sticky;top:120px}
+ .pd-card{background:#fff;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.08);padding:24px}
+.pd-thumb{border-radius:14px;overflow:hidden;border:1px solid #eee;background:#fafafa}
+.pd-price del{opacity:.55;margin-right:8px}
+.badge-pill{border-radius:999px;padding:.35rem .7rem;font-size:.8rem}
+.badge-sale{background:#ffe9ec;color:#e11d48;border:1px solid #fecdd3}
+.badge-oos{background:#ffe6e6;color:#b91c1c;border:1px solid #fecaca}
+.btn-gradient{background:linear-gradient(90deg,#10b981,#22c55e);border:none;color:#fff}
+.btn-gradient:hover{filter:brightness(.95);color:#fff}
+.btn-soft{background:#f8fafc;border:1px solid #e2e8f0}
+.pd-meta li{display:flex;gap:8px;margin:.35rem 0}
+.pd-meta li span:first-child{min-width:80px;color:#64748b}
+.rating i{color:#fbbf24}
+.sticky-lg{position:sticky;top:120px}
+.btn-back{
+    display:inline-flex;align-items:center;gap:.5rem;
+    padding:.55rem .9rem;border-radius:999px;
+    background:rgba(15,23,42,.06);border:1px solid rgba(148,163,184,.35);
+}
+/* Khung banner: bo góc + đổ bóng + tỉ lệ ảnh chuẩn, không méo */
+.hero-banner {
+    position: relative;
+    width: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 28px rgba(0,0,0,.12);
+    background: #f6f7f9;         /* nền xám nhạt trong lúc ảnh load */
+}
+
+/* Dùng aspect-ratio để giữ chiều cao responsive, ảnh luôn fill */
+.hero-banner::before {
+    content: "";
+    display: block;
+    aspect-ratio: 21 / 7;         /* ~3:1 cho banner ngang, giống mock */
+}
+
+/* Slide 2 thấp hơn 1 chút cho nhịp điệu */
+.hero-banner--sm::before {
+    aspect-ratio: 21 / 8;
+}
+
+.hero-banner__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;            /* fill khung, không méo */
+    object-position: center;      /* căn giữa chủ thể */
+}
+
+/* Tối ưu cho màn nhỏ */
+@media (max-width: 992px) {
+    .hero-banner { border-radius: 16px; }
+}
+@media (max-width: 576px) {
+    .hero-banner { border-radius: 12px; }
+    .hero-banner::before       { aspect-ratio: 16 / 7; }
+    .hero-banner--sm::before   { aspect-ratio: 16 / 8; }
+}
+
+/* Nếu template dùng slick/owl có mũi tên, căn giữa theo banner */
+.home-index-slider {
+    position: relative;
+}
+
+/* Tuỳ theme: các class dưới thường là của slick */
+.home-index-slider .slick-prev,
+.home-index-slider .slick-next {
+    top: 50% !important;
+    transform: translateY(-50%);
+    z-index: 2;
+}
+.home-index-slider .slick-prev { left: 12px; }
+.home-index-slider .slick-next { right: 12px; }
+
+/* Dot ở giữa dưới */
+.home-index-slider .slick-dots {
+    bottom: 12px;
+}

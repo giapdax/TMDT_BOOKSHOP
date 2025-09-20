@@ -46,7 +46,7 @@ public class ProductController {
             System.getProperty("user.dir") + File.separator + "upload" + File.separator + "images"
     );
 
-    /* ===== COMMON BINDINGS ===== */
+    /* ===================== COMMON BINDINGS ===================== */
 
     @ModelAttribute("user")
     public User bindUser(Model model, Principal principal) {
@@ -63,18 +63,26 @@ public class ProductController {
         return list;
     }
 
-    @ModelAttribute("categoryList")
-    public List<Category> categories(Model model) {
-        List<Category> cats = categoryRepository.findAll();
-        model.addAttribute("categoryList", cats);
-        return cats;
+    // ======= DROPDOWN DATA (CHIA RIÊNG CHO ADD vs EDIT) =======
+
+    // Dùng ở trang THÊM sản phẩm: chỉ hiện danh sách đang hiển thị (status = true)
+    @ModelAttribute("categoryActiveList")
+    public List<Category> categoryActiveList() {
+        return categoryRepository.findByStatusTrueOrderByCategoryNameAsc();
+    }
+    @ModelAttribute("nxbActiveList")
+    public List<NXB> nxbActiveList() {
+        return nxbRepository.findByStatusTrueOrderByNameAsc();
     }
 
-    @ModelAttribute("nxbList")
-    public List<NXB> publishers(Model model) {
-        List<NXB> list = nxbRepository.findAll();
-        model.addAttribute("nxbList", list);
-        return list;
+    // Dùng ở trang SỬA sản phẩm: hiện FULL, kể cả ẩn/chưa có SP
+    @ModelAttribute("categoryAllList")
+    public List<Category> categoryAllList() {
+        return categoryRepository.findAllForDropdown();
+    }
+    @ModelAttribute("nxbAllList")
+    public List<NXB> nxbAllList() {
+        return nxbRepository.findAllForDropdown();
     }
 
     @InitBinder
@@ -84,7 +92,7 @@ public class ProductController {
         binder.registerCustomEditor(Date.class, new CustomDateEditor(sdf, true));
     }
 
-    /* ===== PAGES ===== */
+    /* ===================== PAGES ===================== */
 
     @GetMapping("/products")
     public String productsPage(Model model) {
@@ -97,13 +105,14 @@ public class ProductController {
         Product product = productRepository.findById(id).orElse(null);
         if (product == null) {
             ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
+            ra.addFlashAttribute("alertType", "danger");
             return "redirect:/admin/products";
         }
         model.addAttribute("product", product);
         return "admin/editProduct";
     }
 
-    /* ===== CREATE ===== */
+    /* ===================== CREATE ===================== */
 
     @PostMapping("/addProduct")
     public String addProduct(@ModelAttribute("product") Product product,
@@ -113,10 +122,12 @@ public class ProductController {
 
         if (StringUtils.isBlank(product.getProductName())) {
             ra.addFlashAttribute("message", "Tên sản phẩm không được để trống!");
+            ra.addFlashAttribute("alertType", "danger");
             return "redirect:/admin/products";
         }
         if (product.getCategory() == null || product.getCategory().getCategoryId() == null) {
             ra.addFlashAttribute("message", "Vui lòng chọn thể loại!");
+            ra.addFlashAttribute("alertType", "danger");
             return "redirect:/admin/products";
         }
 
@@ -132,16 +143,18 @@ public class ProductController {
         String savedName = saveImageIfPresent(file);
         if (savedName == null) {
             ra.addFlashAttribute("message", "Vui lòng chọn ảnh hợp lệ (jpg, jpeg, png, webp)!");
+            ra.addFlashAttribute("alertType", "warning");
             return "redirect:/admin/products";
         }
         product.setProductImage(savedName);
 
         productRepository.save(product);
         ra.addFlashAttribute("message", "Thêm sản phẩm thành công");
+        ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/products";
     }
 
-    /* ===== UPDATE ===== */
+    /* ===================== UPDATE ===================== */
 
     @PostMapping("/editProduct/{id}")
     public String updateProduct(@PathVariable("id") Long id,
@@ -154,6 +167,7 @@ public class ProductController {
         Optional<Product> opt = productRepository.findById(id);
         if (opt.isEmpty()) {
             ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
+            ra.addFlashAttribute("alertType", "danger");
             return "redirect:/admin/products";
         }
         Product p = opt.get();
@@ -178,6 +192,7 @@ public class ProductController {
             String newName = saveImageIfPresent(file);
             if (newName == null) {
                 ra.addFlashAttribute("message", "Ảnh tải lên không hợp lệ!");
+                ra.addFlashAttribute("alertType", "warning");
                 return "redirect:/admin/editProduct/" + id;
             }
             p.setProductImage(newName);
@@ -188,24 +203,21 @@ public class ProductController {
 
         productRepository.save(p);
         ra.addFlashAttribute("message", "Cập nhật sản phẩm thành công");
+        ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/products";
     }
 
-    /* ===== DELETE ===== */
+    /* ===================== DELETE / RESTORE ===================== */
 
-    // Chuẩn: nhận POST/DELETE
     @RequestMapping(value = "/deleteProduct/{id}", method = {RequestMethod.POST, RequestMethod.DELETE})
     public String deleteProduct(@PathVariable("id") Long id, RedirectAttributes ra) {
         return doDeleteProduct(id, ra);
     }
-
-    // Fallback: nếu UI lỡ gọi GET vẫn xử lý cho khỏi 404 (tuỳ dự án có thể bỏ nếu không muốn hỗ trợ GET)
     @GetMapping("/deleteProduct/{id}")
     public String deleteProductGet(@PathVariable("id") Long id, RedirectAttributes ra) {
         return doDeleteProduct(id, ra);
     }
 
-    // Core logic dùng chung cho cả POST/DELETE/GET
     private String doDeleteProduct(Long id, RedirectAttributes ra) {
         Optional<Product> opt = productRepository.findById(id);
         if (opt.isEmpty()) {
@@ -218,7 +230,6 @@ public class ProductController {
         boolean referenced = orderDetailRepository.existsRefByProductId(id);
 
         if (referenced) {
-            // XÓA MỀM: set status=false
             p.setStatus(false);
             productRepository.save(p);
             ra.addFlashAttribute("message", "Đã xóa thành công và cập nhật trạng thái (đã ẨN).");
@@ -228,12 +239,11 @@ public class ProductController {
 
         try {
             String img = p.getProductImage();
-            productRepository.deleteById(id);   // XÓA CỨNG
+            productRepository.deleteById(id);
             deleteImageQuietly(img);
             ra.addFlashAttribute("message", "Xóa vĩnh viễn sản phẩm thành công.");
             ra.addFlashAttribute("alertType", "success");
         } catch (Exception e) {
-            // fallback an toàn: chuyển sang ẨN
             p.setStatus(false);
             productRepository.save(p);
             ra.addFlashAttribute("message", "Đã xóa thành công và cập nhật trạng thái (đã ẨN).");
@@ -241,19 +251,16 @@ public class ProductController {
         }
         return "redirect:/admin/products";
     }
-    // Chuẩn: nhận POST/PUT
+
     @RequestMapping(value = "/restoreProduct/{id}", method = {RequestMethod.POST, RequestMethod.PUT})
     public String restoreProduct(@PathVariable("id") Long id, RedirectAttributes ra) {
         return doRestoreProduct(id, ra);
     }
-
-    // Fallback: nếu UI gọi GET cho nhanh, vẫn xử lý (có thể bỏ nếu không cần)
     @GetMapping("/restoreProduct/{id}")
     public String restoreProductGet(@PathVariable("id") Long id, RedirectAttributes ra) {
         return doRestoreProduct(id, ra);
     }
 
-    // Core logic dùng chung
     private String doRestoreProduct(Long id, RedirectAttributes ra) {
         Optional<Product> opt = productRepository.findById(id);
         if (opt.isEmpty()) {
@@ -263,7 +270,6 @@ public class ProductController {
         }
         Product p = opt.get();
 
-        // mở bán lại
         p.setStatus(true);
         productRepository.save(p);
 
@@ -272,7 +278,7 @@ public class ProductController {
         return "redirect:/admin/products";
     }
 
-    /* ===== HELPERS ===== */
+    /* ===================== HELPERS ===================== */
 
     private String saveImageIfPresent(MultipartFile file) {
         if (file == null || file.isEmpty()) return null;
@@ -308,13 +314,15 @@ public class ProductController {
         if (StringUtils.isBlank(name)) return;
         try {
             File f = new File(pathUploadImage, name);
-            if (f.exists() && f.isFile() && !f.delete()) {
+            if (f.exists() && isFileDeletable(f) && !f.delete()) {
                 log.warn("Cannot delete old image: {}", f.getAbsolutePath());
             }
         } catch (Exception e) {
             log.warn("Delete old image error: {}", name, e);
         }
     }
+
+    private boolean isFileDeletable(File f) { return f.isFile(); }
 
     private String getExtension(String filename) {
         int i = filename.lastIndexOf('.');
