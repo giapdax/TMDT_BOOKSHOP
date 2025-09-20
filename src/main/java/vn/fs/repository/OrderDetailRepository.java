@@ -19,8 +19,7 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
 
     /* === CHECK THAM CHIẾU SẢN PHẨM (cho xoá sản phẩm) ===
        Trả về TRUE nếu tồn tại ít nhất 1 order_detail tham chiếu tới productId */
-    @Query(value = "SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END " +
-            "FROM order_details WHERE product_id = :pid", nativeQuery = true)
+    @Query("select count(od) > 0 from OrderDetail od where od.product.productId = :pid")
     boolean existsRefByProductId(@Param("pid") Long productId);
 
     /* ===== THỐNG KÊ THEO SẢN PHẨM ===== */

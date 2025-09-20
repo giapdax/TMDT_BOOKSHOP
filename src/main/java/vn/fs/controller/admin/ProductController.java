@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.ui.ModelMap;
@@ -21,9 +20,6 @@ import vn.fs.repository.NxbRepository;
 import vn.fs.repository.ProductRepository;
 import vn.fs.repository.UserRepository;
 import vn.fs.repository.OrderDetailRepository;
-// (Tuỳ dự án) import thêm nếu có bảng giỏ hàng / yêu thích
-// import vn.fs.repository.CartItemRepository;
-// import vn.fs.repository.FavoriteRepository;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -43,8 +39,6 @@ public class ProductController {
     private final NxbRepository nxbRepository;
     private final UserRepository userRepository;
     private final OrderDetailRepository orderDetailRepository;
-    // private final CartItemRepository cartItemRepository;
-    // private final FavoriteRepository favoriteRepository;
 
     /** Thư mục upload ảnh (có thể override bằng -Dupload.path hoặc ENV) */
     private final String pathUploadImage = System.getProperty(
@@ -197,11 +191,22 @@ public class ProductController {
         return "redirect:/admin/products";
     }
 
-    /* ===== DELETE: xoá cứng nếu không bị tham chiếu, ngược lại xoá mềm ===== */
+    /* ===== DELETE ===== */
 
-    // ===== DELETE: xoá cứng nếu không bị tham chiếu, ngược lại xoá mềm =====
+    // Chuẩn: nhận POST/DELETE
     @RequestMapping(value = "/deleteProduct/{id}", method = {RequestMethod.POST, RequestMethod.DELETE})
     public String deleteProduct(@PathVariable("id") Long id, RedirectAttributes ra) {
+        return doDeleteProduct(id, ra);
+    }
+
+    // Fallback: nếu UI lỡ gọi GET vẫn xử lý cho khỏi 404 (tuỳ dự án có thể bỏ nếu không muốn hỗ trợ GET)
+    @GetMapping("/deleteProduct/{id}")
+    public String deleteProductGet(@PathVariable("id") Long id, RedirectAttributes ra) {
+        return doDeleteProduct(id, ra);
+    }
+
+    // Core logic dùng chung cho cả POST/DELETE/GET
+    private String doDeleteProduct(Long id, RedirectAttributes ra) {
         Optional<Product> opt = productRepository.findById(id);
         if (opt.isEmpty()) {
             ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
@@ -209,13 +214,12 @@ public class ProductController {
         }
         Product p = opt.get();
 
-        // CHECK: có OrderDetail tham chiếu không?
         boolean referenced = orderDetailRepository.existsRefByProductId(id);
 
         if (referenced) {
             p.setStatus(false);               // xoá mềm
             productRepository.save(p);
-            ra.addFlashAttribute("message", "Sản phẩm đã có đơn hàng, không xoá cứng. Đã chuyển sang trạng thái ẨN.");
+            ra.addFlashAttribute("message", "Sản phẩm đã có đơn hàng, chuyển sang trạng thái ẨN.");
             return "redirect:/admin/products";
         }
 
@@ -232,8 +236,6 @@ public class ProductController {
         }
         return "redirect:/admin/products";
     }
-
-
 
     /* ===== HELPERS ===== */
 

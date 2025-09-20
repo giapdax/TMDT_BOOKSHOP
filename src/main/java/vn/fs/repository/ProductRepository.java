@@ -19,15 +19,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "SELECT * FROM products AS b WHERE b.category_id = ?;", nativeQuery = true)
     List<Product> listProductByCategory10(Long categoryId);
 
-    // List product new
-    @Query(value = "SELECT * FROM products ORDER BY entered_date DESC limit 20;", nativeQuery = true)
+    // NEW ARRIVALS: 20 sp mới nhất
+    @Query(value = "SELECT * FROM products ORDER BY entered_date DESC LIMIT 20;", nativeQuery = true)
     List<Product> listProductNew20();
 
     // Search Product
     @Query(value = "SELECT * FROM products WHERE product_name LIKE %?1%", nativeQuery = true)
     List<Product> searchProduct(String productName);
 
-    // ĐẾM SP THEO THỂ LOẠI
+    // Đếm sp theo thể loại
     @Query(value = ""
             + "SELECT c.category_id, c.category_name, c.category_image, "
             + "       COUNT(p.product_id) AS so_luong "
@@ -37,16 +37,17 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             + "ORDER BY c.category_name", nativeQuery = true)
     List<Object[]> listCategoryByProductName();
 
-    // Top 20 product best sale (trả id & count)
-    @Query(value = "SELECT p.product_id, COUNT(*) AS SoLuong "
-            + "FROM order_details p "
-            + "JOIN products c ON p.product_id = c.product_id "
-            + "GROUP BY p.product_id "
-            + "ORDER BY SoLuong DESC limit 20;", nativeQuery = true)
+    // BEST SELLERS: trả (product_id, count) top 20
+    @Query(value = "SELECT od.product_id, COUNT(*) AS SoLuong "
+            + "FROM order_details od "
+            + "JOIN products p ON od.product_id = p.product_id "
+            + "GROUP BY od.product_id "
+            + "ORDER BY SoLuong DESC LIMIT 20;", nativeQuery = true)
     List<Object[]> bestSaleProduct20();
 
-    @Query(value = "select * from products o where product_id in :ids", nativeQuery = true)
-    List<Product> findByInventoryIds(@Param("ids") List<Integer> listProductId);
+    // FIX: dùng Long thay vì Integer
+    @Query(value = "SELECT * FROM products WHERE product_id IN :ids", nativeQuery = true)
+    List<Product> findByInventoryIds(@Param("ids") List<Long> listProductId);
 
     /* ========== Lọc theo NXB ========== */
     @Query(value = "SELECT * FROM products WHERE nxb_id = :nxbId", nativeQuery = true)
@@ -55,9 +56,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "SELECT * FROM products WHERE nxb_id = :nxbId LIMIT 10", nativeQuery = true)
     List<Product> listProductByNxb10(@Param("nxbId") Long nxbId);
 
-    /* ========== NEW: Giảm tồn kho atomic (chỉ trừ khi đủ hàng) ========== */
+    /* ========== STOCK ========== */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Product p SET p.quantity = p.quantity - :qty "
             + "WHERE p.productId = :productId AND p.quantity >= :qty")
     int decreaseStock(@Param("productId") Long productId, @Param("qty") int qty);
+
+    /* ========== FEATURED: chọn theo % giảm giá cao nhất ========== */
+    @Query(value = "SELECT * FROM products ORDER BY discount DESC, entered_date DESC LIMIT 20", nativeQuery = true)
+    List<Product> topDiscount20();
 }
