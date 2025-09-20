@@ -1,0 +1,66 @@
+/* ==== FLASH / ALERT ==== */
+.alert {
+    position: relative;
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 16px 12px 44px; /* chừa chỗ icon trái */
+    margin: 10px 0 18px;
+    font-weight: 600;
+    box-shadow: 0 6px 18px rgba(0,0,0,.06);
+    animation: alert-in .25s ease-out;
+}
+@keyframes alert-in { from {opacity:0; transform: translateY(-6px)} to {opacity:1; transform:translateY(0)} }
+
+/* icon trái (dùng pseudo) */
+.alert::before{
+    content: "";
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    width: 20px; height: 20px; border-radius: 50%;
+    background-size: 12px 12px; background-position: center; background-repeat: no-repeat;
+}
+
+/* loại thông báo */
+.alert-info{
+    background: #eef6ff; color: #1e3a8a;
+}
+.alert-info::before{
+    background-color:#bfdbfe;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='%231e3a8a' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2a10 10 0 100 20 10 10 0 000-20zm.75 6.5a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM11 10h2v8h-2v-8z'/%3E%3C/svg%3E");
+}
+
+.alert-success{
+    background: #ecfdf5; color: #065f46;
+}
+.alert-success::before{
+    background-color:#bbf7d0;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='%23065f46' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 16.2l-3.5-3.6L4 14l5 5 11-11-1.5-1.5L9 16.2z'/%3E%3C/svg%3E");
+}
+
+.alert-warning{
+    background: #fff7ed; color: #9a3412;
+}
+.alert-warning::before{
+    background-color:#fed7aa;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='%239a3412' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z'/%3E%3C/svg%3E");
+}
+
+.alert-danger{
+    background: #fef2f2; color: #7f1d1d;
+}
+.alert-danger::before{
+    background-color:#fecaca;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='%237f1d1d' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2a10 10 0 1010 10A10.011 10.011 0 0012 2zm3.71 12.29l-1.42 1.42L12 13.41l-2.29 2.3-1.42-1.42L10.59 12 8.29 9.71l1.42-1.42L12 10.59l2.29-2.3 1.42 1.42L13.41 12z'/%3E%3C/svg%3E");
+}
+
+/* nút close (tuỳ chọn) */
+.alert .alert-close{
+    position:absolute; right:10px; top:8px;
+    background: transparent; border:0; font-size:18px; line-height:1; color:inherit; opacity:.6;
+}
+.alert .alert-close:hover{ opacity:1 }
+
+/* auto hide class */
+.alert.fade-out{
+    animation: alert-out .25s ease-in forwards;
+}
+@keyframes alert-out { to {opacity:0; transform: translateY(-6px)} }

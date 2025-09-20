@@ -76,8 +76,7 @@ public class ReportController {
     public String reportByCustomer(Model model, Principal principal) {
         bindCurrentUser(model, principal);
         model.addAttribute("title", "Thống kê theo khách hàng");
-        // SỬA Ở ĐÂY: dùng reportCustomer() (đúng chính tả)
         model.addAttribute("listReportCommon", orderDetailRepository.reportCustomer());
-        return "admin/statistical";
+        return "admin/statistical"; // nhớ có file templates/admin/statistical.html
     }
 }

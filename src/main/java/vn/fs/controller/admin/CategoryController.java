@@ -1,14 +1,13 @@
 package vn.fs.controller.admin;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.security.Principal;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
+
+import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,19 +15,15 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.ui.ModelMap;
 import org.springframework.util.StringUtils;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import vn.fs.entities.Category;
 import vn.fs.entities.User;
 import vn.fs.repository.CategoryRepository;
+import vn.fs.repository.ProductRepository;
 import vn.fs.repository.UserRepository;
 
 @Controller
@@ -36,19 +31,16 @@ import vn.fs.repository.UserRepository;
 public class CategoryController {
 
     @Value("${upload.path}")
-    private String uploadDir; // ví dụ: upload/images
+    private String uploadDir;
 
-    @Autowired
-    CategoryRepository categoryRepository;
-
-    @Autowired
-    UserRepository userRepository;
+    @Autowired private CategoryRepository categoryRepository;
+    @Autowired private ProductRepository productRepository;
+    @Autowired private UserRepository userRepository;
 
     /* ---------- COMMON USER IN MODEL ---------- */
-    @ModelAttribute(value = "user")
+    @ModelAttribute("user")
     public User user(Model model, Principal principal, User user) {
         if (principal != null) {
-            model.addAttribute("user", new User());
             user = userRepository.findByEmail(principal.getName());
             model.addAttribute("user", user);
         }
@@ -64,21 +56,25 @@ public class CategoryController {
     }
 
     /* ---------- LIST PAGE ---------- */
-    @GetMapping(value = "/categories")
+    @GetMapping("/categories")
     public String categories(Model model) {
         model.addAttribute("category", new Category());
         return "admin/categories";
     }
 
-    /* ---------- ADD (tùy chọn có ảnh) ---------- */
-    @PostMapping(value = "/addCategory")
-    public String addCategory(@Validated @ModelAttribute("category") Category category,
+    /* ---------- ADD (optional image) ---------- */
+    @PostMapping("/addCategory")
+    public String addCategory(@Valid @ModelAttribute("category") Category category,
+                              BindingResult result,
                               @RequestParam(value = "file", required = false) MultipartFile file,
                               RedirectAttributes ra) {
+        if (result.hasErrors()) {
+            ra.addFlashAttribute("message", "Dữ liệu không hợp lệ!");
+            ra.addFlashAttribute("alertType", "danger");
+            return "redirect:/admin/categories";
+        }
         try {
-            // tạo thư mục nếu chưa có
-            Path uploadPath = Paths.get(uploadDir);
-            Files.createDirectories(uploadPath);
+            Files.createDirectories(Paths.get(uploadDir));
 
             if (file != null && !file.isEmpty()) {
                 String original = StringUtils.cleanPath(file.getOriginalFilename());
@@ -86,30 +82,37 @@ public class CategoryController {
                 int dot = original.lastIndexOf('.');
                 if (dot >= 0) ext = original.substring(dot).toLowerCase(Locale.ROOT);
                 String newName = "cat_new_" + System.currentTimeMillis() + ext;
-
                 try (InputStream in = file.getInputStream()) {
-                    Files.copy(in, uploadPath.resolve(newName), StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(in, Paths.get(uploadDir).resolve(newName), StandardCopyOption.REPLACE_EXISTING);
                 }
                 category.setCategoryImage(newName);
             }
+            if (category.getStatus() == null) category.setStatus(true);
 
             categoryRepository.save(category);
             ra.addFlashAttribute("message", "Thêm thể loại thành công!");
+            ra.addFlashAttribute("alertType", "success");
         } catch (Exception e) {
             ra.addFlashAttribute("message", "Lỗi thêm thể loại: " + e.getMessage());
+            ra.addFlashAttribute("alertType", "danger");
         }
         return "redirect:/admin/categories";
     }
 
     /* ---------- EDIT (GET) ---------- */
-    @GetMapping(value = "/editCategory/{id}")
-    public String editCategory(@PathVariable("id") Long id, ModelMap model) {
-        Category category = categoryRepository.findById(id).orElse(null);
-        model.addAttribute("category", category);
+    @GetMapping("/editCategory/{id}")
+    public String editCategory(@PathVariable("id") Long id, ModelMap model, RedirectAttributes ra) {
+        Optional<Category> opt = categoryRepository.findById(id);
+        if (opt.isEmpty()) {
+            ra.addFlashAttribute("message", "Không tìm thấy thể loại!");
+            ra.addFlashAttribute("alertType", "danger");
+            return "redirect:/admin/categories";
+        }
+        model.addAttribute("category", opt.get());
         return "admin/editCategory";
     }
 
-    /* ---------- EDIT (POST) – ĐỔI ẢNH AN TOÀN ---------- */
+    /* ---------- EDIT (POST) ---------- */
     @PostMapping("/editCategory/{id}")
     public String updateCategory(@PathVariable("id") Long id,
                                  @ModelAttribute("category") Category form,
@@ -120,61 +123,86 @@ public class CategoryController {
             Category cat = categoryRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Category not found"));
 
-            // cập nhật tên
             cat.setCategoryName(form.getCategoryName() == null ? null : form.getCategoryName().trim());
+            if (form.getStatus() != null) cat.setStatus(form.getStatus());
 
-            // đảm bảo thư mục tồn tại
-            Path uploadPath = Paths.get(uploadDir);
-            Files.createDirectories(uploadPath);
+            Files.createDirectories(Paths.get(uploadDir));
 
             if (file != null && !file.isEmpty()) {
-                // tạo tên file mới an toàn
                 String original = StringUtils.cleanPath(file.getOriginalFilename());
                 String ext = "";
                 int dot = original.lastIndexOf('.');
                 if (dot >= 0) ext = original.substring(dot).toLowerCase(Locale.ROOT);
                 String newName = "cat_" + id + "_" + System.currentTimeMillis() + ext;
 
-                // lưu file mới
                 try (InputStream in = file.getInputStream()) {
-                    Files.copy(in, uploadPath.resolve(newName), StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(in, Paths.get(uploadDir).resolve(newName), StandardCopyOption.REPLACE_EXISTING);
                 }
 
-                // xóa file cũ nếu có
                 if (existingImage != null && !existingImage.isBlank()) {
-                    try { Files.deleteIfExists(uploadPath.resolve(existingImage)); } catch (Exception ignore) {}
+                    try { Files.deleteIfExists(Paths.get(uploadDir).resolve(existingImage)); } catch (Exception ignore) {}
                 }
-
-                // cập nhật DB
                 cat.setCategoryImage(newName);
             } else {
-                // không upload -> giữ ảnh cũ
                 cat.setCategoryImage(existingImage);
             }
 
             categoryRepository.save(cat);
             ra.addFlashAttribute("message", "Cập nhật thể loại thành công!");
+            ra.addFlashAttribute("alertType", "success");
         } catch (Exception e) {
             ra.addFlashAttribute("message", "Lỗi cập nhật: " + e.getMessage());
+            ra.addFlashAttribute("alertType", "danger");
         }
         return "redirect:/admin/editCategory/" + id;
     }
 
-    /* ---------- DELETE (có xóa ảnh) ---------- */
+    /* ---------- HIDE (soft delete nếu còn sản phẩm) ---------- */
     @GetMapping("/delete/{id}")
-    public String delCategory(@PathVariable("id") Long id, RedirectAttributes ra) {
+    public String hideCategory(@PathVariable("id") Long id, RedirectAttributes ra) {
+        Optional<Category> opt = categoryRepository.findById(id);
+        if (opt.isEmpty()) {
+            ra.addFlashAttribute("message", "Không tìm thấy thể loại!");
+            ra.addFlashAttribute("alertType", "danger");
+            return "redirect:/admin/categories";
+        }
+        Category c = opt.get();
+
+        long cntActive = productRepository.countActiveByCategory(id);
+        if (cntActive > 0) {
+            c.setStatus(false); // Ẩn nếu còn SP đang bán
+            categoryRepository.save(c);
+            ra.addFlashAttribute("message", "Thể loại còn sản phẩm đang bán → đã ẨN.");
+            ra.addFlashAttribute("alertType", "warning");
+            return "redirect:/admin/categories";
+        }
+
         try {
-            categoryRepository.findById(id).ifPresent(cat -> {
-                // xóa ảnh
-                if (cat.getCategoryImage() != null && !cat.getCategoryImage().isBlank()) {
-                    try { Files.deleteIfExists(Paths.get(uploadDir).resolve(cat.getCategoryImage())); } catch (Exception ignore) {}
-                }
-                categoryRepository.deleteById(id);
-            });
-            ra.addFlashAttribute("message", "Xóa thể loại thành công!");
+            // không còn SP active → cho phép xóa cứng + xóa ảnh
+            if (c.getCategoryImage() != null && !c.getCategoryImage().isBlank()) {
+                try { Files.deleteIfExists(Paths.get(uploadDir).resolve(c.getCategoryImage())); } catch (Exception ignore) {}
+            }
+            categoryRepository.deleteById(id);
+            ra.addFlashAttribute("message", "Xóa thể loại thành công.");
+            ra.addFlashAttribute("alertType", "success");
         } catch (Exception e) {
-            ra.addFlashAttribute("message", "Lỗi xóa: " + e.getMessage());
+            c.setStatus(false);
+            categoryRepository.save(c);
+            ra.addFlashAttribute("message", "Không thể xóa do ràng buộc. Đã ẨN thể loại.");
+            ra.addFlashAttribute("alertType", "warning");
         }
         return "redirect:/admin/categories";
     }
+
+    @RequestMapping(value = "/restoreCategory/{id}", method = {RequestMethod.GET, RequestMethod.POST})
+    public String restoreCategory(@PathVariable("id") Long id, RedirectAttributes ra){
+        categoryRepository.findById(id).ifPresent(c -> {
+            c.setStatus(true);
+            categoryRepository.save(c);
+        });
+        ra.addFlashAttribute("message","Đã HIỂN THỊ lại thể loại!");
+        ra.addFlashAttribute("alertType","success");
+        return "redirect:/admin/categories";
+    }
+
 }

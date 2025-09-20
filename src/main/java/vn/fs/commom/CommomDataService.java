@@ -1,8 +1,8 @@
 package vn.fs.commom;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Locale;
+
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
@@ -27,69 +27,63 @@ import vn.fs.service.ShoppingCartService;
 @Service
 public class CommomDataService {
 
-    @Autowired FavoriteRepository favoriteRepository;
-    @Autowired ShoppingCartService shoppingCartService;
-    @Autowired ProductRepository productRepository;
-    @Autowired CategoryRepository categoryRepository;
-    @Autowired NxbRepository nxbRepository;
+    @Autowired private FavoriteRepository favoriteRepository;
+    @Autowired private ShoppingCartService shoppingCartService;
+    @Autowired private ProductRepository productRepository;
+    @Autowired private CategoryRepository categoryRepository;
+    @Autowired private NxbRepository nxbRepository;
 
     @Autowired public JavaMailSender emailSender;
-    @Autowired TemplateEngine templateEngine;
+    @Autowired private TemplateEngine templateEngine;
 
     /**
-     * Dữ liệu dùng chung cho header/footer/menu.
-     * - totalCartItems (giữ tương thích) = số mặt hàng KHÁC NHAU
-     * - totalCartDistinct: số mặt hàng KHÁC NHAU (badge header)
-     * - totalCartQtySum: tổng số lượng (mini-cart)
-     * - totalPrice: tổng tiền
-     * - cartItems: danh sách item mini-cart
+     * Đổ dữ liệu dùng chung cho header/navbar/footer.
      */
     public void commonData(Model model, User user) {
-        listCategoryByProductName(model);
-
+        // Yêu thích
         Integer totalSave = 0;
-        if (user != null) {
-            totalSave = favoriteRepository.selectCountSave(user.getUserId());
-        }
-
-        int distinct = 0;
-        int qtySum   = 0;
-        double totalPrice = 0.0;
-        Collection<CartItem> cartItems = null;
-
         try {
-            distinct   = shoppingCartService.getDistinctCount(); // <<=== thay cho getCount()
-            qtySum     = shoppingCartService.getQuantitySum();
-            totalPrice = shoppingCartService.getAmount();
-            cartItems  = shoppingCartService.getCartItems();
-        } catch (Exception ignore) {
-            // user chưa đăng nhập / giỏ trống -> để mặc định
-        }
-
+            if (user != null) {
+                totalSave = favoriteRepository.selectCountSave(user.getUserId());
+            }
+        } catch (Exception ignored) { }
         model.addAttribute("totalSave", totalSave);
 
-        // Giữ biến cũ để không vỡ view
-        model.addAttribute("totalCartItems", distinct);
+        // Giỏ hàng
+        int distinct = 0;
+        int qtySum = 0;
+        double totalPrice = 0.0;
+        Collection<CartItem> cartItems = null;
+        try {
+            cartItems = shoppingCartService.getCartItems();
+            totalPrice = shoppingCartService.getAmount();
+            if (cartItems != null) {
+                distinct = cartItems.size();
+                for (CartItem it : cartItems) {
+                    if (it != null) qtySum += it.getQuantity(); // int
+                }
+            }
+        } catch (Exception ignored) { }
 
-        // Biến rõ nghĩa
+        model.addAttribute("totalCartItems", distinct);   // giữ tên cũ để không vỡ view
         model.addAttribute("totalCartDistinct", distinct);
         model.addAttribute("totalCartQtySum", qtySum);
-
         model.addAttribute("cartItems", cartItems);
         model.addAttribute("totalPrice", totalPrice);
 
-        // Navbar
-        model.addAttribute("categoryList", categoryRepository.findAll());
-        model.addAttribute("nxbList", nxbRepository.findAll());
+        // Navbar: dùng phiên bản đã lọc ACTIVE + có hàng
+        model.addAttribute("categoryList", categoryRepository.findActiveForMenu());
+        model.addAttribute("nxbList", nxbRepository.findActiveForMenu());
+
+        // User hiện tại
+        model.addAttribute("user", user);
+
+        // Gợi ý danh mục + số lượng (chỉ một lần)
+        model.addAttribute("countProductByCategory",
+                productRepository.listCategoryByProductNameActive());
     }
 
-    // count product by category
-    public void listCategoryByProductName(Model model) {
-        List<Object[]> countProductByCategory = productRepository.listCategoryByProductName();
-        model.addAttribute("countProductByCategory", countProductByCategory);
-    }
-
-    // Gửi email xác nhận đặt hàng
+    /** Gửi email xác nhận đặt hàng */
     public void sendSimpleEmail(String email, String subject, String contentEmail,
                                 Collection<CartItem> cartItems, double totalPrice, Order orderFinal)
             throws MessagingException {
@@ -99,6 +93,7 @@ public class CommomDataService {
         ctx.setVariable("cartItems", cartItems);
         ctx.setVariable("totalPrice", totalPrice);
         ctx.setVariable("orderFinal", orderFinal);
+        ctx.setVariable("contentEmail", contentEmail);
 
         MimeMessage mimeMessage = emailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
