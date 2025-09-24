@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import vn.fs.entities.User;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +19,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     User findByUsername(String username);
     boolean existsByEmailIgnoreCaseAndUserIdNot(String email, Long userId);
     boolean existsByUsernameIgnoreCaseAndUserIdNot(String username, Long userId);
-
 
     /* ====== Khuyến nghị dùng Optional/IgnoreCase ====== */
     Optional<User> findByEmailIgnoreCase(String email);
@@ -67,21 +67,25 @@ public interface UserRepository extends JpaRepository<User, Long> {
                             @Param("lockUntil") LocalDateTime lockUntil,
                             @Param("now")       LocalDateTime now);
 
-    /* >>> NEW: đổi mật khẩu & bật status bằng email — không validate toàn entity */
+    /* Đổi mật khẩu & bật status bằng email — không validate toàn entity */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update User u set u.password = :hashed, u.status = true where lower(u.email) = lower(:email)")
     int updatePasswordByEmail(@Param("email") String email,
                               @Param("hashed") String hashed);
 
+    /* ====== Thống kê user mới theo ngày (dùng backtick cho bảng `user`) ====== */
+
     @Query(value =
             "select date(u.register_date) d, count(*) v " +
-                    "from user u " +
-                    "where u.register_date >= ?1 " +
-                    "group by date(u.register_date) order by d", nativeQuery = true)
-    List<Object[]> newUsersByDateFrom(java.time.LocalDate from);
+                    "from `user` u " +
+                    "where u.register_date >= :from " +
+                    "group by date(u.register_date) " +
+                    "order by d", nativeQuery = true)
+    List<Object[]> newUsersByDateFrom(@Param("from") LocalDate from);
 
     @Query(value =
-            "select count(*) from user u where u.register_date >= ?1", nativeQuery = true)
-    long countNewUsersFrom(java.time.LocalDate from);
-
+            "select count(*) " +
+                    "from `user` u " +
+                    "where u.register_date >= :from", nativeQuery = true)
+    long countNewUsersFrom(@Param("from") LocalDate from);
 }

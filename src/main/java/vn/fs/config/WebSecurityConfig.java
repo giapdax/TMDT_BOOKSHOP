@@ -53,6 +53,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/css/**","/js/**","/images/**","/vendor/**","/fonts/**",
                         "/assets/**","/uploads/**").permitAll()
 
+                // mở webhook (không yêu cầu đăng nhập)
+                .antMatchers("/webhook/paypal").permitAll()
+
                 // Public
                 .antMatchers("/","/login","/register",
                         "/products","/productDetail","/productByCategory","/productByPublisher",
@@ -66,7 +69,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/addToCart","/remove/**","/cart/**",
                         "/shoppingCart_checkout","/checkout").authenticated()
 
-                // Admin – cho phép tất cả alias
+                // Admin – các báo cáo
                 .antMatchers("/admin/reports",
                         "/admin/reportCategory",
                         "/admin/reportYear",
