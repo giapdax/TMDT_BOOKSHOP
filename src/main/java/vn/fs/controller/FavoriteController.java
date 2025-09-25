@@ -1,69 +1,65 @@
 package vn.fs.controller;
 
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import vn.fs.commom.CommomDataService;
 import vn.fs.entities.Favorite;
-import vn.fs.entities.Product;
 import vn.fs.entities.User;
-import vn.fs.repository.FavoriteRepository;
-import vn.fs.repository.ProductRepository;
-import vn.fs.repository.UserRepository;
-import vn.fs.util.SessionUtils;
+import vn.fs.service.FavoriteService;
 
-import javax.servlet.http.HttpSession;
-
+import java.util.List;
 
 @Controller
+@RequiredArgsConstructor
 public class FavoriteController extends CommomController {
 
-	@Autowired
-	FavoriteRepository favoriteRepository;
+    private final FavoriteService favoriteService;
+    private final CommomDataService commomDataService;
 
-	@Autowired
-	ProductRepository productRepository;
+    // trang yêu thích
+    @GetMapping("/favorite")
+    public String favorite(Model model, User user) {
+        if (user == null) return "redirect:/login";
+        List<Favorite> favorites = favoriteService.listByUser(user.getUserId());
+        commomDataService.commonData(model, user);
+        model.addAttribute("favorites", favorites);
+        return "web/favorite";
+    }
 
-	@Autowired
-	CommomDataService commomDataService;
+    // thêm
+    @GetMapping("/doFavorite")
+    public String doFavorite(User user,
+                             @RequestParam("id") Long productId,
+                             @RequestParam(value = "redirect", defaultValue = "/products") String redirect,
+                             RedirectAttributes ra) {
+        if (user == null) return "redirect:/login";
+        boolean ok = favoriteService.add(user.getUserId(), productId);
+        if (!ok) {
+            ra.addFlashAttribute("message", "Không thể thêm yêu thích.");
+            ra.addFlashAttribute("alertType", "danger");
+        }
+        return "redirect:" + safeRedirect(redirect);
+    }
 
+    // bỏ
+    @GetMapping("/doUnFavorite")
+    public String doUnFavorite(User user,
+                               @RequestParam("id") Long productId,
+                               @RequestParam(value = "redirect", defaultValue = "/products") String redirect) {
+        if (user == null) return "redirect:/login";
+        favoriteService.remove(user.getUserId(), productId);
+        return "redirect:" + safeRedirect(redirect);
+    }
 
-	@GetMapping(value = "/favorite")
-	public String favorite(Model model, User user) {
-		List<Favorite> favorites = favoriteRepository.selectAllSaves(user.getUserId());
-		commomDataService.commonData(model, user);
-		model.addAttribute("favorites", favorites);
-		return "web/favorite";
-	}
-
-	@GetMapping("/doFavorite")
-	public String doFavorite(User user,
-							 @RequestParam("id") Long id,
-							 @RequestParam(value = "redirect", defaultValue = "/products") String redirect) {
-		Product product = productRepository.findById(id).orElse(null);
-		if (product != null && user != null) {
-			Favorite favorite = new Favorite();
-			favorite.setProduct(product);
-			favorite.setUser(user);
-			favoriteRepository.save(favorite);
-		}
-		return "redirect:" + redirect;
-	}
-	@GetMapping("/doUnFavorite")
-	public String doUnFavorite(User user,
-							 @RequestParam("id") Long id,
-							 @RequestParam(value = "redirect", defaultValue = "/products") String redirect) {
-		Favorite favorite = favoriteRepository.selectSaves(id, user.getUserId());
-		if (favorite != null) {
-			favoriteRepository.delete(favorite);
-		}
-		return "redirect:" + redirect;
-	}
+    // tránh open redirect
+    private String safeRedirect(String r) {
+        if (r == null) return "/products";
+        r = r.trim();
+        if (r.startsWith("http://") || r.startsWith("https://") || r.startsWith("//")) return "/products";
+        if (!r.startsWith("/")) return "/products";
+        return r;
+    }
 }
