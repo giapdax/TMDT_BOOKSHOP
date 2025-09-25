@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<meta http-equiv="content-type" content="text/html;charset=utf-8" />
 <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
     <meta name="author" content="mironcoder" />
     <meta name="email" content="mironcoder@gmail.com" />
@@ -23,7 +23,6 @@
     <link rel="stylesheet" href="/css/main.css" />
     <link rel="stylesheet" href="/css/user-auth.css" />
 
-    <!-- thêm tí CSS cho card form giống trang đổi mật khẩu -->
     <style>
         .user-form-card { border-radius: 18px; box-shadow: 0 12px 30px rgba(0,0,0,.08); }
         .user-form-title h2 { font-weight: 800; }
@@ -46,7 +45,6 @@
                     <div class="user-form-title">
                         <h2>Đăng Ký Ngay!</h2>
                         <p>Thiết Lập Một Tài Khoản Mới</p>
-                        <!-- flash messages -->
                         <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
                         <div class="alert alert-success" th:if="${message}" th:text="${message}"></div>
                     </div>
@@ -66,7 +64,7 @@
                         </ul>
                         <div class="user-form-divider"><p>hoặc</p></div>
 
-                        <!-- ĐỔI sang form DTO -->
+                        <!-- Form DTO -->
                         <form th:action="@{/register}" method="post" th:object="${form}" class="user-form" novalidate>
 
                             <!-- Email -->
@@ -121,7 +119,7 @@
                                 <small class="text-danger" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></small>
                             </div>
 
-                            <!-- SĐT Việt Nam -->
+                            <!-- SĐT -->
                             <div class="form-group">
                                 <input
                                         type="tel"
@@ -131,7 +129,7 @@
                                         placeholder="Số điện thoại (VD: 090xxxxxxx hoặc +843xxxxxxx)"
                                         autocomplete="tel"
                                         required
-                                        pattern="^(0|\\+84)(3|5|7|8|9)\\d{8}$"
+                                        pattern="^(0|\+84)(3|5|7|8|9)\d{8}$"
                                         title="Nhập số di động Việt Nam: 0(3|5|7|8|9) + 8 số, hoặc +84(3|5|7|8|9) + 8 số"
                                 />
                                 <small class="text-danger" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></small>
@@ -150,7 +148,7 @@
                                         minlength="12"
                                         maxlength="128"
                                         autocomplete="new-password"
-                                        pattern="(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z0-9])\\S{12,128}"
+                                        pattern="(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{12,128}"
                                         title="Tối thiểu 12 ký tự, phải có chữ cái, số và ký tự đặc biệt, không có khoảng trắng"
                                 />
                                 <small class="text-danger" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></small>
@@ -205,7 +203,6 @@
         if (p2) p2.type = (p2.type === "password") ? "text" : "password";
     }
 
-    // Check khớp mật khẩu (client-side) – không dùng Java
     (function(){
         var p = document.getElementById("myPass");
         var c = document.getElementById("confirmPass");
@@ -225,9 +222,10 @@
     })();
 </script>
 
+<!-- JS: đúng thứ tự & đủ dấu mở thẻ -->
 <script src="/vendor/bootstrap/jquery-1.12.4.min.js"></script>
 <script src="/vendor/bootstrap/popper.min.js"></script>
-script src="/vendor/bootstrap/bootstrap.min.js"></script>
+<script src="/vendor/bootstrap/bootstrap.min.js"></script>
 <script src="/vendor/countdown/countdown.min.js"></script>
 <script src="/vendor/niceselect/nice-select.min.js"></script>
 <script src="/vendor/slickslider/slick.min.js"></script>
