@@ -22,6 +22,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     long countByCategory_CategoryId(Long categoryId);
     long countByNxb_Id(Long nxbId);
 
+
     @Query(value = "SELECT * FROM products WHERE status = 1", nativeQuery = true)
     List<Product> findAllActive();
 
@@ -74,6 +75,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("UPDATE Product p SET p.quantity = p.quantity - :qty " +
             "WHERE p.productId = :productId AND p.quantity >= :qty")
     int decreaseStock(@Param("productId") Long productId, @Param("qty") int qty);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Product p SET p.quantity = p.quantity + :qty " +
+            "WHERE p.productId = :productId")
+    int increaseStock(@Param("productId") Long productId, @Param("qty") int qty);
 
     @Query(value = "SELECT * FROM products WHERE status = 1 ORDER BY discount DESC, entered_date DESC LIMIT 20", nativeQuery = true)
     List<Product> topDiscount20();

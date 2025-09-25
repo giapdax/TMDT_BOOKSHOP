@@ -1,7 +1,6 @@
 package vn.fs.controller.admin;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -9,8 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import vn.fs.dto.NxbDTO;
 import vn.fs.entities.NXB;
-import vn.fs.repository.NxbRepository;
-import vn.fs.repository.ProductRepository;
+import vn.fs.service.NxbService;
 
 import javax.validation.Valid;
 import java.util.Optional;
@@ -20,159 +18,106 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class NxbController {
 
-    private final NxbRepository nxbRepository;
-    private final ProductRepository productRepository;
+    private final NxbService nxbService;
 
-    /* ===== LIST ===== */
+    // Trang danh sách NXB
     @GetMapping("/nxbs")
     public String list(Model model) {
-        model.addAttribute("nxbs", nxbRepository.findAll());
+        model.addAttribute("nxbs", nxbService.findAll());
         if (!model.containsAttribute("nxb")) {
-            model.addAttribute("nxb", NxbDTO.builder().status(true).build());
+            model.addAttribute("nxb", nxbService.newDefaultDTO());
         }
         return "admin/nxbs";
     }
 
-    /* ===== CREATE ===== */
+    // Thêm mới NXB
     @PostMapping("/addNxb")
     public String add(@Valid @ModelAttribute("nxb") NxbDTO dto,
                       BindingResult br,
                       Model model,
                       RedirectAttributes ra) {
 
-        dto.normalize();
+        dto.normalize(); // cắt khoảng trắng, set default status
 
-        // Validate trùng tên
-        if (StringUtils.isNotBlank(dto.getName())
-                && nxbRepository.existsByNameIgnoreCase(dto.getName())) {
+        // Check trùng tên
+        if (nxbService.nameExists(dto.getName())) {
             br.rejectValue("name", null, "Tên NXB đã tồn tại.");
         }
 
+        // Lỗi thì mở lại modal
         if (br.hasErrors()) {
-            // Ở lại trang list và mở lại modal
-            model.addAttribute("nxbs", nxbRepository.findAll());
+            model.addAttribute("nxbs", nxbService.findAll());
             model.addAttribute("openAddModal", true);
             return "admin/nxbs";
         }
 
-        NXB entity = new NXB();
-        applyDTOToEntity(dto, entity);
-        nxbRepository.save(entity);
-
+        nxbService.create(dto);
         ra.addFlashAttribute("message", "Thêm NXB thành công!");
         ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/nxbs";
     }
 
-    /* ===== EDIT PAGE ===== */
+    // Mở trang sửa
     @GetMapping("/editNxb/{id}")
     public String editPage(@PathVariable("id") Long id, Model model, RedirectAttributes ra) {
-        Optional<NXB> opt = nxbRepository.findById(id);
+        Optional<NXB> opt = nxbService.findById(id);
         if (opt.isEmpty()) {
             ra.addFlashAttribute("message", "Không tìm thấy NXB!");
             ra.addFlashAttribute("alertType", "danger");
             return "redirect:/admin/nxbs";
         }
-        model.addAttribute("nxb", toDTO(opt.get()));
+        model.addAttribute("nxb", nxbService.toDTO(opt.get()));
         return "admin/editNxb";
     }
 
-    /* ===== UPDATE ===== */
+    // Cập nhật NXB
     @PostMapping("/editNxb/{id}")
     public String update(@PathVariable("id") Long id,
                          @Valid @ModelAttribute("nxb") NxbDTO dto,
                          BindingResult br,
-                         RedirectAttributes ra,
-                         Model model) {
-
-        Optional<NXB> opt = nxbRepository.findById(id);
-        if (opt.isEmpty()) {
-            ra.addFlashAttribute("message", "Không tìm thấy NXB!");
-            ra.addFlashAttribute("alertType", "danger");
-            return "redirect:/admin/nxbs";
-        }
+                         RedirectAttributes ra) {
 
         dto.normalize();
 
-        // Check trùng tên (exclude self)
-        if (StringUtils.isNotBlank(dto.getName())
-                && nxbRepository.existsByNameIgnoreCaseAndIdNot(dto.getName(), id)) {
+        // Check trùng tên (trừ chính nó)
+        if (nxbService.nameExistsOther(dto.getName(), id)) {
             br.rejectValue("name", null, "Tên NXB đã tồn tại.");
         }
+        if (br.hasErrors()) return "admin/editNxb";
 
-        if (br.hasErrors()) {
-            return "admin/editNxb";
-        }
-
-        NXB entity = opt.get();
-        applyDTOToEntity(dto, entity);
-        nxbRepository.save(entity);
-
+        nxbService.update(id, dto);
         ra.addFlashAttribute("message", "Cập nhật NXB thành công!");
         ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/nxbs";
     }
 
-    /* ===== HIDE (SOFT) + CASCADE PRODUCTS ===== */
+    // Ẩn NXB + Ẩn tất cả sản phẩm con; nếu không còn sp tham chiếu thì xóa cứng
     @GetMapping("/deleteNxb/{id}")
     public String delete(@PathVariable("id") Long id, RedirectAttributes ra) {
-        Optional<NXB> opt = nxbRepository.findById(id);
+        Optional<NXB> opt = nxbService.findById(id);
         if (opt.isEmpty()) {
             ra.addFlashAttribute("message", "Không tìm thấy NXB!");
             ra.addFlashAttribute("alertType", "danger");
             return "redirect:/admin/nxbs";
         }
-        NXB n = opt.get();
 
-        // 1) Ẩn toàn bộ sản phẩm thuộc NXB này
-        productRepository.hideByNxb(id);
-
-        // 2) Ẩn NXB (soft)
-        n.setStatus(false);
-        nxbRepository.save(n);
-
-        // 3) Nếu không còn bất kỳ sản phẩm nào tham chiếu NXB này thì cho xóa cứng
-        long totalRef = productRepository.countByNxb_Id(id);
-        if (totalRef == 0) {
-            try {
-                nxbRepository.deleteById(id);
-                ra.addFlashAttribute("message", "Đã ẨN sản phẩm & XÓA vĩnh viễn NXB (do không còn sản phẩm tham chiếu).");
-                ra.addFlashAttribute("alertType", "success");
-                return "redirect:/admin/nxbs";
-            } catch (Exception ignore) {
-                // Nếu DB vẫn FK, thì soft-hide là đủ
-            }
+        boolean hardDeleted = nxbService.hideAndCascade(id);
+        if (hardDeleted) {
+            ra.addFlashAttribute("message", "Đã ẨN sản phẩm & XÓA vĩnh viễn NXB (không còn sản phẩm tham chiếu).");
+            ra.addFlashAttribute("alertType", "success");
+        } else {
+            ra.addFlashAttribute("message", "Đã NGỪNG bán NXB và ẨN toàn bộ sản phẩm thuộc NXB này.");
+            ra.addFlashAttribute("alertType", "success");
         }
-
-        ra.addFlashAttribute("message", "Đã NGỪNG bán NXB và ẨN toàn bộ sản phẩm thuộc NXB này.");
-        ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/nxbs";
     }
 
-    /* ===== RESTORE ===== */
+    // Khôi phục NXB (không tự mở sp con)
     @RequestMapping(value = "/restoreNxb/{id}", method = {RequestMethod.GET, RequestMethod.POST})
     public String restoreNxb(@PathVariable("id") Long id, RedirectAttributes ra) {
-        nxbRepository.findById(id).ifPresent(n -> {
-            n.setStatus(true);
-            nxbRepository.save(n);
-        });
-        // Không auto-mở sản phẩm con
+        nxbService.restore(id);
         ra.addFlashAttribute("message", "Đã HIỂN THỊ lại NXB (sản phẩm vẫn ẨN).");
         ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/nxbs";
-    }
-
-    /* ===== Helpers ===== */
-    private NxbDTO toDTO(NXB n) {
-        return NxbDTO.builder()
-                .id(n.getId())
-                .name(StringUtils.defaultString(n.getName()))
-                .status(n.getStatus() == null ? Boolean.TRUE : n.getStatus())
-                .build();
-    }
-
-    private void applyDTOToEntity(NxbDTO dto, NXB n) {
-        n.setName(dto.getName());
-        n.setStatus(dto.getStatus() == null ? Boolean.TRUE : dto.getStatus());
     }
 }
