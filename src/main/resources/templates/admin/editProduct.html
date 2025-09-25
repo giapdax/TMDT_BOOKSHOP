@@ -72,7 +72,9 @@
                                                 <label>Thể loại <span style="color:red">*</span></label>
                                                 <select class="form-control" th:field="*{category.categoryId}" required>
                                                     <option value="">-- Chọn thể loại --</option>
-                                                    <option th:each="c : ${categoryList}" th:value="${c.categoryId}" th:text="${c.categoryName}"></option>
+                                                    <option th:each="c : ${categoryAllList}"
+                                                            th:value="${c.categoryId}"
+                                                            th:text="${c.categoryName}"></option>
                                                 </select>
                                             </div>
 
@@ -80,7 +82,9 @@
                                                 <label>Nhà xuất bản <span style="color:red">*</span></label>
                                                 <select class="form-control" th:field="*{nxb.id}" required>
                                                     <option value="">-- Chọn NXB --</option>
-                                                    <option th:each="pub : ${nxbList}" th:value="${pub.id}" th:text="${pub.name}"></option>
+                                                    <option th:each="pub : ${nxbAllList}"
+                                                            th:value="${pub.id}"
+                                                            th:text="${pub.name}"></option>
                                                 </select>
                                             </div>
                                         </div>

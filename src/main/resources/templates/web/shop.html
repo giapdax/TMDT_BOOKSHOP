@@ -30,7 +30,7 @@
 
 <!-- Banner -->
 <section class="inner-section single-banner"
-         th:style="|background: url(@{/images/single-banner.jpg}) no-repeat center|">
+         th:style="|background: url(@{/images/singlebanner.jpg}) no-repeat center|">
     <div class="container">
         <h2>Sản phẩm</h2>
         <ol class="breadcrumb">
@@ -153,8 +153,7 @@
                                 <h6 class="product-price">
                                     <del>[[${#numbers.formatDecimal(item.price, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]</del>
                                     <span>
-                                        [[${#numbers.formatDecimal(item.price - (item.price * item.discount/100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]]
-                                        <small>/kg</small>
+                                        [[${#numbers.formatDecimal(item.price - (item.price * item.discount/100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]
                                     </span>
                                 </h6>
 

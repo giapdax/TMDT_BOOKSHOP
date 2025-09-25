@@ -22,4 +22,11 @@ public interface NxbRepository extends JpaRepository<NXB, Long> {
     /* Đọc thô theo id */
     @Query(value = "SELECT * FROM nxb WHERE id = ?1", nativeQuery = true)
     NXB findRaw(Long id);
+
+    @Query("select n from NXB n order by n.status desc, n.name asc")
+    List<NXB> findAllForDropdown();
+
+    // Chỉ active — dùng cho trang THÊM
+    List<NXB> findByStatusTrueOrderByNameAsc();
+
 }

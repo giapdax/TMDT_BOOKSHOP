@@ -31,24 +31,35 @@
 
 <!-- ===== SLIDER/BANNER ===== -->
 <section class="home-index-slider slider-arrow slider-dots">
-    <div>
-        <div class="container">
-            <div class="row align-items-center">
-                <div>
-                    <div class="banner-img">
-                        <img src="https://theme.hstatic.net/200000845405/1001223012/14/home_slider_image_4.jpg?v=136" height="500" alt="index" />
-                    </div>
+
+    <!-- SLIDE 1 -->
+    <div class="slide-item">
+        <div class="container my-4">
+            <div class="row justify-content-center">
+                <!-- px-0 để ảnh chạm mép cột, không bị lệch -->
+                <div class="col-12 col-xl-10 px-0">
+                    <figure class="hero-banner">
+                        <img class="hero-banner__img" th:src="@{/images/home1.jpg}" alt="Banner 1">
+                    </figure>
                 </div>
             </div>
         </div>
     </div>
-    <div>
-        <div class="container">
-            <div class="row align-items-center">
-                <img src="https://theme.hstatic.net/200000845405/1001223012/14/home_slider_image_1.jpg?v=136" alt="index" />
+
+    <!-- SLIDE 2 -->
+    <div class="slide-item">
+        <div class="container my-5">
+            <div class="row justify-content-center">
+                <div class="col-12 col-xl-10 px-0">
+                    <!-- bản nhỏ hơn xíu cho đẹp -->
+                    <figure class="hero-banner hero-banner--sm">
+                        <img class="hero-banner__img" th:src="@{/images/home2.jpg}" alt="Banner 2">
+                    </figure>
+                </div>
             </div>
         </div>
     </div>
+
 </section>
 
 <!-- ===== DANH MỤC GỢI Ý ===== -->
@@ -136,7 +147,6 @@
                                     <del>[[${#numbers.formatDecimal(item.price, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]</del>
                                     <span>
                                       [[${#numbers.formatDecimal(item.price - (item.price * item.discount / 100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]]
-                                      <small>/kg</small>
                                     </span>
                                 </h6>
                                 <a class="product-add1" title="Thêm giỏ hàng" th:if="${!outOfStock}" th:href="@{/addToCart(productId=${item.productId})}">
@@ -234,7 +244,6 @@
                                     <del>[[${#numbers.formatDecimal(item.price, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]</del>
                                     <span>
                                       [[${#numbers.formatDecimal(item.price - (item.price * item.discount / 100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]]
-                                      <small>/kg</small>
                                     </span>
                                 </h6>
                                 <a class="product-add1" title="Thêm giỏ hàng" th:if="${!outOfStock}" th:href="@{/addToCart(productId=${item.productId})}">
@@ -349,7 +358,6 @@
                                     <del>[[${#numbers.formatDecimal(item.price, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]</del>
                                     <span>
                                       [[${#numbers.formatDecimal(item.price - (item.price * item.discount / 100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]]
-                                      <small>/kg</small>
                                     </span>
                                 </h6>
                                 <a class="product-add1" title="Thêm giỏ hàng" th:if="${!outOfStock}" th:href="@{/addToCart(productId=${item.productId})}">
@@ -379,7 +387,7 @@
         <div class="row">
             <div class="col-sm-12 col-md-6 col-lg-6 px-xl-3">
                 <div class="promo-img">
-                    <a href="javascript:void(0);"><img th:src="@{/images/promo/home/115.jpg}" alt="promo" /></a>
+                    <a href="javascript:void(0);"><img th:src="@{/images/home2.jpg}" alt="promo" /></a>
                 </div>
             </div>
             <div class="col-sm-12 col-md-6 col-lg-6 px-xl-3">

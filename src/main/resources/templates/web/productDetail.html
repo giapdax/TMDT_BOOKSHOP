@@ -16,32 +16,6 @@
     <link rel="stylesheet" th:href="@{/vendor/niceselect/nice-select.min.css}"/>
     <link rel="stylesheet" th:href="@{/vendor/bootstrap/bootstrap.min.css}"/>
     <link rel="stylesheet" th:href="@{/css/main.css}"/>
-
-    <!-- ====== CSS riêng cho trang chi tiết (có thể move sang main.css) ====== -->
-    <style>
-        .pd-card{background:#fff;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.08);padding:24px}
-        .pd-thumb{border-radius:14px;overflow:hidden;border:1px solid #eee;background:#fafafa}
-        .pd-price del{opacity:.55;margin-right:8px}
-        .badge-pill{border-radius:999px;padding:.35rem .7rem;font-size:.8rem}
-        .badge-sale{background:#ffe9ec;color:#e11d48;border:1px solid #fecdd3}
-        .badge-oos{background:#ffe6e6;color:#b91c1c;border:1px solid #fecaca}
-        .btn-gradient{background:linear-gradient(90deg,#10b981,#22c55e);border:none;color:#fff}
-        .btn-gradient:hover{filter:brightness(.95);color:#fff}
-        .btn-soft{background:#f8fafc;border:1px solid #e2e8f0}
-        .pd-meta li{display:flex;gap:8px;margin:.35rem 0}
-        .pd-meta li span:first-child{min-width:80px;color:#64748b}
-        .rating i{color:#fbbf24}
-        .sticky-lg{position:sticky;top:120px}
-        .btn-back{
-            display:inline-flex;align-items:center;gap:.5rem;
-            padding:.55rem .9rem;border-radius:999px;
-            background:rgba(15,23,42,.06);border:1px solid rgba(148,163,184,.35);
-        }
-        .btn-back:hover{background:rgba(15,23,42,.09)}
-        /* tránh overlay đè nút */
-        .btn, .product-add1 { position: relative; z-index: 2; }
-        .pd-thumb, .details-gallery, .product-details-content { position: relative; z-index: 1; }
-    </style>
 </head>
 <body>
 
@@ -50,7 +24,7 @@
 
 <!-- Banner -->
 <section class="inner-section single-banner"
-         th:style="|background: url(@{/images/single-banner.jpg}) no-repeat center|">
+         th:style="|background: url(@{/images/singlebanner.jpg}) no-repeat center|">
     <div class="container">
         <h2>CHI TIẾT SẢN PHẨM</h2>
 
@@ -119,7 +93,7 @@
                             [[${#numbers.formatDecimal(p.price,1,'DEFAULT',0,'DEFAULT')} + ' đ']]
                         </del>
                         <span class="text-success fw-bold">
-              [[${#numbers.formatDecimal(finalPrice,1,'DEFAULT',0,'DEFAULT')} + ' đ']]] <small class="text-muted">/kg</small>
+              [[${#numbers.formatDecimal(finalPrice,1,'DEFAULT',0,'DEFAULT')} + ' đ']]
             </span>
                     </div>
 
