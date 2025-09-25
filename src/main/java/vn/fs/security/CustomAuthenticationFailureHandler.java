@@ -25,7 +25,7 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
     public void onAuthenticationFailure(HttpServletRequest request,
                                         HttpServletResponse response,
                                         AuthenticationException exception)
-            throws IOException, ServletException {   // <--- thêm ServletException ở đây
+            throws IOException, ServletException {
 
         String loginId = request.getParameter("username");
         String ip = IpUtils.getClientIp(request);
@@ -36,6 +36,6 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
         ipLockService.onFailure(ip);
 
         super.setDefaultFailureUrl("/login?error");
-        super.onAuthenticationFailure(request, response, exception); // method này có thể ném ServletException
+        super.onAuthenticationFailure(request, response, exception);
     }
 }

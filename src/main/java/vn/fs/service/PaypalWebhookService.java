@@ -15,7 +15,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PaypalWebhookService {
 
-    private final OAuthTokenCredential oauth;   // có sẵn từ PaypalConfig
+    private final OAuthTokenCredential oauth;
     private final RestTemplate rest = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -32,7 +32,6 @@ public class PaypalWebhookService {
         return oauth.getAccessToken();
     }
 
-    /** Verify chữ ký webhook qua PayPal API */
     @SuppressWarnings("unchecked")
     public boolean verify(Map<String, String> lowerHeaders, String rawBody) {
         try {
@@ -42,7 +41,6 @@ public class PaypalWebhookService {
             h.setBearerAuth(token);
             h.setContentType(MediaType.APPLICATION_JSON);
 
-            // Parse raw JSON -> Map bằng Jackson
             Map<String, Object> webhookEvent = mapper.readValue(rawBody, Map.class);
 
             Map<String, Object> body = new HashMap<>();

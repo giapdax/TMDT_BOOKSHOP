@@ -26,6 +26,6 @@ public class Category implements Serializable {
     @Column(name = "category_image")
     private String categoryImage;
 
-    @Column(name = "status")           // 1: active, 0: inactive
+    @Column(name = "status")
     private Boolean status = true;
 }

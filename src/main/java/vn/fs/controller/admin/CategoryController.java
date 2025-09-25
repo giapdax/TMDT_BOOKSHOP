@@ -31,18 +31,17 @@ import vn.fs.repository.UserRepository;
 @RequestMapping("/admin")
 public class CategoryController {
 
-    /** Thư mục upload. Có default nếu chưa set trong application.properties */
+    // Thư mục upload. Có default nếu chưa set trong application.properties
     @Value("${upload.path:${user.dir}/upload/images}")
     private String uploadDir;
 
-    /** Prefix file tạm để giữ ảnh khi form lỗi */
+    // Prefix file tạm để giữ ảnh khi form lỗi
     private static final String TMP_PREFIX = "__tmp__";
 
     @Autowired private CategoryRepository categoryRepository;
     @Autowired private ProductRepository productRepository;
     @Autowired private UserRepository userRepository;
 
-    /* ====================== COMMON USER ====================== */
     @ModelAttribute("user")
     public User user(Model model, Principal principal, User user) {
         if (principal != null) {
@@ -52,7 +51,6 @@ public class CategoryController {
         return user;
     }
 
-    /* ====================== LIST BINDING ====================== */
     @ModelAttribute("categories")
     public List<Category> showCategory(Model model) {
         List<Category> categories = categoryRepository.findAll();
@@ -89,7 +87,6 @@ public class CategoryController {
         return "admin/editCategory";
     }
 
-    /* ====================== CREATE ====================== */
     @PostMapping("/addCategory")
     public String addCategory(@Valid @ModelAttribute("category") CategoryDTO dto,
                               BindingResult br,
@@ -135,7 +132,6 @@ public class CategoryController {
         return "admin/categories";
     }
 
-    /* ====================== UPDATE ====================== */
     @PostMapping("/editCategory/{id}")
     public String updateCategory(@PathVariable("id") Long id,
                                  @Valid @ModelAttribute("category") CategoryDTO dto,
@@ -205,7 +201,6 @@ public class CategoryController {
         return "redirect:/admin/categories";
     }
 
-    /* ====================== HIDE (SOFT) + CASCADE PRODUCTS ====================== */
     @GetMapping("/delete/{id}")
     public String hideCategory(@PathVariable("id") Long id, RedirectAttributes ra) {
         Optional<Category> opt = categoryRepository.findById(id);
@@ -216,14 +211,14 @@ public class CategoryController {
         }
         Category c = opt.get();
 
-        // 1) Ẩn toàn bộ sản phẩm thuộc category này
+        // Ẩn toàn bộ sản phẩm thuộc category này
         productRepository.hideByCategory(id);
 
-        // 2) Ẩn category (soft hide)
+        // Ẩn category (soft hide)
         c.setStatus(false);
         categoryRepository.save(c);
 
-        // 3) Nếu KHÔNG có bất kỳ sản phẩm nào tham chiếu category này (kể cả đã ẩn) thì cho xóa cứng
+        // Nếu KHÔNG có bất kỳ sản phẩm nào tham chiếu category này (kể cả đã ẩn) thì cho xóa cứng
         long totalRef = productRepository.countByCategory_CategoryId(id);
         if (totalRef == 0) {
             try {
@@ -254,7 +249,6 @@ public class CategoryController {
         return "redirect:/admin/categories";
     }
 
-    /* ====================== IMAGE HELPERS ====================== */
     private String saveTempIfValid(MultipartFile file) {
         try {
             Files.createDirectories(Paths.get(uploadDir));
@@ -304,7 +298,6 @@ public class CategoryController {
         } catch (Exception ignore) {}
     }
 
-    /* ====================== STRING UTILS ====================== */
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }

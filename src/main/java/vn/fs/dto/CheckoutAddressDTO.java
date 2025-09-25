@@ -26,11 +26,9 @@ public class CheckoutAddressDTO {
     )
     private String phone;
 
-    // Ghi chú optional
     @Size(max = 255, message = "Ghi chú tối đa 255 ký tự.")
     private String note;
 
-    // Thanh toán: "cod" (default) hoặc "paypal"
     @NotBlank(message = "Vui lòng chọn phương thức thanh toán.")
     private String paymentMethod = "cod";
 }

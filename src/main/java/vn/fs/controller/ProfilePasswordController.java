@@ -25,7 +25,6 @@ public class ProfilePasswordController {
     @Autowired private UserRepository userRepository;
     @Autowired private BCryptPasswordEncoder passwordEncoder;
 
-    // ===== GET form
     @GetMapping("/change-password")
     public String showChangePassword(Model model) {
         if (!model.containsAttribute("form")) {
@@ -34,7 +33,6 @@ public class ProfilePasswordController {
         return "web/profile-change-password";
     }
 
-    // ===== POST submit
     @PostMapping("/change-password")
     @Transactional
     public String doChangePassword(@Valid @ModelAttribute("form") ChangePasswordInProfile form,

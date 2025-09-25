@@ -34,8 +34,6 @@ public class UserController {
                        @RequestParam(value = "notfound", required = false) String notfound) {
         if (principal == null) return "redirect:/login";
 
-        // KHÔNG set 'user' ở đây nữa — GlobalModelAdvice đã bơm sẵn
-
         List<User> users = userRepository.findAll();
         model.addAttribute("users", users);
 

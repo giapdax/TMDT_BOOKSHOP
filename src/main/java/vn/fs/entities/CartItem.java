@@ -4,20 +4,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * DTO dùng cho tầng controller/view.
- * Không có JPA annotation, KHÔNG map DB.
- */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class CartItem {
 
-    private Long id;          // productId
-    private String name;      // fallback nếu product null
-    private double unitPrice; // fallback nếu product null
+    private Long id;
+    private String name;
+    private double unitPrice;
     private int quantity;
-    private Product product;  // để view lấy ảnh/tên,... cho tiện
+    private Product product;
 
     public double getUnitPriceAfterDiscount() {
         if (product == null) return unitPrice;

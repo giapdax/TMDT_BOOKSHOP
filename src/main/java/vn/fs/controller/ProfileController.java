@@ -41,7 +41,7 @@ public class ProfileController extends CommomController {
 
     @Autowired UserDetailService userDetailService; // để load lại UserDetails sau khi đổi username
 
-    /** Lấy User theo principal: chấp nhận login id là username HOẶC email */
+    // Lấy User theo principal: chấp nhận login id là username HOẶC email
     private User resolveCurrentUser(Principal principal) {
         if (principal == null) return null;
         String login = principal.getName();
@@ -50,7 +50,7 @@ public class ProfileController extends CommomController {
         return u;
     }
 
-    /** Sau khi đổi username/email, refresh lại Authentication trong SecurityContext để không bị đăng xuất */
+    // Sau khi đổi username/email, refresh lại Authentication trong SecurityContext để không bị đăng xuất
     private void refreshAuthentication(String newLoginId, HttpServletRequest request) {
         // newLoginId có thể là username mới hoặc email (ở đây ta dùng username mới)
         var userDetails = userDetailService.loadUserByUsername(newLoginId);
@@ -68,7 +68,6 @@ public class ProfileController extends CommomController {
         }
     }
 
-    // ===================== /profile =====================
     @GetMapping("/profile")
     public String profile(Model model,
                           Principal principal,
@@ -116,7 +115,6 @@ public class ProfileController extends CommomController {
         return new PageImpl<>(list, PageRequest.of(currentPage, pageSize), orderList.size());
     }
 
-    // ===================== /order/detail/{id} =====================
     @GetMapping("/order/detail/{order_id}")
     public ModelAndView detail(Model model,
                                Principal principal,
@@ -133,7 +131,6 @@ public class ProfileController extends CommomController {
         return new ModelAndView("web/historyOrderDetail");
     }
 
-    // ===================== /order/cancel/{id} =====================
     @RequestMapping("/order/cancel/{order_id}")
     public ModelAndView cancel(ModelMap model, @PathVariable("order_id") Long id) {
         Optional<Order> o = orderRepository.findById(id);
@@ -146,7 +143,6 @@ public class ProfileController extends CommomController {
         return new ModelAndView("redirect:/profile", model);
     }
 
-    // ===================== Cập nhật thông tin cá nhân =====================
     @PostMapping("/profile/update")
     public String updateProfile(Principal principal,
                                 HttpServletRequest request,
@@ -159,7 +155,6 @@ public class ProfileController extends CommomController {
         User current = resolveCurrentUser(principal);
         if (current == null) return "redirect:/login";
 
-        // VALIDATE cơ bản (server-side)
         String trimmedName = name == null ? "" : name.trim();
         String trimmedEmail = email == null ? "" : email.trim();
         String trimmedPhone = phone == null ? "" : phone.trim();

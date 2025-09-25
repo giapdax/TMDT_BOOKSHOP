@@ -36,7 +36,7 @@ public class ProductDetailController extends CommomController {
 	@Autowired
 	private FavoriteRepository favoriteRepository;
 
-	/** Lấy user hiện tại từ session hoặc SecurityContext */
+	// Lấy user hiện tại từ session hoặc SecurityContext
 	private User resolveCurrentUser(HttpSession session) {
 		Long uid = SessionUtils.getUserId(session);
 		if (uid != null) return userRepository.findById(uid).orElse(null);
@@ -50,7 +50,7 @@ public class ProductDetailController extends CommomController {
 		return null;
 	}
 
-	/** Đánh dấu 1 sản phẩm đã favorite hay chưa */
+	// Đánh dấu 1 sản phẩm đã favorite hay chưa
 	private void markFavorite(User user, Product product) {
 		if (user == null || product == null) return;
 		boolean isFav = favoriteRepository.existsByUserIdAndProductId(user.getUserId(), product.getProductId());

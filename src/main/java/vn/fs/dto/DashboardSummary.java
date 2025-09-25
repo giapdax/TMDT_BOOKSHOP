@@ -1,11 +1,10 @@
-// src/main/java/vn/fs/dto/DashboardSummary.java
 package vn.fs.dto;
 
 public class DashboardSummary {
-    private long newUsers7d;     // số user đăng ký 7 ngày gần nhất
-    private long salesQty7d;     // tổng SL bán ra 7 ngày gần nhất (sum quantity)
-    private long orders7d;       // số đơn 7 ngày gần nhất (để gắn vào "Subscribers" trên UI sẵn có)
-    private double income7d;     // doanh thu 7 ngày gần nhất
+    private long newUsers7d;
+    private long salesQty7d;
+    private long orders7d;
+    private double income7d;
 
     public DashboardSummary(long newUsers7d, long salesQty7d, long orders7d, double income7d) {
         this.newUsers7d = newUsers7d;

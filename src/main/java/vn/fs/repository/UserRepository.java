@@ -14,18 +14,15 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    /* ====== Compat cho code cũ ====== */
     User findByEmail(String email);
     User findByUsername(String username);
     boolean existsByEmailIgnoreCaseAndUserIdNot(String email, Long userId);
     boolean existsByUsernameIgnoreCaseAndUserIdNot(String username, Long userId);
 
-    /* ====== Khuyến nghị dùng Optional/IgnoreCase ====== */
     Optional<User> findByEmailIgnoreCase(String email);
     Optional<User> findByUsernameIgnoreCase(String username);
     Optional<User> findByUsernameIgnoreCaseOrEmailIgnoreCase(String username, String email);
 
-    /* Kéo roles kèm theo để tránh N+1 */
     @Override
     @EntityGraph(attributePaths = "roles")
     List<User> findAll();
@@ -34,7 +31,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = "roles")
     Optional<User> findById(Long id);
 
-    /* ====== Field-level updates: không chạm entity => không trigger Bean Validation ====== */
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update User u " +
@@ -67,13 +63,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
                             @Param("lockUntil") LocalDateTime lockUntil,
                             @Param("now")       LocalDateTime now);
 
-    /* Đổi mật khẩu & bật status bằng email — không validate toàn entity */
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update User u set u.password = :hashed, u.status = true where lower(u.email) = lower(:email)")
     int updatePasswordByEmail(@Param("email") String email,
                               @Param("hashed") String hashed);
-
-    /* ====== Thống kê user mới theo ngày (dùng backtick cho bảng `user`) ====== */
 
     @Query(value =
             "select date(u.register_date) d, count(*) v " +

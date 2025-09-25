@@ -29,7 +29,6 @@ public class LoadImageController {
 
         response.setHeader("Cache-Control", "max-age=86400");
 
-        // Guard: tên rỗng / traversal -> placeholder
         if (!StringUtils.hasText(imageName)
                 || imageName.contains("..")
                 || imageName.contains("/") || imageName.contains("\\")
@@ -42,7 +41,6 @@ public class LoadImageController {
             return fallbackBytes(response);
         }
 
-        // Set content-type theo phần mở rộng
         String lower = imageName.toLowerCase();
         if (lower.endsWith(".png")) {
             response.setContentType(MediaType.IMAGE_PNG_VALUE);

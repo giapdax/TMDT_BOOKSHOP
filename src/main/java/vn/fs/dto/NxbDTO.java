@@ -16,7 +16,7 @@ public class NxbDTO {
 
     private Boolean status;
 
-    /** Chuẩn hoá input */
+    // Chuẩn hoá input
     public void normalize() {
         if (name != null) name = name.trim();
         if (status == null) status = true;

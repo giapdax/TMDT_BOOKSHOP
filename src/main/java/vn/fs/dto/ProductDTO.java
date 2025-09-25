@@ -6,11 +6,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import javax.validation.constraints.*;
 import java.util.Date;
 
-/**
- * DTO cho thao tác thêm/sửa Product.
- * - Tất cả validate đặt ở đây (KHÔNG validate trong Entity).
- * - Lưu tên ảnh (kể cả ảnh tạm __tmp__) trong productImage để không mất ảnh khi form lỗi.
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -54,10 +49,8 @@ public class ProductDTO {
     @NotNull(message = "Vui lòng chọn trạng thái hiển thị.")
     private Boolean status;
 
-    /** Giữ tên ảnh hiện tại hoặc ảnh tạm (__tmp__...) để không bị mất khi form lỗi */
     private String productImage;
 
-    /** Chuẩn hoá chuỗi để hạn chế trùng do khoảng trắng */
     public void normalize() {
         if (productName != null) productName = productName.replaceAll("\\s+", " ").trim();
         if (description != null) description = description.trim();

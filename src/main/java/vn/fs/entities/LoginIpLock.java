@@ -21,7 +21,6 @@ public class LoginIpLock {
     private LocalDateTime lockedUntil;
     private LocalDateTime lastFailedAt;
 
-    // getters/setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getIp() { return ip; }

@@ -30,7 +30,6 @@ public class CartItemEntity {
     @Column(nullable = false)
     private int quantity;
 
-    /** Snapshot đơn giá tại thời điểm thêm vào giỏ (đã áp dụng discount). */
     @Column(name = "unit_price", nullable = false)
     private Double unitPrice;
 
@@ -42,7 +41,6 @@ public class CartItemEntity {
     @Column(name = "updated_at", nullable = false)
     private Date updatedAt;
 
-    /** Mốc dùng để auto xoá item “để lâu không mua”. */
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "last_touch")
     private Date lastTouch;

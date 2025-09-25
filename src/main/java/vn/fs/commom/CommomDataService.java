@@ -36,9 +36,7 @@ public class CommomDataService {
     @Autowired public JavaMailSender emailSender;
     @Autowired private TemplateEngine templateEngine;
 
-    /**
-     * Đổ dữ liệu dùng chung cho header/navbar/footer.
-     */
+     // Đổ dữ liệu dùng chung cho header/navbar/footer.
     public void commonData(Model model, User user) {
         // Yêu thích
         Integer totalSave = 0;
@@ -60,12 +58,12 @@ public class CommomDataService {
             if (cartItems != null) {
                 distinct = cartItems.size();
                 for (CartItem it : cartItems) {
-                    if (it != null) qtySum += it.getQuantity(); // int
+                    if (it != null) qtySum += it.getQuantity();
                 }
             }
         } catch (Exception ignored) { }
-
-        model.addAttribute("totalCartItems", distinct);   // giữ tên cũ để không vỡ view
+        // giữ tên cũ để không vỡ view
+        model.addAttribute("totalCartItems", distinct);
         model.addAttribute("totalCartDistinct", distinct);
         model.addAttribute("totalCartQtySum", qtySum);
         model.addAttribute("cartItems", cartItems);
@@ -83,7 +81,7 @@ public class CommomDataService {
                 productRepository.listCategoryByProductNameActive());
     }
 
-    /** Gửi email xác nhận đặt hàng */
+    /// Gửi email xác nhận đặt hàng
     public void sendSimpleEmail(String email, String subject, String contentEmail,
                                 Collection<CartItem> cartItems, double totalPrice, Order orderFinal)
             throws MessagingException {

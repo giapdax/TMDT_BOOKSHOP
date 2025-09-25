@@ -21,11 +21,11 @@ public class DashboardService {
     private final OrderDetailRepository orderDetailRepo;
 
     public DashboardSummary loadSummary(int days) {
-        // Ví dụ: days = 7 -> từ 6 ngày trước tới hôm nay
+
         LocalDate from = LocalDate.now().minusDays(days - 1);
 
-        long newUsers   = userRepo.countNewUsersFrom(from);     // cần có ở UserRepository
-        long orders     = orderRepo.countOrdersFrom(from);       // đã có ở OrderRepository bạn gửi
+        long newUsers   = userRepo.countNewUsersFrom(from);
+        long orders     = orderRepo.countOrdersFrom(from);
         long salesQty   = orderDetailRepo.totalSoldQtyFrom(from);
         double income   = orderRepo.incomeByDateFrom(from).stream()
                 .map(r -> ((Number) r[1]).doubleValue())

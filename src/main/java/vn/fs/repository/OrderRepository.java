@@ -14,8 +14,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query(value = "select * from orders where user_id = ?1", nativeQuery = true)
     List<Order> findOrderByUserId(Long userId);
 
-    /* ===== DỮ LIỆU DASHBOARD (tuỳ status “đã chốt” của bạn, mình giả định 1,2,3) ===== */
-
     // Tổng doanh thu theo ngày từ một mốc
     @Query(value =
             "select date(o.order_date) as d, coalesce(sum(o.amount),0) as v " +

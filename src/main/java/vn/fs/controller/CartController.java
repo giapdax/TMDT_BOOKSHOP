@@ -65,7 +65,7 @@ public class CartController extends CommomController {
 
     /* ============================ Helpers ============================ */
 
-    /** Lấy user đăng nhập từ Spring Security + Optional/IgnoreCase. */
+    // Lấy user đăng nhập từ Spring Security + Optional/IgnoreCase.
     private User currentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
@@ -78,17 +78,15 @@ public class CartController extends CommomController {
                 .orElse(null);
     }
 
-    /** Bind info giỏ hàng lên model theo service mới. */
+    // Bind info giỏ hàng lên model theo service mới.
     private void bindCartToModel(Model model) {
         Collection<CartItem> cartItems = shoppingCartService.getCartItems();
         model.addAttribute("cartItems", cartItems);
-        model.addAttribute("total", shoppingCartService.getAmount());            // tổng tiền (đã trừ discount)
-        model.addAttribute("totalPrice", shoppingCartService.getAmount());      // đồng bộ UI cũ
-        model.addAttribute("totalCartItems", shoppingCartService.getDistinctCount()); // badge ở header
-        model.addAttribute("totalCartQtySum", shoppingCartService.getQuantitySum());  // tổng qty
+        model.addAttribute("total", shoppingCartService.getAmount());
+        model.addAttribute("totalPrice", shoppingCartService.getAmount());
+        model.addAttribute("totalCartItems", shoppingCartService.getDistinctCount());
+        model.addAttribute("totalCartQtySum", shoppingCartService.getQuantitySum());
     }
-
-    /* ============================ Pages ============================ */
 
     @GetMapping("/shoppingCart_checkout")
     public String shoppingCart(Model model) {
@@ -96,7 +94,6 @@ public class CartController extends CommomController {
         User me = currentUser();
         commomDataService.commonData(model, me);
 
-        // prefills
         if (!model.containsAttribute("checkout")) {
             CheckoutAddressDTO dto = new CheckoutAddressDTO();
             if (me != null) {
@@ -109,13 +106,11 @@ public class CartController extends CommomController {
         return "web/shoppingCart_checkout";
     }
 
-    // alias
     @GetMapping("/checkout")
     public String checkOut(Model model) {
         return shoppingCart(model);
     }
 
-    /* ====================== Cart actions ====================== */
 
     @GetMapping("/addToCart")
     public String add(@RequestParam("productId") Long productId,
@@ -141,7 +136,6 @@ public class CartController extends CommomController {
         return "redirect:/checkout";
     }
 
-    /* ====================== Submit checkout ====================== */
 
     @PostMapping("/checkout")
     @Transactional
@@ -150,13 +144,12 @@ public class CartController extends CommomController {
                              Model model,
                              HttpServletRequest request) throws MessagingException {
 
-        // cart empty?
+        // cart empty
         Collection<CartItem> cartItems = shoppingCartService.getCartItems();
         if (cartItems == null || cartItems.isEmpty()) {
             return "redirect:/products";
         }
 
-        // fill header/nav + cart data again if errors
         bindCartToModel(model);
         commomDataService.commonData(model, currentUser());
 
@@ -169,11 +162,9 @@ public class CartController extends CommomController {
         String method = (checkout.getPaymentMethod() == null) ? "cod" : checkout.getPaymentMethod().trim().toLowerCase();
 
         if (StringUtils.equals(method, "paypal")) {
-            // Lưu "order draft" vào session để callback success lấy ra hoàn tất
             Order draft = new Order();
             draft.setAddress(checkout.getAddress());
             draft.setPhone(checkout.getPhone());
-            // (note không lưu trong entity hiện tại — nếu muốn, thêm cột rồi map)
             session.setAttribute("orderDraft", draft);
 
             String cancelUrl  = Utils.getBaseURL(request) + URL_PAYPAL_CANCEL;
@@ -208,13 +199,12 @@ public class CartController extends CommomController {
             }
         }
 
-        // === COD flow ===
         User cur = currentUser();
         if (cur == null) return "redirect:/login";
 
         Order order = new Order();
         order.setOrderDate(new Date());
-        order.setStatus(0);            // pending
+        order.setStatus(0);
         order.setAmount(totalPrice);
         order.setUser(cur);
         order.setAddress(checkout.getAddress());
@@ -226,7 +216,7 @@ public class CartController extends CommomController {
             od.setQuantity(ci.getQuantity());
             od.setOrder(order);
             od.setProduct(ci.getProduct());
-            od.setPrice(ci.getProduct().getPrice()); // nếu muốn dùng giá đã discount thì thay tại đây
+            od.setPrice(ci.getProduct().getPrice());
             orderDetailRepository.save(od);
         }
 
@@ -247,7 +237,6 @@ public class CartController extends CommomController {
         return "redirect:/checkout_success";
     }
 
-    /* ====================== PayPal callbacks ====================== */
 
     @GetMapping(URL_PAYPAL_SUCCESS)
     public String successPay(@RequestParam("paymentId") String paymentId,

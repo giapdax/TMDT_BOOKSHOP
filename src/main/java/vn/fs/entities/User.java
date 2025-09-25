@@ -51,7 +51,6 @@ public class User implements Serializable {
     private LocalDateTime lockedUntil;
     private LocalDateTime lastLoginAt;
 
-    // 👉 ĐỔI LẠI EAGER để Spring Security lấy roles an toàn trong quá trình auth
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "users_roles",
@@ -62,7 +61,6 @@ public class User implements Serializable {
 
     public User() {}
 
-    // ===== Getters/Setters =====
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 

@@ -13,16 +13,13 @@ import vn.fs.entities.OrderDetail;
 @Repository
 public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> {
 
-    /* Lấy chi tiết theo order_id */
+
     @Query(value = "SELECT * FROM order_details WHERE order_id = ?1", nativeQuery = true)
     List<OrderDetail> findByOrderId(Long orderId);
 
-    /* === CHECK THAM CHIẾU SẢN PHẨM (cho xoá sản phẩm) ===
-       Trả về TRUE nếu tồn tại ít nhất 1 order_detail tham chiếu tới productId */
     @Query("select count(od) > 0 from OrderDetail od where od.product.productId = :pid")
     boolean existsRefByProductId(@Param("pid") Long productId);
 
-    /* ===== THỐNG KÊ THEO SẢN PHẨM ===== */
     @Query(value =
             "SELECT p.product_name, " +
                     "       SUM(o.quantity)           AS quantity, " +
@@ -36,7 +33,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
             nativeQuery = true)
     List<Object[]> repo();
 
-    /* ===== THỐNG KÊ THEO THỂ LOẠI ===== */
     @Query(value =
             "SELECT c.category_name, " +
                     "       SUM(o.quantity)           AS quantity, " +
@@ -51,7 +47,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
             nativeQuery = true)
     List<Object[]> repoWhereCategory();
 
-    /* ===== THỐNG KÊ THEO NĂM ===== */
     @Query(value =
             "SELECT YEAR(od.order_date)       AS y, " +
                     "       SUM(o.quantity)            AS quantity, " +
@@ -65,7 +60,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
             nativeQuery = true)
     List<Object[]> repoWhereYear();
 
-    /* ===== THỐNG KÊ THEO THÁNG ===== */
     @Query(value =
             "SELECT MONTH(od.order_date)      AS m, " +
                     "       SUM(o.quantity)            AS quantity, " +
@@ -79,7 +73,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
             nativeQuery = true)
     List<Object[]> repoWhereMonth();
 
-    /* ===== THỐNG KÊ THEO QUÝ ===== */
     @Query(value =
             "SELECT QUARTER(od.order_date)    AS q, " +
                     "       SUM(o.quantity)            AS quantity, " +
@@ -93,10 +86,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
             nativeQuery = true)
     List<Object[]> repoWhereQUARTER();
 
-    /* ===== THỐNG KÊ THEO KHÁCH HÀNG =====
-   Trả về: [groupLabel, qty, sum, avg, min, max]
-   LƯU Ý: DB của bạn đang dùng bảng `user` và cột tên `name` (theo log + navbar)
-*/
     @Query(value =
             "SELECT COALESCE(u.name, u.email)      AS grp, " +
                     "       SUM(odt.quantity)              AS quantity, " +
@@ -111,8 +100,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
     nativeQuery = true)
     List<Object[]> reportCustomer();
 
-
-    /* ===== PHỤ TRỢ DASHBOARD ===== */
     @Query(value =
             "SELECT COALESCE(SUM(od.quantity), 0) " +
                     "FROM order_details od " +

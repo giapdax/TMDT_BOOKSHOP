@@ -37,10 +37,8 @@ public class RegisterController {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // DÙNG CHÍNH JavaMailSender sẵn có trong dự án (optional)
     private final JavaMailSender mailSender;
 
-    /* ================= GET /register ================= */
     @GetMapping("/register")
     public String showRegister(Model model) {
         if (!model.containsAttribute("form")) {
@@ -49,7 +47,6 @@ public class RegisterController {
         return "web/register";
     }
 
-    /* ================= POST /register ================= */
     @PostMapping("/register")
     public String doRegister(@Valid @ModelAttribute("form") UserRegisterDTO form,
                              BindingResult br,
@@ -140,7 +137,6 @@ public class RegisterController {
             return "web/confirmOtpRegister";
         }
 
-        // OTP OK → map DTO -> Entity + encode + set defaults
         User u = new User();
         u.setUsername(pending.getUsername().trim());
         u.setEmail(pending.getEmail().trim().toLowerCase());
@@ -154,7 +150,6 @@ public class RegisterController {
             u.setAvatar("user.png");
         }
 
-        // ROLE mặc định: CUSTOMER (UserDetailService sẽ tự thêm prefix ROLE_)
         Role role = resolveOrCreateRole("CUSTOMER");
         Set<Role> roles = new HashSet<>();
         if (role != null) roles.add(role);
@@ -165,8 +160,6 @@ public class RegisterController {
 
         return "redirect:/login?registered=1";
     }
-
-    /* ================= Helpers ================= */
 
     private Role resolveOrCreateRole(String name) {
         Role role = roleRepository.findByName(name);

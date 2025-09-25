@@ -29,7 +29,6 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 
     private static final int CART_TTL_DAYS = 30;
 
-    /* ============================ Helpers ============================ */
 
     private User currentUserOrNull() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -79,8 +78,6 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         return Math.max(0, Math.min(desiredQty, stock));
     }
 
-    /* ============================ READ ============================ */
-
     @Override
     @Transactional(readOnly = true)
     public int getQuantitySum() {
@@ -126,8 +123,6 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                 .filter(ci -> Objects.equals(ci.getProduct().getProductId(), productId))
                 .findFirst().map(this::toDto).orElse(null);
     }
-
-    /* ============================ WRITE (stock-safe) ============================ */
 
     @Override
     @Transactional

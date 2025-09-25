@@ -28,17 +28,10 @@ public class HomeController {
 
     @GetMapping({"/", "/home"})
     public String home(Model model, HttpSession session) {
-        // 1) Lấy user hiện tại (nếu có) để header/footer dùng
         User current = resolveCurrentUser(session);
         commomDataService.commonData(model, current);
-
-        // 2) NEW ARRIVALS
         List<Product> newArrivals = safe(productRepository.listProductNew20());
-
-        // 3) FEATURED (giảm giá cao)
         List<Product> featured = safe(productRepository.topDiscount20());
-
-        // 4) BEST SELLERS
         List<Object[]> rows = safe(productRepository.bestSaleProduct20());
         List<Long> ids = rows.stream()
                 .map(r -> r[0] == null ? null : ((Number) r[0]).longValue())
@@ -51,12 +44,10 @@ public class HomeController {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        // 5) Gắn cờ favorite cho user
         markFavorites(current, newArrivals);
         markFavorites(current, featured);
         markFavorites(current, bestSellers);
 
-        // 6) Bơm model
         model.addAttribute("productList", newArrivals);          // Mặt hàng mới về
         model.addAttribute("featuredProducts", featured);        // Sách nổi bật
         model.addAttribute("bestSaleProduct20", bestSellers);    // Sách bán chạy
@@ -69,7 +60,6 @@ public class HomeController {
         return "web/home";
     }
 
-    /** Đánh dấu sản phẩm user đã favorite */
     private void markFavorites(User user, List<Product> products) {
         if (user == null || products == null || products.isEmpty()) return;
 
@@ -86,7 +76,6 @@ public class HomeController {
         }
     }
 
-    /** Lấy user hiện tại từ session hoặc SecurityContext */
     private User resolveCurrentUser(HttpSession session) {
         Long uid = SessionUtils.getUserId(session);
         if (uid != null) return userRepository.findById(uid).orElse(null);

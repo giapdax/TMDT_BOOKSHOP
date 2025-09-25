@@ -1,4 +1,3 @@
-// src/main/java/vn/fs/controller/admin/AdminDashboardApi.java
 package vn.fs.controller.admin;
 
 import lombok.RequiredArgsConstructor;

@@ -14,13 +14,11 @@ import vn.fs.entities.User;
 import vn.fs.repository.UserRepository;
 
 import javax.servlet.http.HttpSession;
+ // Inject các dữ liệu dùng chung cho layout (header/footer/nav) theo mô hình MVC.
+ // QUAN TRỌNG:
+ //Chỉ thực hiện READ-ONLY.
+ // Việc bind số lượng giỏ hàng, danh sách item, tổng tiền... phải được CommomDataService triển khai ở chế độ readOnly.
 
-/**
- * Inject các dữ liệu dùng chung cho layout (header/footer/nav) theo mô hình MVC.
- * QUAN TRỌNG:
- * - Chỉ thực hiện READ-ONLY.
- * - Việc bind số lượng giỏ hàng, danh sách item, tổng tiền... phải được CommomDataService triển khai ở chế độ readOnly.
- */
 @ControllerAdvice(annotations = Controller.class)
 @RequiredArgsConstructor
 public class GlobalModelAdvice {
@@ -30,25 +28,23 @@ public class GlobalModelAdvice {
 
     @ModelAttribute
     public void injectCommonData(Model model, HttpSession session) {
-        // 1) Lấy user hiện tại (ưu tiên session, sau đó SecurityContext)
+        //Lấy user hiện tại (ưu tiên session, sau đó SecurityContext)
         User current = resolveCurrentUser(session);
 
-        // 2) Bơm dữ liệu dùng chung (PHẢI là read-only ở tầng service)
-        //    Ví dụ: totalCartItems, cartItems (DTO), totalPrice, categoryList, nxbList, totalSave...
+        //Bơm dữ liệu dùng chung PHẢI là read-only ở tầng service)
         commomDataService.commonData(model, current);
 
-        // 3) Đảm bảo luôn có 'user' để view không lỗi khi truy cập ${user.*}
+        //Đảm bảo luôn có 'user' để view không lỗi khi truy cập
         model.addAttribute("user", (current != null) ? current : new User());
 
-        // 4) Thêm displayName & isLoggedIn cho tiện dùng ở header
+        //Thêm displayName & isLoggedIn cho tiện dùng ở header
         model.addAttribute("displayName", buildDisplayName(session, current));
         model.addAttribute("isLoggedIn", current != null);
     }
 
-    /* ====================== Helpers ====================== */
 
     private User resolveCurrentUser(HttpSession session) {
-        // a) Ưu tiên session attribute "customer"
+        // Ưu tiên session attribute "customer"
         if (session != null) {
             Object customer = session.getAttribute("customer");
             if (customer instanceof User) {
@@ -60,12 +56,13 @@ public class GlobalModelAdvice {
             }
         }
 
-        // b) Fallback: SecurityContext
+        // Fallback: SecurityContext
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             return null;
         }
-        String loginId = auth.getName(); // có thể là username hoặc email
+        // có thể là username hoặc email
+        String loginId = auth.getName();
         User byUsername = userRepository.findByUsernameIgnoreCase(loginId).orElse(null);
         if (byUsername != null) return byUsername;
         return userRepository.findByEmailIgnoreCase(loginId).orElse(null);

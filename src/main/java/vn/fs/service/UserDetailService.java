@@ -19,10 +19,6 @@ public class UserDetailService implements UserDetailsService {
     @Autowired
     private UserRepository userRepository;
 
-    /**
-     * Cho phép đăng nhập bằng username HOẶC email (ignore case).
-     * Set principalName về username "chuẩn" để SuccessHandler có thể reset by username.
-     */
     @Override
     public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
         String key = (identifier == null) ? "" : identifier.trim();
