@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta charset="UTF-8" />
     <title>BOOK_SHOP - Trang quản trị</title>
-    <meta content='width=device-width, initial-scale=1.0, shrink-to-fit=no' name='viewport' />
+    <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
     <link rel="icon" href="/assets/img/icon.ico" type="image/x-icon"/>
 
     <script src="/assets/js/plugin/webfont/webfont.min.js"></script>
@@ -19,6 +19,11 @@
     <link rel="stylesheet" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="/assets/css/atlantis.min.css">
     <link rel="stylesheet" href="/assets/css/demo.css">
+    <style>
+        .app-alert{background:#10b98114;color:#065f46;border:1px solid #10b98155;padding:10px 12px;border-radius:12px;display:flex;align-items:center;gap:10px}
+        .app-alert .close-x{margin-left:auto;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#065f46;border:1px solid #10b98155;cursor:pointer;background:transparent}
+        .app-alert .close-x:hover{background:#10b98122}
+    </style>
 </head>
 <body>
 <div class="wrapper">
@@ -36,7 +41,7 @@
                         <li class="separator"><i class="flaticon-right-arrow"></i></li>
                         <li class="nav-item"><a th:href="@{/admin/home}">Trang chủ</a></li>
                         <li class="separator"><i class="flaticon-right-arrow"></i></li>
-                        <li class="nav-item"><a href="javascript:void(0);">Quản lý Nxb</a></li>
+                        <li class="nav-item"><a href="javascript:void(0);">Quản lý NXB</a></li>
                     </ul>
                 </div>
 
@@ -52,12 +57,18 @@
                         </div>
 
                         <div class="card-body">
+
+                            <div th:if="${message}" class="app-alert">
+                                <span th:text="${message}">Thông báo</span>
+                                <button type="button" class="close-x" onclick="this.parentElement.remove()">×</button>
+                            </div>
+
                             <!-- Modal add -->
                             <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
                                 <div class="modal-dialog" role="document">
                                     <div class="modal-content">
                                         <div class="modal-header no-bd">
-                                            <h5 class="modal-title"><span class="fw-mediumbold" style="text-decoration: underline; color: black;">Thêm mới Nxb</span></h5>
+                                            <h5 class="modal-title"><span class="fw-mediumbold" style="text-decoration: underline; color: black;">Thêm mới NXB</span></h5>
                                             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                                         </div>
                                         <div class="modal-body">
@@ -65,8 +76,18 @@
                                                 <div class="row">
                                                     <div class="col-sm-12">
                                                         <div class="form-group form-group-default">
-                                                            <label>Tên Nhà Xuất bản</label>
-                                                            <input th:field="*{name}" id="Name" type="text" class="form-control" placeholder="Tên Nhà Xuất bản" required>
+                                                            <label>Tên Nhà Xuất Bản</label>
+                                                            <input th:field="*{name}" id="Name" type="text" class="form-control" placeholder="Tên Nhà Xuất Bản" required>
+                                                            <small class="text-danger" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-sm-12">
+                                                        <div class="form-group form-group-default">
+                                                            <label>Trạng thái</label>
+                                                            <select class="form-control" th:field="*{status}">
+                                                                <option th:value="true">HIỂN THỊ</option>
+                                                                <option th:value="false">ẨN</option>
+                                                            </select>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -79,8 +100,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="alert alert-success row col-12" th:if="${message}" th:text="${message}"></div>
 
                             <div class="table-responsive">
                                 <table id="add-row" class="display table table-striped table-hover">
@@ -102,7 +121,7 @@
                                     </tfoot>
                                     <tbody>
                                     <tr th:each="item : ${nxbs}">
-                                        <td>[[${item.Id}]]</td>
+                                        <td>[[${item.id}]]</td>
                                         <td>[[${item.name}]]</td>
                                         <td>
                                             <span th:if="${item.status == null || item.status}" class="badge badge-success">HIỂN THỊ</span>
@@ -110,12 +129,12 @@
                                         </td>
                                         <td>
                                             <div class="form-button-action">
-                                                <a th:href="@{/admin/editNxb/{id}(id=${item.Id})}" class="btn btn-link btn-primary btn-lg" title="Chỉnh sửa">
+                                                <a th:href="@{/admin/editNxb/{id}(id=${item.id})}" class="btn btn-link btn-primary btn-lg" title="Chỉnh sửa">
                                                     <i class="fa fa-edit"></i>
                                                 </a>
 
                                                 <th:block th:if="${item.status == null || item.status}">
-                                                    <a th:href="@{/admin/deleteNxb/{id}(id=${item.Id})}"
+                                                    <a th:href="@{/admin/deleteNxb/{id}(id=${item.id})}"
                                                        class="btn btn-link btn-danger"
                                                        onclick="return confirm('Ẩn (ngừng bán) NXB này?');"
                                                        title="Ẩn NXB">
@@ -124,7 +143,7 @@
                                                 </th:block>
 
                                                 <th:block th:if="${item.status != null && !item.status}">
-                                                    <a th:href="@{/admin/restoreNxb/{id}(id=${item.Id})}"
+                                                    <a th:href="@{/admin/restoreNxb/{id}(id=${item.id})}"
                                                        class="btn btn-link btn-success"
                                                        onclick="return confirm('Hiển thị lại NXB này?');"
                                                        title="Hiển thị lại">
@@ -146,13 +165,6 @@
 
         <footer class="footer">
             <div class="container-fluid">
-                <nav class="pull-left">
-                    <ul class="nav">
-                        <li class="nav-item"><a class="nav-link" href="javascript:void(0);">BOOK-SHOP</a></li>
-                        <li class="nav-item"><a class="nav-link" href="javascript:void(0);">Help</a></li>
-                        <li class="nav-item"><a class="nav-link" href="javascript:void(0);">Licenses</a></li>
-                    </ul>
-                </nav>
                 <div class="copyright ml-auto">
                     2025, made with <i class="fa fa-heart heart text-danger"></i> by <a href="">BOOK-SHOP</a>
                 </div>
@@ -170,6 +182,15 @@
 <script src="/assets/js/plugin/datatables/datatables.min.js"></script>
 <script src="/assets/js/atlantis.min.js"></script>
 <script src="/assets/js/setting-demo2.js"></script>
+
+<!-- Auto mở modal khi lỗi validate -->
+<script th:inline="javascript">
+    (function() {
+        var open = /*[[${openAddModal}]]*/ false;
+        if (open) { $('#addRowModal').modal('show'); }
+    })();
+</script>
+
 <script th:inline="none">
     $(function () {
         $('#add-row').DataTable({ pageLength: 5, order: [[0, 'desc']] });

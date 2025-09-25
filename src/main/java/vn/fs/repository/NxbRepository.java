@@ -29,4 +29,7 @@ public interface NxbRepository extends JpaRepository<NXB, Long> {
     // Chỉ active — dùng cho trang THÊM
     List<NXB> findByStatusTrueOrderByNameAsc();
 
+    /* ====== CHECK TRÙNG TÊN (case-insensitive) ====== */
+    boolean existsByNameIgnoreCase(String name);
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long excludeId);
 }

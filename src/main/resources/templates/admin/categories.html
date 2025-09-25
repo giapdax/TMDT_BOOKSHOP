@@ -21,7 +21,14 @@
     <link rel="stylesheet" href="/assets/css/demo.css">
     <style>
         .tbl-thumb{max-height:60px;border:1px solid #eee;padding:2px;border-radius:6px;background:#fff}
-        .thumb-add {max-height:100px;border:1px solid #eee;padding:2px;border-radius:6px;background:#fff;display:block;margin-bottom:8px}
+        .thumb-add{max-height:100px;border:1px solid #eee;padding:2px;border-radius:6px;background:#fff;display:block;margin-bottom:8px}
+        .app-alert{
+            background:#10b98114;color:#065f46;border:1px solid #10b98155;
+            padding:10px 12px;border-radius:12px;display:flex;align-items:center;gap:10px
+        }
+        .app-alert .close-x{margin-left:auto;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
+            color:#065f46;border:1px solid #10b98155;cursor:pointer;background:transparent}
+        .app-alert .close-x:hover{background:#10b98122}
     </style>
 </head>
 <body>
@@ -55,46 +62,36 @@
                         </div>
 
                         <div class="card-body">
-                            <!-- Flash message -->
-                            <div th:if="${message}" class="alert"
-                                 th:classappend="${alertType} == 'success' ? ' alert-success'
-                                 : (${alertType} == 'warning' ? ' alert-warning'
-                                 : (${alertType} == 'danger' ? ' alert-danger' : ' alert-info'))">
-                                <span th:text="${message}">Thông báo thao tác.</span>
-                                <button type="button" class="alert-close" onclick="this.parentElement.remove()">×</button>
+                            <!-- Flash -->
+                            <div th:if="${message}" class="app-alert">
+                                <span th:text="${message}">Thông báo</span>
+                                <button type="button" class="close-x" onclick="this.parentElement.remove()">×</button>
                             </div>
 
-                            <!-- Modal add -->
+                            <!-- Modal Add -->
                             <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
                                 <div class="modal-dialog" role="document">
                                     <div class="modal-content">
                                         <div class="modal-header no-bd">
                                             <h5 class="modal-title"><span class="fw-mediumbold" style="text-decoration: underline; color: black;">Thêm mới thể loại</span></h5>
-                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                <span aria-hidden="true">&times;</span>
-                                            </button>
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                                         </div>
-
                                         <div class="modal-body">
                                             <form th:action="@{/admin/addCategory}" th:object="${category}" method="post" enctype="multipart/form-data">
                                                 <div class="row">
-
                                                     <div class="col-sm-12">
-                                                        <!-- Preview ảnh nếu đã có ảnh tạm (__tmp__) -->
                                                         <img class="thumb-add"
                                                              th:if="${category.categoryImage != null and !#strings.isEmpty(category.categoryImage)}"
                                                              th:src="@{'/loadImage?imageName=' + ${category.categoryImage}}"
                                                              alt="preview">
                                                     </div>
-
                                                     <div class="col-sm-12">
                                                         <div class="form-group form-group-default">
                                                             <label>Tên thể loại</label>
-                                                            <input th:field="*{categoryName}" id="categoryName" type="text" class="form-control" placeholder="Tên thể loại" required>
+                                                            <input th:field="*{categoryName}" type="text" class="form-control" placeholder="Tên thể loại" required>
                                                             <small class="text-danger" th:if="${#fields.hasErrors('categoryName')}" th:errors="*{categoryName}"></small>
                                                         </div>
                                                     </div>
-
                                                     <div class="col-sm-12">
                                                         <div class="form-group form-group-default">
                                                             <label>Trạng thái</label>
@@ -102,33 +99,27 @@
                                                                 <option th:value="true">HIỂN THỊ</option>
                                                                 <option th:value="false">ẨN</option>
                                                             </select>
-                                                            <small class="text-danger" th:if="${#fields.hasErrors('status')}" th:errors="*{status}"></small>
                                                         </div>
                                                     </div>
-
                                                     <div class="col-sm-12">
                                                         <div class="form-group form-group-default">
                                                             <label>Ảnh thể loại (tùy chọn)</label>
                                                             <input type="file" id="addFile" name="file" class="form-control" accept="image/*">
-                                                            <!-- Giữ tên ảnh (kể cả __tmp__) khi form lỗi -->
                                                             <input type="hidden" th:field="*{categoryImage}">
-                                                            <!-- Bind lỗi ảnh vào field giả -->
-                                                            <small class="text-danger" th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"></small>
                                                         </div>
                                                     </div>
                                                 </div>
-
                                                 <div class="modal-footer no-bd">
                                                     <button type="submit" class="btn btn-primary">Thêm</button>
                                                     <button type="button" class="btn btn-danger" data-dismiss="modal">Hủy</button>
                                                 </div>
                                             </form>
                                         </div>
-
                                     </div>
                                 </div>
                             </div>
 
+                            <!-- Table -->
                             <div class="table-responsive">
                                 <table id="add-row" class="display table table-striped table-hover">
                                     <thead>
@@ -160,26 +151,68 @@
                                         </td>
                                         <td>
                                             <div class="form-button-action">
-                                                <a th:href="@{/admin/editCategory/{id}(id=${item.categoryId})}" class="btn btn-link btn-primary btn-lg" title="Chỉnh sửa">
+                                                <a th:href="@{/admin/editCategory/{id}(id=${item.categoryId})}"
+                                                   class="btn btn-link btn-primary btn-lg" title="Chỉnh sửa">
                                                     <i class="fa fa-edit"></i>
                                                 </a>
 
+                                                <!-- Ẩn -->
                                                 <th:block th:if="${item.status == null || item.status}">
-                                                    <a th:href="@{/admin/delete/{id}(id=${item.categoryId})}"
-                                                       class="btn btn-link btn-danger"
-                                                       onclick="return confirm('Ẩn (ngừng bán) thể loại này?');"
-                                                       title="Ẩn">
+                                                    <button type="button" class="btn btn-link btn-danger"
+                                                            th:attr="data-target=${'#hideModal-' + item.categoryId}"
+                                                            data-toggle="modal" title="Ẩn">
                                                         <i class="fa fa-times"></i>
-                                                    </a>
+                                                    </button>
+
+                                                    <!-- Modal xác nhận Ẩn -->
+                                                    <div class="modal fade" th:id="${'hideModal-' + item.categoryId}" tabindex="-1" role="dialog" aria-hidden="true">
+                                                        <div class="modal-dialog" role="document">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title">Ẩn thể loại?</h5>
+                                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                                        <span aria-hidden="true">&times;</span>
+                                                                    </button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    Ẩn (ngừng bán) thể loại <b th:text="${item.categoryName}">Tên</b>?
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                                                                    <a class="btn btn-danger" th:href="@{/admin/delete/{id}(id=${item.categoryId})}">Xác nhận Ẩn</a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </th:block>
 
+                                                <!-- Hiển thị lại -->
                                                 <th:block th:if="${item.status != null && !item.status}">
-                                                    <a th:href="@{/admin/restoreCategory/{id}(id=${item.categoryId})}"
-                                                       class="btn btn-link btn-success"
-                                                       onclick="return confirm('Hiển thị lại thể loại này?');"
-                                                       title="Hiển thị lại">
+                                                    <button type="button" class="btn btn-link btn-success"
+                                                            th:attr="data-target=${'#restoreModal-' + item.categoryId}"
+                                                            data-toggle="modal" title="Hiển thị lại">
                                                         <i class="fa fa-undo"></i>
-                                                    </a>
+                                                    </button>
+
+                                                    <div class="modal fade" th:id="${'restoreModal-' + item.categoryId}" tabindex="-1" role="dialog" aria-hidden="true">
+                                                        <div class="modal-dialog" role="document">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title">Hiển thị lại?</h5>
+                                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                                        <span aria-hidden="true">&times;</span>
+                                                                    </button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    Mở bán lại thể loại <b th:text="${item.categoryName}">Tên</b>?
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                                                                    <a class="btn btn-success" th:href="@{/admin/restoreCategory/{id}(id=${item.categoryId})}">Xác nhận</a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </th:block>
                                             </div>
                                         </td>
@@ -212,42 +245,8 @@
 <script src="/assets/js/plugin/datatables/datatables.min.js"></script>
 <script src="/assets/js/atlantis.min.js"></script>
 <script src="/assets/js/setting-demo2.js"></script>
-
-<!-- Auto mở modal khi có lỗi validate từ server -->
-<script th:inline="javascript">
-    (function() {
-        var open = /*[[${openAddModal}]]*/ false;
-        if (open) { $('#addRowModal').modal('show'); }
-    })();
-</script>
-
-<!-- Preview client-side cho Add; nếu server trả lỗi thì ảnh __tmp__ vẫn hiển thị -->
 <script>
-    (function(){
-        var file = document.getElementById('addFile');
-        if(!file) return;
-        file.addEventListener('change', function(){
-            var f = this.files && this.files[0];
-            if(!f) return;
-            var r = new FileReader();
-            r.onload = function(e){
-                var img = document.querySelector('.thumb-add');
-                if(!img){
-                    img = document.createElement('img');
-                    img.className = 'thumb-add';
-                    file.closest('form').querySelector('.row').firstElementChild.appendChild(img);
-                }
-                img.src = e.target.result;
-            };
-            r.readAsDataURL(f);
-        });
-    })();
-</script>
-
-<script>
-    $(function () {
-        $('#add-row').DataTable({ pageLength: 5, order: [[0, 'desc']] });
-    });
+    $(function(){ $('#add-row').DataTable({ pageLength: 5, order: [[0,'desc']] }); });
 </script>
 </body>
 </html>
