@@ -40,7 +40,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "SELECT * FROM products WHERE status = 1 AND product_name LIKE %?1%", nativeQuery = true)
     List<Product> searchProductActive(String keyword);
 
-    /* ====== Đếm theo thể loại (chỉ category active & đếm product active) ====== */
+    /* ====== Đếm theo thể loại (Active) ====== */
     @Query(value =
             "SELECT c.category_id, c.category_name, c.category_image, " +
                     "       COUNT(p.product_id) AS so_luong " +
@@ -85,4 +85,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /* ====== Sách nổi bật (Active) ====== */
     @Query(value = "SELECT * FROM products WHERE status = 1 ORDER BY discount DESC, entered_date DESC LIMIT 20", nativeQuery = true)
     List<Product> topDiscount20();
+
+    /* ======================= CHECK TRÙNG THEO TÊN ======================= */
+    boolean existsByProductNameIgnoreCase(String productName);
+
+    boolean existsByProductNameIgnoreCaseAndProductIdNot(String productName, Long excludeProductId);
 }

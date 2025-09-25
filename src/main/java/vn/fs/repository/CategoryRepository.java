@@ -28,4 +28,8 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     // Chỉ active — dùng cho trang THÊM
     List<Category> findByStatusTrueOrderByCategoryNameAsc();
+
+    /* =================== CHECK TRÙNG THEO TÊN (case-insensitive) =================== */
+    boolean existsByCategoryNameIgnoreCase(String categoryName);
+    boolean existsByCategoryNameIgnoreCaseAndCategoryIdNot(String categoryName, Long excludeId);
 }

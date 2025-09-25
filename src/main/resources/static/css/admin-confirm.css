@@ -1,0 +1,81 @@
+/* ===== Confirm Modal (CSS-only) ===== */
+.cfm-toggle { display: none; } /* checkbox ẩn */
+
+.cfm-backdrop{
+    position: fixed; inset: 0;
+    background: rgba(15,15,26,.52);
+    opacity: 0; pointer-events: none;
+    transition: .25s ease;
+    z-index: 1050;
+}
+.cfm-modal{
+    position: fixed; left: 50%; top: 50%;
+    transform: translate(-50%,-46%) scale(.98);
+    width: min(92vw, 460px);
+    background: #111827; color: #e5e7eb;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.45);
+    opacity: 0; pointer-events: none;
+    transition: .25s ease;
+    z-index: 1060;
+}
+.cfm-header{
+    padding: 18px 20px 8px;
+    display: flex; gap: 10px; align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.cfm-title{ font-size: 18px; font-weight: 700; letter-spacing: .2px; }
+.cfm-body{ padding: 16px 20px 4px; color: #cbd5e1; }
+.cfm-actions{
+    padding: 16px 20px 20px;
+    display: flex; gap: 10px; justify-content: flex-end;
+}
+.cfm-btn{
+    appearance: none; border: 0; cursor: pointer;
+    padding: 10px 14px; border-radius: 12px; font-weight: 600;
+    line-height: 1; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+}
+.cfm-btn--danger{ background: #ef4444; color: #fff; }
+.cfm-btn--danger:hover{ filter: brightness(.95); }
+.cfm-btn--ok{ background: #10b981; color: #06271e; }
+.cfm-btn--ok:hover{ filter: brightness(.97); }
+.cfm-btn--ghost{ background: transparent; color: #cbd5e1; border: 1px solid rgba(255,255,255,.12); }
+.cfm-btn--ghost:hover{ background: rgba(255,255,255,.04); }
+
+/* mở modal khi checkbox:checked */
+.cfm-toggle:checked ~ .cfm-backdrop{ opacity: 1; pointer-events: auto; }
+.cfm-toggle:checked ~ .cfm-modal{
+    opacity: 1; pointer-events: auto; transform: translate(-50%,-50%) scale(1);
+}
+
+/* Close (X) */
+.cfm-close{
+    margin-left: auto; width: 32px; height: 32px; border-radius: 8px;
+    display: grid; place-items: center; color: #9ca3af; border: 1px solid rgba(255,255,255,.1);
+}
+.cfm-close:hover{ background: rgba(255,255,255,.06); color: #e5e7eb; }
+
+/* Trigger button đẹp hơn 1 xíu */
+.btn-link.btn-danger.cfm-trigger{
+    color: #ef4444 !important; border: 1px solid rgba(239,68,68,.3);
+    border-radius: 10px; padding: 6px 8px;
+}
+.btn-link.btn-danger.cfm-trigger:hover{ background: rgba(239,68,68,.08); }
+
+.btn-link.btn-success.cfm-trigger{
+    color: #10b981 !important; border: 1px solid rgba(16,185,129,.35);
+    border-radius: 10px; padding: 6px 8px;
+}
+.btn-link.btn-success.cfm-trigger:hover{ background: rgba(16,185,129,.10); }
+
+/* Flash message xịn xò */
+.app-alert{
+    background:#10b98114; color:#065f46; border:1px solid #10b98155;
+    padding:10px 12px; border-radius:12px; display:flex; align-items:center; gap:10px;
+}
+.app-alert .close-x{
+    margin-left:auto; width:28px; height:28px; border-radius:8px; display:grid; place-items:center;
+    color:#065f46; border:1px solid #10b98155; cursor:pointer; background:transparent;
+}
+.app-alert .close-x:hover{ background:#10b98122; }

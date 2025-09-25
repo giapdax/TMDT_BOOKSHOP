@@ -7,10 +7,12 @@ import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.ui.ModelMap;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import vn.fs.dto.ProductDTO;
 import vn.fs.entities.Category;
 import vn.fs.entities.NXB;
 import vn.fs.entities.Product;
@@ -21,9 +23,11 @@ import vn.fs.repository.ProductRepository;
 import vn.fs.repository.UserRepository;
 import vn.fs.repository.OrderDetailRepository;
 
+import javax.validation.Valid;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.security.Principal;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -46,6 +50,8 @@ public class ProductController {
             System.getProperty("user.dir") + File.separator + "upload" + File.separator + "images"
     );
 
+    private static final String TMP_PREFIX = "__tmp__";
+
     /* ===================== COMMON BINDINGS ===================== */
 
     @ModelAttribute("user")
@@ -63,19 +69,17 @@ public class ProductController {
         return list;
     }
 
-    // ======= DROPDOWN DATA (CHIA RIÊNG CHO ADD vs EDIT) =======
-
-    // Dùng ở trang THÊM sản phẩm: chỉ hiện danh sách đang hiển thị (status = true)
-    @ModelAttribute("categoryActiveList")
+    // Dropdown: Add (only active)
+    @ModelAttribute("categoryList")
     public List<Category> categoryActiveList() {
         return categoryRepository.findByStatusTrueOrderByCategoryNameAsc();
     }
-    @ModelAttribute("nxbActiveList")
+    @ModelAttribute("nxbList")
     public List<NXB> nxbActiveList() {
         return nxbRepository.findByStatusTrueOrderByNameAsc();
     }
 
-    // Dùng ở trang SỬA sản phẩm: hiện FULL, kể cả ẩn/chưa có SP
+    // Dropdown: Edit (full)
     @ModelAttribute("categoryAllList")
     public List<Category> categoryAllList() {
         return categoryRepository.findAllForDropdown();
@@ -96,7 +100,15 @@ public class ProductController {
 
     @GetMapping("/products")
     public String productsPage(Model model) {
-        model.addAttribute("product", new Product()); // form thêm
+        if (!model.containsAttribute("product")) {
+            ProductDTO dto = ProductDTO.builder()
+                    .status(true)
+                    .discount(0)
+                    .quantity(0)
+                    .enteredDate(new Date())
+                    .build();
+            model.addAttribute("product", dto);
+        }
         return "admin/products";
     }
 
@@ -108,117 +120,153 @@ public class ProductController {
             ra.addFlashAttribute("alertType", "danger");
             return "redirect:/admin/products";
         }
-        model.addAttribute("product", product);
+        ProductDTO dto = toDTO(product);
+        model.addAttribute("product", dto);
         return "admin/editProduct";
     }
 
     /* ===================== CREATE ===================== */
 
     @PostMapping("/addProduct")
-    public String addProduct(@ModelAttribute("product") Product product,
-                             @RequestParam("file") MultipartFile file,
-                             @RequestParam(value = "nxb.id", required = false) Long nxbId,
-                             RedirectAttributes ra) {
+    public String addProduct(@Valid @ModelAttribute("product") ProductDTO dto,
+                             BindingResult br,
+                             @RequestParam(value = "file", required = false) MultipartFile file,
+                             Model model) {
 
-        if (StringUtils.isBlank(product.getProductName())) {
-            ra.addFlashAttribute("message", "Tên sản phẩm không được để trống!");
-            ra.addFlashAttribute("alertType", "danger");
-            return "redirect:/admin/products";
+        dto.normalize();
+
+        // Lưu ảnh TẠM nếu người dùng vừa chọn file (để không mất khi lỗi)
+        if (file != null && !file.isEmpty()) {
+            String tmp = saveTempImageIfPresent(file);
+            if (tmp == null) {
+                br.rejectValue("productId", null, "Vui lòng chọn ảnh hợp lệ (jpg, jpeg, png, webp).");
+            } else {
+                dto.setProductImage(tmp); // giữ tên ảnh tạm trong DTO
+            }
         }
-        if (product.getCategory() == null || product.getCategory().getCategoryId() == null) {
-            ra.addFlashAttribute("message", "Vui lòng chọn thể loại!");
-            ra.addFlashAttribute("alertType", "danger");
-            return "redirect:/admin/products";
+
+        // Validate field
+        if (br.hasErrors()) {
+            model.addAttribute("openAddModal", true);
+            return "admin/products";
         }
 
-        if (nxbId != null) nxbRepository.findById(nxbId).ifPresent(product::setNxb);
-        else product.setNxb(null);
-
-        if (product.getEnteredDate() == null) product.setEnteredDate(new Date());
-        if (product.getDiscount() < 0) product.setDiscount(0);
-        if (product.getQuantity() < 0) product.setQuantity(0);
-        if (product.getPrice() < 0) product.setPrice(0.0);
-        if (product.getStatus() == null) product.setStatus(true); // mặc định hiển thị
-
-        String savedName = saveImageIfPresent(file);
-        if (savedName == null) {
-            ra.addFlashAttribute("message", "Vui lòng chọn ảnh hợp lệ (jpg, jpeg, png, webp)!");
-            ra.addFlashAttribute("alertType", "warning");
-            return "redirect:/admin/products";
+        // Ảnh là bắt buộc với ADD: nếu chưa có ảnh tạm hoặc ảnh cũ -> báo lỗi
+        if (StringUtils.isBlank(dto.getProductImage())) {
+            br.rejectValue("productId", null, "Vui lòng chọn ảnh sản phẩm.");
+            model.addAttribute("openAddModal", true);
+            return "admin/products";
         }
-        product.setProductImage(savedName);
 
-        productRepository.save(product);
-        ra.addFlashAttribute("message", "Thêm sản phẩm thành công");
-        ra.addFlashAttribute("alertType", "success");
-        return "redirect:/admin/products";
+        // Trùng tên => lỗi luôn
+        if (productRepository.existsByProductNameIgnoreCase(dto.getProductName())) {
+            br.rejectValue("productName", null, "Tên sản phẩm đã tồn tại.");
+            model.addAttribute("openAddModal", true);
+            return "admin/products";
+        }
+
+        // Promote ảnh tạm -> ảnh chính
+        String finalName = promoteIfTempOrKeep(dto.getProductImage());
+        if (finalName == null) {
+            br.rejectValue("productId", null, "Không thể lưu ảnh sản phẩm. Vui lòng thử lại.");
+            model.addAttribute("openAddModal", true);
+            return "admin/products";
+        }
+
+        Product entity = new Product();
+        applyDTOToEntity(dto, entity);
+        entity.setProductImage(finalName);
+
+        productRepository.save(entity);
+
+        model.addAttribute("message", "Thêm sản phẩm thành công.");
+        model.addAttribute("alertType", "success");
+
+        // Reset form DTO (xoá ảnh tạm khỏi DTO)
+        model.addAttribute("product", ProductDTO.builder()
+                .status(true).discount(0).quantity(0).enteredDate(new Date()).build());
+
+        return "admin/products";
     }
 
     /* ===================== UPDATE ===================== */
 
     @PostMapping("/editProduct/{id}")
     public String updateProduct(@PathVariable("id") Long id,
-                                @ModelAttribute("product") Product form,
+                                @Valid @ModelAttribute("product") ProductDTO dto,
+                                BindingResult br,
                                 @RequestParam(value = "file", required = false) MultipartFile file,
                                 @RequestParam(value = "existingImage", required = false) String existingImage,
-                                @RequestParam(value = "nxb.id", required = false) Long nxbId,
+                                Model model,
                                 RedirectAttributes ra) {
 
-        Optional<Product> opt = productRepository.findById(id);
-        if (opt.isEmpty()) {
+        Product p = productRepository.findById(id).orElse(null);
+        if (p == null) {
             ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
             ra.addFlashAttribute("alertType", "danger");
             return "redirect:/admin/products";
         }
-        Product p = opt.get();
 
-        p.setProductName(form.getProductName());
-        p.setDescription(form.getDescription());
-        p.setPrice(Math.max(0.0, form.getPrice()));
-        p.setQuantity(Math.max(0, form.getQuantity()));
-        p.setDiscount(Math.max(0, form.getDiscount()));
-        p.setEnteredDate(form.getEnteredDate() != null ? form.getEnteredDate() : p.getEnteredDate());
-        p.setStatus(form.getStatus() != null ? form.getStatus() : p.getStatus());
+        dto.normalize();
 
-        if (form.getCategory() != null && form.getCategory().getCategoryId() != null) {
-            categoryRepository.findById(form.getCategory().getCategoryId()).ifPresent(p::setCategory);
-        }
-
-        if (nxbId != null) nxbRepository.findById(nxbId).ifPresent(p::setNxb);
-        else p.setNxb(null);
-
-        String oldImage = p.getProductImage();
+        // Nếu user chọn ảnh mới -> lưu TẠM để không mất khi lỗi
         if (file != null && !file.isEmpty()) {
-            String newName = saveImageIfPresent(file);
-            if (newName == null) {
-                ra.addFlashAttribute("message", "Ảnh tải lên không hợp lệ!");
-                ra.addFlashAttribute("alertType", "warning");
-                return "redirect:/admin/editProduct/" + id;
+            String tmp = saveTempImageIfPresent(file);
+            if (tmp == null) {
+                br.rejectValue("productId", null, "Ảnh tải lên không hợp lệ (jpg, jpeg, png, webp).");
+            } else {
+                dto.setProductImage(tmp); // ưu tiên hiển thị ảnh tạm
             }
-            p.setProductImage(newName);
-            deleteImageQuietly(oldImage);
         } else {
-            p.setProductImage(existingImage);
+            // Không upload mới: nếu DTO chưa có productImage thì dùng ảnh hiện có
+            if (StringUtils.isBlank(dto.getProductImage())) {
+                dto.setProductImage(existingImage);
+            }
         }
+
+        if (br.hasErrors()) {
+            return "admin/editProduct";
+        }
+
+        // Trùng tên (exclude chính nó)
+        if (productRepository.existsByProductNameIgnoreCaseAndProductIdNot(dto.getProductName(), id)) {
+            br.rejectValue("productName", null, "Tên sản phẩm đã tồn tại.");
+            return "admin/editProduct";
+        }
+
+        // Xác định ảnh cuối cùng
+        String finalName;
+        if (StringUtils.isNotBlank(dto.getProductImage())) {
+            finalName = isTemp(dto.getProductImage()) ? promoteIfTempOrKeep(dto.getProductImage()) : dto.getProductImage();
+            if (finalName == null) {
+                br.rejectValue("productId", null, "Không thể lưu ảnh sản phẩm. Vui lòng thử lại.");
+                return "admin/editProduct";
+            }
+        } else {
+            // Cho phép edit không cần ảnh (giữ existingImage)
+            finalName = existingImage;
+        }
+
+        // Nếu dùng ảnh mới khác ảnh cũ -> xóa ảnh cũ an toàn
+        String oldImage = p.getProductImage();
+        if (StringUtils.isNotBlank(finalName) && !StringUtils.equals(finalName, oldImage)) {
+            deleteImageQuietly(oldImage);
+        }
+
+        applyDTOToEntity(dto, p);
+        p.setProductImage(finalName);
 
         productRepository.save(p);
-        ra.addFlashAttribute("message", "Cập nhật sản phẩm thành công");
+
+        ra.addFlashAttribute("message", "Cập nhật sản phẩm thành công.");
         ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/products";
     }
 
     /* ===================== DELETE / RESTORE ===================== */
 
-    @RequestMapping(value = "/deleteProduct/{id}", method = {RequestMethod.POST, RequestMethod.DELETE})
+    @RequestMapping(value = "/deleteProduct/{id}", method = {RequestMethod.POST, RequestMethod.DELETE, RequestMethod.GET})
     public String deleteProduct(@PathVariable("id") Long id, RedirectAttributes ra) {
-        return doDeleteProduct(id, ra);
-    }
-    @GetMapping("/deleteProduct/{id}")
-    public String deleteProductGet(@PathVariable("id") Long id, RedirectAttributes ra) {
-        return doDeleteProduct(id, ra);
-    }
-
-    private String doDeleteProduct(Long id, RedirectAttributes ra) {
         Optional<Product> opt = productRepository.findById(id);
         if (opt.isEmpty()) {
             ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
@@ -232,7 +280,7 @@ public class ProductController {
         if (referenced) {
             p.setStatus(false);
             productRepository.save(p);
-            ra.addFlashAttribute("message", "Đã xóa thành công và cập nhật trạng thái (đã ẨN).");
+            ra.addFlashAttribute("message", "Đã xóa mềm (ẨN) do sản phẩm đã phát sinh đơn hàng.");
             ra.addFlashAttribute("alertType", "success");
             return "redirect:/admin/products";
         }
@@ -246,22 +294,14 @@ public class ProductController {
         } catch (Exception e) {
             p.setStatus(false);
             productRepository.save(p);
-            ra.addFlashAttribute("message", "Đã xóa thành công và cập nhật trạng thái (đã ẨN).");
+            ra.addFlashAttribute("message", "Không xóa được vĩnh viễn. Đã chuyển sang trạng thái ẨN.");
             ra.addFlashAttribute("alertType", "warning");
         }
         return "redirect:/admin/products";
     }
 
-    @RequestMapping(value = "/restoreProduct/{id}", method = {RequestMethod.POST, RequestMethod.PUT})
+    @RequestMapping(value = "/restoreProduct/{id}", method = {RequestMethod.POST, RequestMethod.PUT, RequestMethod.GET})
     public String restoreProduct(@PathVariable("id") Long id, RedirectAttributes ra) {
-        return doRestoreProduct(id, ra);
-    }
-    @GetMapping("/restoreProduct/{id}")
-    public String restoreProductGet(@PathVariable("id") Long id, RedirectAttributes ra) {
-        return doRestoreProduct(id, ra);
-    }
-
-    private String doRestoreProduct(Long id, RedirectAttributes ra) {
         Optional<Product> opt = productRepository.findById(id);
         if (opt.isEmpty()) {
             ra.addFlashAttribute("message", "Không tìm thấy sản phẩm!");
@@ -280,7 +320,46 @@ public class ProductController {
 
     /* ===================== HELPERS ===================== */
 
-    private String saveImageIfPresent(MultipartFile file) {
+    private ProductDTO toDTO(Product p) {
+        return ProductDTO.builder()
+                .productId(p.getProductId())
+                .productName(StringUtils.defaultString(p.getProductName()))
+                .categoryId(p.getCategory() != null ? p.getCategory().getCategoryId() : null)
+                .nxbId(p.getNxb() != null ? p.getNxb().getId() : null)
+                .price(p.getPrice())
+                .quantity(p.getQuantity())
+                .discount(p.getDiscount())
+                .description(StringUtils.defaultString(p.getDescription()))
+                .enteredDate(p.getEnteredDate())
+                .status(p.getStatus() == null ? Boolean.TRUE : p.getStatus())
+                .productImage(p.getProductImage()) // để hiển thị ảnh hiện tại
+                .build();
+    }
+
+    private void applyDTOToEntity(ProductDTO dto, Product p) {
+        p.setProductName(dto.getProductName());
+        p.setDescription(dto.getDescription());
+        p.setPrice(dto.getPrice());
+        p.setQuantity(dto.getQuantity());
+        p.setDiscount(dto.getDiscount());
+        p.setEnteredDate(dto.getEnteredDate());
+        p.setStatus(dto.getStatus());
+
+        if (dto.getCategoryId() != null) {
+            categoryRepository.findById(dto.getCategoryId()).ifPresent(p::setCategory);
+        } else {
+            p.setCategory(null);
+        }
+
+        if (dto.getNxbId() != null) {
+            nxbRepository.findById(dto.getNxbId()).ifPresent(p::setNxb);
+        } else {
+            p.setNxb(null);
+        }
+    }
+
+    /** Lưu ảnh TẠM (prefix __tmp__) để không mất khi form lỗi */
+    private String saveTempImageIfPresent(MultipartFile file) {
         if (file == null || file.isEmpty()) return null;
 
         String original = StringUtils.defaultString(file.getOriginalFilename()).trim();
@@ -289,18 +368,40 @@ public class ProductController {
             log.warn("Invalid image extension: {}", ext);
             return null;
         }
-
         ensureUploadDir();
-        String uniqueName = UUID.randomUUID().toString().replace("-", "") + "." + ext;
-        File target = new File(pathUploadImage, uniqueName);
-
+        String tempName = TMP_PREFIX + UUID.randomUUID().toString().replace("-", "") + "." + ext;
+        File target = new File(pathUploadImage, tempName);
         try (FileOutputStream fos = new FileOutputStream(target)) {
             fos.write(file.getBytes());
-            return uniqueName;
+            return tempName;
         } catch (IOException e) {
-            log.error("Save image error", e);
+            log.error("Save temp image error", e);
             return null;
         }
+    }
+
+    /** Nếu là file tạm (__tmp__...) thì đổi tên sang file chính; nếu không thì giữ nguyên */
+    private String promoteIfTempOrKeep(String name) {
+        if (StringUtils.isBlank(name)) return null;
+        if (!isTemp(name)) return name;
+
+        String ext = getExtension(name);
+        String finalName = UUID.randomUUID().toString().replace("-", "") + "." + ext;
+
+        File tempFile = new File(pathUploadImage, name);
+        File finalFile = new File(pathUploadImage, finalName);
+        try {
+            ensureUploadDir();
+            Files.move(tempFile.toPath(), finalFile.toPath());
+            return finalName;
+        } catch (Exception e) {
+            log.error("Promote temp image failed: {}", name, e);
+            return null;
+        }
+    }
+
+    private boolean isTemp(String name) {
+        return StringUtils.startsWith(name, TMP_PREFIX);
     }
 
     private void ensureUploadDir() {
@@ -312,17 +413,17 @@ public class ProductController {
 
     private void deleteImageQuietly(String name) {
         if (StringUtils.isBlank(name)) return;
+        // Không xóa file tạm ở đây để tránh race-condition nếu người dùng đang dùng lại.
+        if (isTemp(name)) return;
         try {
             File f = new File(pathUploadImage, name);
-            if (f.exists() && isFileDeletable(f) && !f.delete()) {
+            if (f.exists() && f.isFile() && !f.delete()) {
                 log.warn("Cannot delete old image: {}", f.getAbsolutePath());
             }
         } catch (Exception e) {
             log.warn("Delete old image error: {}", name, e);
         }
     }
-
-    private boolean isFileDeletable(File f) { return f.isFile(); }
 
     private String getExtension(String filename) {
         int i = filename.lastIndexOf('.');

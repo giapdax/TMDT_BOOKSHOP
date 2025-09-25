@@ -19,7 +19,10 @@
     <link rel="stylesheet" href="/assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="/assets/css/atlantis.min.css">
     <link rel="stylesheet" href="/assets/css/demo.css">
-    <style>.tbl-thumb{max-height:60px;border:1px solid #eee;padding:2px;border-radius:6px;background:#fff}</style>
+    <style>
+        .tbl-thumb{max-height:60px;border:1px solid #eee;padding:2px;border-radius:6px;background:#fff}
+        .thumb-add {max-height:100px;border:1px solid #eee;padding:2px;border-radius:6px;background:#fff;display:block;margin-bottom:8px}
+    </style>
 </head>
 <body>
 <div class="wrapper">
@@ -52,6 +55,15 @@
                         </div>
 
                         <div class="card-body">
+                            <!-- Flash message -->
+                            <div th:if="${message}" class="alert"
+                                 th:classappend="${alertType} == 'success' ? ' alert-success'
+                                 : (${alertType} == 'warning' ? ' alert-warning'
+                                 : (${alertType} == 'danger' ? ' alert-danger' : ' alert-info'))">
+                                <span th:text="${message}">Thông báo thao tác.</span>
+                                <button type="button" class="alert-close" onclick="this.parentElement.remove()">×</button>
+                            </div>
+
                             <!-- Modal add -->
                             <div class="modal fade" id="addRowModal" tabindex="-1" role="dialog" aria-hidden="true">
                                 <div class="modal-dialog" role="document">
@@ -66,17 +78,42 @@
                                         <div class="modal-body">
                                             <form th:action="@{/admin/addCategory}" th:object="${category}" method="post" enctype="multipart/form-data">
                                                 <div class="row">
+
+                                                    <div class="col-sm-12">
+                                                        <!-- Preview ảnh nếu đã có ảnh tạm (__tmp__) -->
+                                                        <img class="thumb-add"
+                                                             th:if="${category.categoryImage != null and !#strings.isEmpty(category.categoryImage)}"
+                                                             th:src="@{'/loadImage?imageName=' + ${category.categoryImage}}"
+                                                             alt="preview">
+                                                    </div>
+
                                                     <div class="col-sm-12">
                                                         <div class="form-group form-group-default">
                                                             <label>Tên thể loại</label>
                                                             <input th:field="*{categoryName}" id="categoryName" type="text" class="form-control" placeholder="Tên thể loại" required>
+                                                            <small class="text-danger" th:if="${#fields.hasErrors('categoryName')}" th:errors="*{categoryName}"></small>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="col-sm-12">
+                                                        <div class="form-group form-group-default">
+                                                            <label>Trạng thái</label>
+                                                            <select class="form-control" th:field="*{status}">
+                                                                <option th:value="true">HIỂN THỊ</option>
+                                                                <option th:value="false">ẨN</option>
+                                                            </select>
+                                                            <small class="text-danger" th:if="${#fields.hasErrors('status')}" th:errors="*{status}"></small>
                                                         </div>
                                                     </div>
 
                                                     <div class="col-sm-12">
                                                         <div class="form-group form-group-default">
                                                             <label>Ảnh thể loại (tùy chọn)</label>
-                                                            <input type="file" name="file" class="form-control" accept="image/*">
+                                                            <input type="file" id="addFile" name="file" class="form-control" accept="image/*">
+                                                            <!-- Giữ tên ảnh (kể cả __tmp__) khi form lỗi -->
+                                                            <input type="hidden" th:field="*{categoryImage}">
+                                                            <!-- Bind lỗi ảnh vào field giả -->
+                                                            <small class="text-danger" th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"></small>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -91,8 +128,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="alert alert-success row col-12" th:if="${message}" th:text="${message}"></div>
 
                             <div class="table-responsive">
                                 <table id="add-row" class="display table table-striped table-hover">
@@ -160,13 +195,6 @@
 
         <footer class="footer">
             <div class="container-fluid">
-                <nav class="pull-left">
-                    <ul class="nav">
-                        <li class="nav-item"><a class="nav-link" href="javascript:void(0);">BOOK-SHOP</a></li>
-                        <li class="nav-item"><a class="nav-link" href="javascript:void(0);">Help</a></li>
-                        <li class="nav-item"><a class="nav-link" href="javascript:void(0);">Licenses</a></li>
-                    </ul>
-                </nav>
                 <div class="copyright ml-auto">
                     2025, made with <i class="fa fa-heart heart text-danger"></i> by <a href="javascript:void(0);">BOOK-SHOP</a>
                 </div>
@@ -184,7 +212,39 @@
 <script src="/assets/js/plugin/datatables/datatables.min.js"></script>
 <script src="/assets/js/atlantis.min.js"></script>
 <script src="/assets/js/setting-demo2.js"></script>
-<script th:inline="none">
+
+<!-- Auto mở modal khi có lỗi validate từ server -->
+<script th:inline="javascript">
+    (function() {
+        var open = /*[[${openAddModal}]]*/ false;
+        if (open) { $('#addRowModal').modal('show'); }
+    })();
+</script>
+
+<!-- Preview client-side cho Add; nếu server trả lỗi thì ảnh __tmp__ vẫn hiển thị -->
+<script>
+    (function(){
+        var file = document.getElementById('addFile');
+        if(!file) return;
+        file.addEventListener('change', function(){
+            var f = this.files && this.files[0];
+            if(!f) return;
+            var r = new FileReader();
+            r.onload = function(e){
+                var img = document.querySelector('.thumb-add');
+                if(!img){
+                    img = document.createElement('img');
+                    img.className = 'thumb-add';
+                    file.closest('form').querySelector('.row').firstElementChild.appendChild(img);
+                }
+                img.src = e.target.result;
+            };
+            r.readAsDataURL(f);
+        });
+    })();
+</script>
+
+<script>
     $(function () {
         $('#add-row').DataTable({ pageLength: 5, order: [[0, 'desc']] });
     });
