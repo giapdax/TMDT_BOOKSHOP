@@ -97,7 +97,7 @@ public class CategoryController {
                               Model model) {
         dto.normalize();
 
-        // lưu ảnh TẠM để không mất khi lỗi
+        // Lưu ảnh TẠM để không mất khi lỗi
         if (file != null && !file.isEmpty()) {
             String tmp = saveTempIfValid(file);
             if (tmp == null) {
@@ -112,14 +112,14 @@ public class CategoryController {
             return "admin/categories";
         }
 
-        // trùng tên -> lỗi ngay
+        // Trùng tên -> lỗi
         if (categoryRepository.existsByCategoryNameIgnoreCase(dto.getCategoryName())) {
             br.rejectValue("categoryName", null, "Tên thể loại đã tồn tại.");
             model.addAttribute("openAddModal", true);
             return "admin/categories";
         }
 
-        // promote ảnh tạm -> chính (nếu có)
+        // Promote ảnh tạm -> chính (nếu có)
         String finalImg = promoteIfTempOrKeep(dto.getCategoryImage());
 
         Category cat = new Category();
@@ -153,7 +153,7 @@ public class CategoryController {
 
         dto.normalize();
 
-        // nếu chọn ảnh mới -> lưu tạm
+        // Nếu chọn ảnh mới -> lưu tạm
         if (file != null && !file.isEmpty()) {
             String tmp = saveTempIfValid(file);
             if (tmp == null) {
@@ -171,13 +171,13 @@ public class CategoryController {
             return "admin/editCategory";
         }
 
-        // check trùng tên (exclude chính nó)
+        // Check trùng tên (exclude chính nó)
         if (categoryRepository.existsByCategoryNameIgnoreCaseAndCategoryIdNot(dto.getCategoryName(), id)) {
             br.rejectValue("categoryName", null, "Tên thể loại đã tồn tại.");
             return "admin/editCategory";
         }
 
-        // xác định ảnh cuối
+        // Ảnh cuối
         String finalName = dto.getCategoryImage();
         if (isTemp(finalName)) {
             finalName = promoteIfTempOrKeep(finalName);
@@ -187,13 +187,13 @@ public class CategoryController {
             }
         }
 
-        // xóa ảnh cũ nếu thay đổi
+        // Xóa ảnh cũ nếu thay đổi
         String oldImg = cat.getCategoryImage();
         if (!isBlank(finalName) && !equalsStr(finalName, oldImg)) {
             deleteImageQuietly(oldImg);
         }
 
-        // apply DTO -> entity
+        // Apply DTO -> entity
         cat.setCategoryName(dto.getCategoryName());
         cat.setStatus(dto.getStatus() != null ? dto.getStatus() : cat.getStatus());
         cat.setCategoryImage(finalName);
@@ -205,7 +205,7 @@ public class CategoryController {
         return "redirect:/admin/categories";
     }
 
-    /* ====================== HIDE / RESTORE / DELETE ====================== */
+    /* ====================== HIDE (SOFT) + CASCADE PRODUCTS ====================== */
     @GetMapping("/delete/{id}")
     public String hideCategory(@PathVariable("id") Long id, RedirectAttributes ra) {
         Optional<Category> opt = categoryRepository.findById(id);
@@ -216,27 +216,29 @@ public class CategoryController {
         }
         Category c = opt.get();
 
-        long cntActive = productRepository.countActiveByCategory(id);
-        if (cntActive > 0) {
-            c.setStatus(false); // Ẩn nếu còn SP đang bán
-            categoryRepository.save(c);
-            ra.addFlashAttribute("message", "Thể loại còn sản phẩm đang bán → đã ẨN.");
-            ra.addFlashAttribute("alertType", "warning");
-            return "redirect:/admin/categories";
+        // 1) Ẩn toàn bộ sản phẩm thuộc category này
+        productRepository.hideByCategory(id);
+
+        // 2) Ẩn category (soft hide)
+        c.setStatus(false);
+        categoryRepository.save(c);
+
+        // 3) Nếu KHÔNG có bất kỳ sản phẩm nào tham chiếu category này (kể cả đã ẩn) thì cho xóa cứng
+        long totalRef = productRepository.countByCategory_CategoryId(id);
+        if (totalRef == 0) {
+            try {
+                deleteImageQuietly(c.getCategoryImage());
+                categoryRepository.deleteById(id);
+                ra.addFlashAttribute("message", "Đã ẨN sản phẩm & XÓA vĩnh viễn thể loại (do không còn sản phẩm tham chiếu).");
+                ra.addFlashAttribute("alertType", "success");
+                return "redirect:/admin/categories";
+            } catch (Exception ignore) {
+                // Nếu FK vẫn giữ ở DB, vẫn coi như soft-hide là đủ
+            }
         }
 
-        try {
-            // không còn SP active → cho phép xóa cứng + xóa ảnh
-            deleteImageQuietly(c.getCategoryImage());
-            categoryRepository.deleteById(id);
-            ra.addFlashAttribute("message", "Xóa thể loại thành công.");
-            ra.addFlashAttribute("alertType", "success");
-        } catch (Exception e) {
-            c.setStatus(false);
-            categoryRepository.save(c);
-            ra.addFlashAttribute("message", "Không thể xóa do ràng buộc. Đã ẨN thể loại.");
-            ra.addFlashAttribute("alertType", "warning");
-        }
+        ra.addFlashAttribute("message", "Đã ẨN thể loại và ẨN toàn bộ sản phẩm thuộc thể loại này.");
+        ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/categories";
     }
 
@@ -246,13 +248,13 @@ public class CategoryController {
             c.setStatus(true);
             categoryRepository.save(c);
         });
-        ra.addFlashAttribute("message","Đã HIỂN THỊ lại thể loại!");
+        // Không auto-mở sản phẩm con — admin tự mở cái cần bán
+        ra.addFlashAttribute("message","Đã HIỂN THỊ lại thể loại (sản phẩm vẫn ẨN).");
         ra.addFlashAttribute("alertType","success");
         return "redirect:/admin/categories";
     }
 
     /* ====================== IMAGE HELPERS ====================== */
-
     private String saveTempIfValid(MultipartFile file) {
         try {
             Files.createDirectories(Paths.get(uploadDir));
@@ -302,7 +304,7 @@ public class CategoryController {
         } catch (Exception ignore) {}
     }
 
-    /* ====================== STRING UTILS nho nhỏ (tránh lệ thuộc lib ngoài) ====================== */
+    /* ====================== STRING UTILS ====================== */
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }

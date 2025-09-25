@@ -20,6 +20,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "SELECT COUNT(*) FROM products WHERE status = 1 AND nxb_id = :nxbId", nativeQuery = true)
     long countActiveByNxb(@Param("nxbId") Long nxbId);
 
+    /* ====== Tổng đếm theo liên kết (kể cả ẩn) — dùng để quyết định có xóa cứng parent không ====== */
+    long countByCategory_CategoryId(Long categoryId);
+    long countByNxb_Id(Long nxbId);
+
     /* ====== Danh sách Active ====== */
     @Query(value = "SELECT * FROM products WHERE status = 1", nativeQuery = true)
     List<Product> findAllActive();
@@ -88,6 +92,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     /* ======================= CHECK TRÙNG THEO TÊN ======================= */
     boolean existsByProductNameIgnoreCase(String productName);
-
     boolean existsByProductNameIgnoreCaseAndProductIdNot(String productName, Long excludeProductId);
+
+    /* ======================= CASCADE HIDE ======================= */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Product p SET p.status = false WHERE p.category.categoryId = :categoryId")
+    int hideByCategory(@Param("categoryId") Long categoryId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Product p SET p.status = false WHERE p.nxb.id = :nxbId")
+    int hideByNxb(@Param("nxbId") Long nxbId);
 }

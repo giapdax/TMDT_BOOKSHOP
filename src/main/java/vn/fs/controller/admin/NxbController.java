@@ -49,7 +49,7 @@ public class NxbController {
         }
 
         if (br.hasErrors()) {
-            // ở lại trang list và mở lại modal
+            // Ở lại trang list và mở lại modal
             model.addAttribute("nxbs", nxbRepository.findAll());
             model.addAttribute("openAddModal", true);
             return "admin/nxbs";
@@ -94,7 +94,7 @@ public class NxbController {
 
         dto.normalize();
 
-        // Check trùng tên (trừ chính nó)
+        // Check trùng tên (exclude self)
         if (StringUtils.isNotBlank(dto.getName())
                 && nxbRepository.existsByNameIgnoreCaseAndIdNot(dto.getName(), id)) {
             br.rejectValue("name", null, "Tên NXB đã tồn tại.");
@@ -113,7 +113,7 @@ public class NxbController {
         return "redirect:/admin/nxbs";
     }
 
-    /* ===== DELETE (soft nếu còn sản phẩm) ===== */
+    /* ===== HIDE (SOFT) + CASCADE PRODUCTS ===== */
     @GetMapping("/deleteNxb/{id}")
     public String delete(@PathVariable("id") Long id, RedirectAttributes ra) {
         Optional<NXB> opt = nxbRepository.findById(id);
@@ -124,25 +124,28 @@ public class NxbController {
         }
         NXB n = opt.get();
 
-        long cntActive = productRepository.countActiveByNxb(id);
-        if (cntActive > 0) {
-            n.setStatus(false);
-            nxbRepository.save(n);
-            ra.addFlashAttribute("message", "NXB còn sản phẩm đang bán → đã NGỪNG bán (ẩn).");
-            ra.addFlashAttribute("alertType", "warning");
-            return "redirect:/admin/nxbs";
+        // 1) Ẩn toàn bộ sản phẩm thuộc NXB này
+        productRepository.hideByNxb(id);
+
+        // 2) Ẩn NXB (soft)
+        n.setStatus(false);
+        nxbRepository.save(n);
+
+        // 3) Nếu không còn bất kỳ sản phẩm nào tham chiếu NXB này thì cho xóa cứng
+        long totalRef = productRepository.countByNxb_Id(id);
+        if (totalRef == 0) {
+            try {
+                nxbRepository.deleteById(id);
+                ra.addFlashAttribute("message", "Đã ẨN sản phẩm & XÓA vĩnh viễn NXB (do không còn sản phẩm tham chiếu).");
+                ra.addFlashAttribute("alertType", "success");
+                return "redirect:/admin/nxbs";
+            } catch (Exception ignore) {
+                // Nếu DB vẫn FK, thì soft-hide là đủ
+            }
         }
 
-        try {
-            nxbRepository.deleteById(id);
-            ra.addFlashAttribute("message", "Xóa NXB thành công.");
-            ra.addFlashAttribute("alertType", "success");
-        } catch (Exception e) {
-            n.setStatus(false);
-            nxbRepository.save(n);
-            ra.addFlashAttribute("message", "Không thể xóa do ràng buộc. Đã NGỪNG bán (ẩn).");
-            ra.addFlashAttribute("alertType", "warning");
-        }
+        ra.addFlashAttribute("message", "Đã NGỪNG bán NXB và ẨN toàn bộ sản phẩm thuộc NXB này.");
+        ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/nxbs";
     }
 
@@ -153,7 +156,8 @@ public class NxbController {
             n.setStatus(true);
             nxbRepository.save(n);
         });
-        ra.addFlashAttribute("message", "Đã HIỂN THỊ lại NXB!");
+        // Không auto-mở sản phẩm con
+        ra.addFlashAttribute("message", "Đã HIỂN THỊ lại NXB (sản phẩm vẫn ẨN).");
         ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/nxbs";
     }
