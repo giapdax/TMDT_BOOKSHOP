@@ -1,3 +1,4 @@
+// src/main/java/vn/fs/service/OrderService.java
 package vn.fs.service;
 
 import lombok.RequiredArgsConstructor;
@@ -10,72 +11,74 @@ import vn.fs.repository.OrderDetailRepository;
 import vn.fs.repository.OrderRepository;
 import vn.fs.repository.ProductRepository;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class OrderService {
+public class OrderService implements OrderAdminService {
 
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
-
-    // list
-    public List<Order> findAll() {
+    @Override
+    public List<Order> listAll() {
         return orderRepository.findAll();
     }
+    @Override
+    public Optional<Double> amountOf(Long orderId) {
+        return orderRepository.findById(orderId).map(Order::getAmount);
+    }
 
-    // chi tiết
+    @Override
     public List<OrderDetail> detailsOf(Long orderId) {
         return orderDetailRepository.findByOrderId(orderId);
     }
 
-    // tổng tiền
-    public Double amountOf(Long orderId) {
-        return orderRepository.findById(orderId).map(Order::getAmount).orElse(0d);
-    }
-
-    // tìm đơn
     public Optional<Order> findById(Long id) {
         return orderRepository.findById(id);
     }
 
-    // huỷ
+    @Override
     @Transactional
-    public boolean cancel(Long id) {
-        return orderRepository.findById(id).map(o -> {
-            o.setStatus(3); // huỷ
+    public void cancel(Long orderId) {
+        orderRepository.findById(orderId).ifPresent(o -> {
+            o.setStatus((short) 3); // Huỷ
             orderRepository.save(o);
-            return true;
-        }).orElse(false);
+        });
     }
 
-    // xác nhận
+    @Override
     @Transactional
-    public boolean confirm(Long id) {
-        return orderRepository.findById(id).map(o -> {
-            o.setStatus(1); // xác nhận
+    public void confirm(Long orderId) {
+        orderRepository.findById(orderId).ifPresent(o -> {
+            o.setStatus((short) 1); // Xác nhận
             orderRepository.save(o);
-            return true;
-        }).orElse(false);
+        });
     }
 
-    // đã giao + trừ kho
+    @Override
     @Transactional
-    public boolean delivered(Long id) {
-        return orderRepository.findById(id).map(o -> {
-            o.setStatus(2); // đã giao/đã thanh toán
+    public void deliveredAndDecreaseStock(Long orderId) {
+        orderRepository.findById(orderId).ifPresent(o -> {
+            o.setStatus((short) 2); // Đã giao / đã thanh toán
             orderRepository.save(o);
 
-            List<OrderDetail> items = orderDetailRepository.findByOrderId(id);
+            List<OrderDetail> items = orderDetailRepository.findByOrderId(orderId);
             for (OrderDetail od : items) {
                 Product p = od.getProduct();
                 if (p == null) continue;
-                p.setQuantity(p.getQuantity() - od.getQuantity()); // giữ logic cũ
+
+                p.setQuantity(p.getQuantity() - od.getQuantity());
                 productRepository.save(p);
             }
-            return true;
-        }).orElse(false);
+        });
+    }
+
+    @Override
+    public void exportToExcel(HttpServletResponse response) throws IOException {
+        throw new UnsupportedOperationException("");
     }
 }

@@ -144,7 +144,6 @@ public class CartController extends CommomController {
                              Model model,
                              HttpServletRequest request) throws MessagingException {
 
-        // cart empty
         Collection<CartItem> cartItems = shoppingCartService.getCartItems();
         if (cartItems == null || cartItems.isEmpty()) {
             return "redirect:/products";
@@ -154,13 +153,13 @@ public class CartController extends CommomController {
         commomDataService.commonData(model, currentUser());
 
         if (br.hasErrors()) {
-            // trả lại view + lỗi
             return "web/shoppingCart_checkout";
         }
 
         double totalPrice = shoppingCartService.getAmount();
         String method = (checkout.getPaymentMethod() == null) ? "cod" : checkout.getPaymentMethod().trim().toLowerCase();
 
+        // Nếu chọn PayPal thì chuyển qua flow PayPal
         if (StringUtils.equals(method, "paypal")) {
             Order draft = new Order();
             draft.setAddress(checkout.getAddress());
@@ -199,12 +198,13 @@ public class CartController extends CommomController {
             }
         }
 
+        // COD flow
         User cur = currentUser();
         if (cur == null) return "redirect:/login";
 
         Order order = new Order();
         order.setOrderDate(new Date());
-        order.setStatus(0);
+        order.setStatus(0); // pending
         order.setAmount(totalPrice);
         order.setUser(cur);
         order.setAddress(checkout.getAddress());
@@ -218,9 +218,16 @@ public class CartController extends CommomController {
             od.setProduct(ci.getProduct());
             od.setPrice(ci.getProduct().getPrice());
             orderDetailRepository.save(od);
+
+            // 👇 Trừ stock
+            int updated = productRepository.decreaseStock(ci.getProduct().getProductId(), ci.getQuantity());
+            if (updated == 0) {
+                log.warn("Không đủ tồn kho cho productId={}", ci.getProduct().getProductId());
+                // có thể throw exception để rollback toàn bộ giao dịch
+            }
         }
 
-        // send mail
+        // gửi mail
         commomDataService.sendSimpleEmail(
                 cur.getEmail(),
                 "Book-Shop Xác Nhận Đơn hàng",
@@ -238,7 +245,9 @@ public class CartController extends CommomController {
     }
 
 
+
     @GetMapping(URL_PAYPAL_SUCCESS)
+    @Transactional
     public String successPay(@RequestParam("paymentId") String paymentId,
                              @RequestParam("PayerID") String payerId,
                              HttpServletRequest request, Model model) throws MessagingException {
@@ -264,7 +273,7 @@ public class CartController extends CommomController {
                 }
 
                 draft.setOrderDate(new Date());
-                draft.setStatus(2);        // paid
+                draft.setStatus(2); // paid
                 draft.setUser(cur);
                 draft.setAmount(totalPrice);
                 orderRepository.save(draft);
@@ -276,6 +285,12 @@ public class CartController extends CommomController {
                     od.setProduct(ci.getProduct());
                     od.setPrice(ci.getProduct().getPrice());
                     orderDetailRepository.save(od);
+
+                    // 👇 Trừ stock
+                    int updated = productRepository.decreaseStock(ci.getProduct().getProductId(), ci.getQuantity());
+                    if (updated == 0) {
+                        log.warn("Không đủ tồn kho cho productId={}", ci.getProduct().getProductId());
+                    }
                 }
 
                 commomDataService.sendSimpleEmail(
@@ -299,6 +314,7 @@ public class CartController extends CommomController {
         }
         return "redirect:/";
     }
+
 
     @GetMapping("/checkout_success")
     public String checkoutSuccess(Model model) {
