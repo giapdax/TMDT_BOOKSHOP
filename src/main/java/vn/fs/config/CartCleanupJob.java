@@ -8,11 +8,10 @@ import vn.fs.repository.CartRepository;
 
 import java.util.Date;
 
-/**
- * Job dọn dẹp giỏ hàng:
- *  - Đánh dấu EXPIRED cho giỏ quá hạn
- *  - Xoá các giỏ quá hạn và rỗng
- */
+// Job dọn dẹp giỏ hàng:
+// Đánh dấu EXPIRED cho giỏ quá hạn
+// Xoá các giỏ quá hạn và rỗng
+//
 @Component
 @RequiredArgsConstructor
 public class CartCleanupJob {

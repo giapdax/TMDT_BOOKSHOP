@@ -1,208 +1,161 @@
 package vn.fs.controller.admin;
 
-import java.io.InputStream;
-import java.nio.file.*;
-import java.security.Principal;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-
-import javax.validation.Valid;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.ui.ModelMap;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import vn.fs.entities.Category;
+import vn.fs.dto.CategoryDTO;
 import vn.fs.entities.User;
-import vn.fs.repository.CategoryRepository;
-import vn.fs.repository.ProductRepository;
+import vn.fs.service.CategoryService;
+import vn.fs.service.ImageStorageService;
 import vn.fs.repository.UserRepository;
+
+import javax.validation.Valid;
+import java.security.Principal;
 
 @Controller
 @RequestMapping("/admin")
+@RequiredArgsConstructor
 public class CategoryController {
 
-    @Value("${upload.path}")
-    private String uploadDir;
+    private final CategoryService categoryService;
+    private final ImageStorageService image;   // dùng check file hợp lệ
+    private final UserRepository userRepository;
 
-    @Autowired private CategoryRepository categoryRepository;
-    @Autowired private ProductRepository productRepository;
-    @Autowired private UserRepository userRepository;
-
-    /* ---------- COMMON USER IN MODEL ---------- */
+    /* bind user cho header */
     @ModelAttribute("user")
-    public User user(Model model, Principal principal, User user) {
-        if (principal != null) {
-            user = userRepository.findByEmail(principal.getName());
-            model.addAttribute("user", user);
-        }
-        return user;
+    public User user(Model model, Principal principal) {
+        if (principal == null) return null;
+        User u = userRepository.findByEmail(principal.getName());
+        model.addAttribute("user", u);
+        return u;
     }
 
-    /* ---------- LIST TO TABLE ---------- */
+    /* bind list category cho bảng */
     @ModelAttribute("categories")
-    public List<Category> showCategory(Model model) {
-        List<Category> categories = categoryRepository.findAll();
-        model.addAttribute("categories", categories);
-        return categories;
+    public java.util.List<vn.fs.entities.Category> categories(Model model) {
+        var list = categoryService.findAll();
+        model.addAttribute("categories", list);
+        return list;
     }
 
-    /* ---------- LIST PAGE ---------- */
+    /* trang danh sách */
     @GetMapping("/categories")
-    public String categories(Model model) {
-        model.addAttribute("category", new Category());
+    public String page(Model model) {
+        if (!model.containsAttribute("category")) {
+            model.addAttribute("category", categoryService.newDefaultDTO());
+        }
         return "admin/categories";
     }
 
-    /* ---------- ADD (optional image) ---------- */
-    @PostMapping("/addCategory")
-    public String addCategory(@Valid @ModelAttribute("category") Category category,
-                              BindingResult result,
-                              @RequestParam(value = "file", required = false) MultipartFile file,
-                              RedirectAttributes ra) {
-        if (result.hasErrors()) {
-            ra.addFlashAttribute("message", "Dữ liệu không hợp lệ!");
-            ra.addFlashAttribute("alertType", "danger");
-            return "redirect:/admin/categories";
-        }
-        try {
-            Files.createDirectories(Paths.get(uploadDir));
-
-            if (file != null && !file.isEmpty()) {
-                String original = StringUtils.cleanPath(file.getOriginalFilename());
-                String ext = "";
-                int dot = original.lastIndexOf('.');
-                if (dot >= 0) ext = original.substring(dot).toLowerCase(Locale.ROOT);
-                String newName = "cat_new_" + System.currentTimeMillis() + ext;
-                try (InputStream in = file.getInputStream()) {
-                    Files.copy(in, Paths.get(uploadDir).resolve(newName), StandardCopyOption.REPLACE_EXISTING);
-                }
-                category.setCategoryImage(newName);
-            }
-            if (category.getStatus() == null) category.setStatus(true);
-
-            categoryRepository.save(category);
-            ra.addFlashAttribute("message", "Thêm thể loại thành công!");
-            ra.addFlashAttribute("alertType", "success");
-        } catch (Exception e) {
-            ra.addFlashAttribute("message", "Lỗi thêm thể loại: " + e.getMessage());
-            ra.addFlashAttribute("alertType", "danger");
-        }
-        return "redirect:/admin/categories";
-    }
-
-    /* ---------- EDIT (GET) ---------- */
+    /* mở trang sửa */
     @GetMapping("/editCategory/{id}")
-    public String editCategory(@PathVariable("id") Long id, ModelMap model, RedirectAttributes ra) {
-        Optional<Category> opt = categoryRepository.findById(id);
-        if (opt.isEmpty()) {
-            ra.addFlashAttribute("message", "Không tìm thấy thể loại!");
-            ra.addFlashAttribute("alertType", "danger");
-            return "redirect:/admin/categories";
-        }
-        model.addAttribute("category", opt.get());
-        return "admin/editCategory";
+    public String editPage(@PathVariable("id") Long id, Model model, RedirectAttributes ra) {
+        return categoryService.findById(id)
+                .map(c -> { model.addAttribute("category", categoryService.toDTO(c)); return "admin/editCategory"; })
+                .orElseGet(() -> {
+                    ra.addFlashAttribute("message", "Không tìm thấy thể loại!");
+                    ra.addFlashAttribute("alertType", "danger");
+                    return "redirect:/admin/categories";
+                });
     }
 
-    /* ---------- EDIT (POST) ---------- */
+    /* thêm mới */
+    @PostMapping("/addCategory")
+    public String add(@Valid @ModelAttribute("category") CategoryDTO dto,
+                      BindingResult br,
+                      @RequestParam(value = "file", required = false) MultipartFile file,
+                      Model model) {
+
+        dto.normalize(); // gộp khoảng trắng, trim
+
+        // kiểm tra trùng tên
+        if (categoryService.nameExists(dto.getCategoryName())) {
+            br.rejectValue("categoryName", null, "Tên thể loại đã tồn tại.");
+        }
+
+        // nếu có file thì thử lưu tạm để check hợp lệ (jpg, jpeg, png, webp)
+        if (file != null && !file.isEmpty() && image.saveTemp(file) == null) {
+            br.rejectValue("categoryId", null, "Ảnh không hợp lệ (jpg, jpeg, png, webp).");
+        }
+
+        // có lỗi -> mở lại modal
+        if (br.hasErrors()) {
+            model.addAttribute("openAddModal", true);
+            return "admin/categories";
+        }
+
+        // ok -> service lo tạo + promote ảnh
+        categoryService.create(dto, file);
+
+        model.addAttribute("message", "Thêm thể loại thành công!");
+        model.addAttribute("alertType", "success");
+        model.addAttribute("category", categoryService.newDefaultDTO());
+        return "admin/categories";
+    }
+
+    /* cập nhật */
     @PostMapping("/editCategory/{id}")
-    public String updateCategory(@PathVariable("id") Long id,
-                                 @ModelAttribute("category") Category form,
-                                 @RequestParam(value = "file", required = false) MultipartFile file,
-                                 @RequestParam(value = "existingImage", required = false) String existingImage,
-                                 RedirectAttributes ra) {
-        try {
-            Category cat = categoryRepository.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+    public String update(@PathVariable("id") Long id,
+                         @Valid @ModelAttribute("category") CategoryDTO dto,
+                         BindingResult br,
+                         @RequestParam(value = "file", required = false) MultipartFile file,
+                         @RequestParam(value = "existingImage", required = false) String existingImage,
+                         RedirectAttributes ra) {
 
-            cat.setCategoryName(form.getCategoryName() == null ? null : form.getCategoryName().trim());
-            if (form.getStatus() != null) cat.setStatus(form.getStatus());
+        dto.normalize();
 
-            Files.createDirectories(Paths.get(uploadDir));
-
-            if (file != null && !file.isEmpty()) {
-                String original = StringUtils.cleanPath(file.getOriginalFilename());
-                String ext = "";
-                int dot = original.lastIndexOf('.');
-                if (dot >= 0) ext = original.substring(dot).toLowerCase(Locale.ROOT);
-                String newName = "cat_" + id + "_" + System.currentTimeMillis() + ext;
-
-                try (InputStream in = file.getInputStream()) {
-                    Files.copy(in, Paths.get(uploadDir).resolve(newName), StandardCopyOption.REPLACE_EXISTING);
-                }
-
-                if (existingImage != null && !existingImage.isBlank()) {
-                    try { Files.deleteIfExists(Paths.get(uploadDir).resolve(existingImage)); } catch (Exception ignore) {}
-                }
-                cat.setCategoryImage(newName);
-            } else {
-                cat.setCategoryImage(existingImage);
-            }
-
-            categoryRepository.save(cat);
-            ra.addFlashAttribute("message", "Cập nhật thể loại thành công!");
-            ra.addFlashAttribute("alertType", "success");
-        } catch (Exception e) {
-            ra.addFlashAttribute("message", "Lỗi cập nhật: " + e.getMessage());
-            ra.addFlashAttribute("alertType", "danger");
+        // trùng tên (trừ chính nó)
+        if (categoryService.nameExistsOther(dto.getCategoryName(), id)) {
+            br.rejectValue("categoryName", null, "Tên thể loại đã tồn tại.");
         }
-        return "redirect:/admin/editCategory/" + id;
+
+        // có file thì check hợp lệ bằng cách save tạm
+        if (file != null && !file.isEmpty() && image.saveTemp(file) == null) {
+            br.rejectValue("categoryId", null, "Ảnh không hợp lệ (jpg, jpeg, png, webp).");
+        }
+
+        if (br.hasErrors()) return "admin/editCategory";
+
+        categoryService.update(id, dto, file, existingImage);
+
+        ra.addFlashAttribute("message", "Cập nhật thể loại thành công!");
+        ra.addFlashAttribute("alertType", "success");
+        return "redirect:/admin/categories";
     }
 
-    /* ---------- HIDE (soft delete nếu còn sản phẩm) ---------- */
+    /* ẩn category + ẩn toàn bộ sản phẩm con; nếu không còn sp tham chiếu thì xóa cứng
+       giữ nguyên path /delete/{id} để không vỡ link cũ */
     @GetMapping("/delete/{id}")
-    public String hideCategory(@PathVariable("id") Long id, RedirectAttributes ra) {
-        Optional<Category> opt = categoryRepository.findById(id);
+    public String hide(@PathVariable("id") Long id, RedirectAttributes ra) {
+        var opt = categoryService.findById(id);
         if (opt.isEmpty()) {
             ra.addFlashAttribute("message", "Không tìm thấy thể loại!");
             ra.addFlashAttribute("alertType", "danger");
             return "redirect:/admin/categories";
         }
-        Category c = opt.get();
 
-        long cntActive = productRepository.countActiveByCategory(id);
-        if (cntActive > 0) {
-            c.setStatus(false); // Ẩn nếu còn SP đang bán
-            categoryRepository.save(c);
-            ra.addFlashAttribute("message", "Thể loại còn sản phẩm đang bán → đã ẨN.");
-            ra.addFlashAttribute("alertType", "warning");
-            return "redirect:/admin/categories";
-        }
-
-        try {
-            // không còn SP active → cho phép xóa cứng + xóa ảnh
-            if (c.getCategoryImage() != null && !c.getCategoryImage().isBlank()) {
-                try { Files.deleteIfExists(Paths.get(uploadDir).resolve(c.getCategoryImage())); } catch (Exception ignore) {}
-            }
-            categoryRepository.deleteById(id);
-            ra.addFlashAttribute("message", "Xóa thể loại thành công.");
+        boolean hard = categoryService.hideAndCascade(id);
+        if (hard) {
+            ra.addFlashAttribute("message", "Đã ẨN sản phẩm & XÓA vĩnh viễn thể loại (không còn sản phẩm tham chiếu).");
             ra.addFlashAttribute("alertType", "success");
-        } catch (Exception e) {
-            c.setStatus(false);
-            categoryRepository.save(c);
-            ra.addFlashAttribute("message", "Không thể xóa do ràng buộc. Đã ẨN thể loại.");
-            ra.addFlashAttribute("alertType", "warning");
+        } else {
+            ra.addFlashAttribute("message", "Đã ẨN thể loại và ẨN toàn bộ sản phẩm thuộc thể loại này.");
+            ra.addFlashAttribute("alertType", "success");
         }
         return "redirect:/admin/categories";
     }
 
+    /* khôi phục category (không tự mở sp con) */
     @RequestMapping(value = "/restoreCategory/{id}", method = {RequestMethod.GET, RequestMethod.POST})
-    public String restoreCategory(@PathVariable("id") Long id, RedirectAttributes ra){
-        categoryRepository.findById(id).ifPresent(c -> {
-            c.setStatus(true);
-            categoryRepository.save(c);
-        });
-        ra.addFlashAttribute("message","Đã HIỂN THỊ lại thể loại!");
-        ra.addFlashAttribute("alertType","success");
+    public String restore(@PathVariable("id") Long id, RedirectAttributes ra) {
+        categoryService.restore(id);
+        ra.addFlashAttribute("message", "Đã HIỂN THỊ lại thể loại (sản phẩm vẫn ẨN).");
+        ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/categories";
     }
-
 }

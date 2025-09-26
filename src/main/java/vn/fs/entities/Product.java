@@ -38,6 +38,6 @@ public class Product implements Serializable {
 	private Category category;
 
     @ManyToOne
-    @JoinColumn(name = "nxb_id")     // FK trong bảng products
+    @JoinColumn(name = "nxb_id")
     private NXB nxb;
 }

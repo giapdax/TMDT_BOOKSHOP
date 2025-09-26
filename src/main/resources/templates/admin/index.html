@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta charset="UTF-8"/>
@@ -37,8 +37,8 @@
                 <div class="page-inner py-5">
                     <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row">
                         <div>
-                            <h2 class="text-white pb-2 fw-bold">Dashboard</h2>
-                            <h5 class="text-white op-7 mb-2">Admin Dashboard</h5>
+                            <h2 class="text-white pb-2 fw-bold">Bảng điều khiển</h2>
+                            <h5 class="text-white op-7 mb-2">Trang quản trị BOOK_SHOP</h5>
                         </div>
                     </div>
                 </div>
@@ -48,26 +48,26 @@
             <div class="page-inner mt--5">
 
                 <div class="row mt--2">
-                    <!-- Overall stats (circles) -->
+                    <!-- Tổng quan (vòng tròn) -->
                     <div class="col-md-6">
                         <div class="card full-height">
                             <div class="card-body">
-                                <div class="card-title">Overall statistics</div>
-                                <div class="card-category">Daily information about statistics in system</div>
+                                <div class="card-title">Thống kê tổng quan</div>
+                                <div class="card-category">Thông tin nhanh trong 7 ngày gần đây</div>
 
-                                <!-- kpis: Map<String,Number> -> newUsers, orders, subscribers -->
+                                <!-- kpis: Map<String,Number> -> newUsers, orders7d, subscribers(=salesQty7d) -->
                                 <div class="d-flex flex-wrap justify-content-around pb-2 pt-4">
                                     <div class="px-2 pb-2 pb-md-0 text-center">
                                         <div id="circles-1"></div>
-                                        <h6 class="fw-bold mt-3 mb-0">New Users</h6>
+                                        <h6 class="fw-bold mt-3 mb-0">Người dùng mới (7 ngày)</h6>
                                     </div>
                                     <div class="px-2 pb-2 pb-md-0 text-center">
                                         <div id="circles-2"></div>
-                                        <h6 class="fw-bold mt-3 mb-0">Orders (7d)</h6>
+                                        <h6 class="fw-bold mt-3 mb-0">Đơn hàng (7 ngày)</h6>
                                     </div>
                                     <div class="px-2 pb-2 pb-md-0 text-center">
                                         <div id="circles-3"></div>
-                                        <h6 class="fw-bold mt-3 mb-0">Active Subscribers</h6>
+                                        <h6 class="fw-bold mt-3 mb-0">SL bán (7 ngày)</h6>
                                     </div>
                                 </div>
 
@@ -75,20 +75,20 @@
                         </div>
                     </div>
 
-                    <!-- Total income (bar chart) -->
+                    <!-- Doanh thu -->
                     <div class="col-md-6">
                         <div class="card full-height">
                             <div class="card-body">
-                                <div class="card-title">Total income & spend statistics</div>
+                                <div class="card-title">Doanh thu & Chi tiêu</div>
                                 <div class="row py-3">
                                     <div class="col-md-4 d-flex flex-column justify-content-around">
                                         <div>
-                                            <h6 class="fw-bold text-uppercase text-success op-8">Total Income</h6>
-                                            <h3 class="fw-bold" th:text="${totalIncomeFormatted} ?: '$0'">$0</h3>
+                                            <h6 class="fw-bold text-uppercase text-success op-8">Tổng doanh thu</h6>
+                                            <h3 class="fw-bold" th:text="${totalIncomeFormatted} ?: '0'">0</h3>
                                         </div>
                                         <div>
-                                            <h6 class="fw-bold text-uppercase text-danger op-8">Total Spend</h6>
-                                            <h3 class="fw-bold" th:text="${totalSpendFormatted} ?: '$0'">$0</h3>
+                                            <h6 class="fw-bold text-uppercase text-danger op-8">Tổng chi</h6>
+                                            <h3 class="fw-bold" th:text="${totalSpendFormatted} ?: '0'">0</h3>
                                         </div>
                                     </div>
                                     <div class="col-md-8">
@@ -102,19 +102,19 @@
                     </div>
                 </div>
 
-                <!-- User statistics + Daily sales -->
+                <!-- Thống kê người dùng + Doanh số ngày -->
                 <div class="row">
                     <div class="col-md-8">
                         <div class="card">
                             <div class="card-header">
                                 <div class="card-head-row">
-                                    <div class="card-title">User Statistics</div>
+                                    <div class="card-title">Thống kê người dùng</div>
                                     <div class="card-tools">
                                         <a href="javascript:void(0);" class="btn btn-info btn-border btn-round btn-sm mr-2">
-                                            <span class="btn-label"><i class="fa fa-pencil"></i></span>Export
+                                            <span class="btn-label"><i class="fa fa-pencil"></i></span>Xuất
                                         </a>
                                         <a href="javascript:void(0);" class="btn btn-info btn-border btn-round btn-sm">
-                                            <span class="btn-label"><i class="fa fa-print"></i></span>Print
+                                            <span class="btn-label"><i class="fa fa-print"></i></span>In
                                         </a>
                                     </div>
                                 </div>
@@ -131,12 +131,12 @@
                     <div class="col-md-4">
                         <div class="card card-primary">
                             <div class="card-header">
-                                <div class="card-title">Daily Sales</div>
-                                <div class="card-category" th:text="${rangeLabel}?: 'Last 7 days'">Last 7 days</div>
+                                <div class="card-title">Doanh số theo ngày</div>
+                                <div class="card-category" th:text="${rangeLabel}?: '7 ngày gần nhất'">7 ngày gần nhất</div>
                             </div>
                             <div class="card-body pb-0">
                                 <div class="mb-4 mt-2">
-                                    <h1 th:text="${dailySalesHeadline} ?: '$0.00'">$0.00</h1>
+                                    <h1 th:text="${dailySalesHeadline} ?: '0'">0</h1>
                                 </div>
                                 <div class="pull-in">
                                     <canvas id="dailySalesChart"></canvas>
@@ -148,7 +148,7 @@
                             <div class="card-body pb-0">
                                 <div class="h1 fw-bold float-right text-warning" th:text="${transactionsDelta} ?: '+0%'">+0%</div>
                                 <h2 class="mb-2" th:text="${transactionsCount} ?: 0">0</h2>
-                                <p class="text-muted">Transactions</p>
+                                <p class="text-muted">Giao dịch</p>
                                 <div class="pull-in sparkline-fix">
                                     <div id="lineChart"></div>
                                 </div>
@@ -167,12 +167,12 @@
                 <nav class="pull-left">
                     <ul class="nav">
                         <li class="nav-item"><a class="nav-link" href="javascript:void(0);">BOOK-SHOP</a></li>
-                        <li class="nav-item"><a class="nav-link" href="javascript:void(0);">Help</a></li>
-                        <li class="nav-item"><a class="nav-link" href="javascript:void(0);">Licenses</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0);">Trợ giúp</a></li>
+                        <li class="nav-item"><a class="nav-link" href="javascript:void(0);">Giấy phép</a></li>
                     </ul>
                 </nav>
                 <div class="copyright ml-auto">
-                    2025, made with <i class="fa fa-heart heart text-danger"></i> by <a href="javascript:void(0);">BOOK-SHOP</a>
+                    2025, làm với <i class="fa fa-heart heart text-danger"></i> bởi <a href="javascript:void(0);">BOOK-SHOP</a>
                 </div>
             </div>
         </footer>
@@ -199,62 +199,58 @@
 <script src="/assets/js/plugin/sweetalert/sweetalert.min.js"></script>
 <script src="/assets/js/atlantis.min.js"></script>
 <script src="/assets/js/setting-demo.js"></script>
-<script src="/assets/js/demo.js"></script>
+<!-- <script src="/assets/js/demo.js"></script> -->
 
 <!-- Inject data -->
 <script th:inline="javascript">
     /*<![CDATA[*/
-    // KPIs (0..100 cho vòng tròn, text là số tuyệt đối)
     var kpis = /*[[${kpis}]]*/ null;
-    var newUsers     = (kpis && kpis.newUsers    != null) ? kpis.newUsers    : 0;
-    var orders7d     = (kpis && kpis.orders7d    != null) ? kpis.orders7d    : 0;
-    var subscribers  = (kpis && kpis.subscribers != null) ? kpis.subscribers : 0;
+    var newUsers    = (kpis && kpis.newUsers    != null) ? kpis.newUsers    : 0;
+    var orders7d    = (kpis && kpis.orders7d    != null) ? kpis.orders7d    : 0;
+    var subscribers = (kpis && kpis.subscribers != null) ? kpis.subscribers : 0; // = SL bán (7 ngày)
 
-    // Bar chart: income (labels: ngày, values: số tiền)
     var incomeLabels = /*[[${incomeLabels}]]*/ [];
     var incomeValues = /*[[${incomeValues}]]*/ [];
 
-    // Line chart: orders count theo ngày
     var ordersLabels = /*[[${ordersLabels}]]*/ [];
     var ordersValues = /*[[${ordersValues}]]*/ [];
 
-    // Sparkline
     var transactionsSmall = /*[[${transactionsSmall}]]*/ [0,0,0,0,0];
 
-    // ==== Circles ====
+    // Circles
     Circles.create({ id:'circles-1', radius:45, value: Math.min(newUsers,100), maxValue:100, width:7, text: newUsers, colors:['#f1f1f1','#FF9E27'], duration:400, wrpClass:'circles-wrp', textClass:'circles-text', styleWrapper:true, styleText:true });
     Circles.create({ id:'circles-2', radius:45, value: Math.min(orders7d,100), maxValue:100, width:7, text: orders7d, colors:['#f1f1f1','#2BB930'], duration:400, wrpClass:'circles-wrp', textClass:'circles-text', styleWrapper:true, styleText:true });
     Circles.create({ id:'circles-3', radius:45, value: Math.min(subscribers,100), maxValue:100, width:7, text: subscribers, colors:['#f1f1f1','#F25961'], duration:400, wrpClass:'circles-wrp', textClass:'circles-text', styleWrapper:true, styleText:true });
 
-    // ==== Income Bar ====
+    // Income Bar
     var ctxIncome = document.getElementById('totalIncomeChart').getContext('2d');
     new Chart(ctxIncome, {
         type: 'bar',
-        data: { labels: incomeLabels, datasets: [{ label: 'Total Income', backgroundColor: '#ff9e27', borderColor: 'rgb(23,125,255)', data: incomeValues }] },
+        data: { labels: incomeLabels, datasets: [{ label: 'Doanh thu', backgroundColor: '#ff9e27', borderColor: 'rgb(23,125,255)', data: incomeValues }] },
         options: {
             responsive:true, maintainAspectRatio:false, legend:{display:false},
             scales:{ yAxes:[{ticks:{beginAtZero:true}, gridLines:{drawBorder:false}}], xAxes:[{gridLines:{drawBorder:false,display:false}}] }
         }
     });
 
-    // ==== Orders Line (Daily Sales) ====
+    // Orders Line (Daily Sales)
     var ctxDaily = document.getElementById('dailySalesChart').getContext('2d');
     new Chart(ctxDaily, {
         type: 'line',
-        data: { labels: ordersLabels, datasets: [{ label: 'Orders', data: ordersValues, fill:true, backgroundColor:'rgba(40,120,255,.15)', borderColor:'#2878ff', borderWidth:2, pointRadius:2 }] },
+        data: { labels: ordersLabels, datasets: [{ label: 'Số đơn hàng', data: ordersValues, fill:true, backgroundColor:'rgba(40,120,255,.15)', borderColor:'#2878ff', borderWidth:2, pointRadius:2 }] },
         options: { responsive:true, maintainAspectRatio:false, legend:{display:false}, scales:{ yAxes:[{ticks:{beginAtZero:true}}] } }
     });
 
-    // ==== Sparkline ====
+    // Sparkline
     $('#lineChart').sparkline(transactionsSmall, {
         type:'line', height:'70', width:'100%', lineWidth:2, lineColor:'#ffa534', fillColor:'rgba(255,165,52,.14)'
     });
 
-    // ==== Bonus area chart (User Statistics) – dùng lại ordersValues cho demo ====
+    // “Thống kê người dùng” – demo dùng cùng dữ liệu orders
     var ctxUsers = document.getElementById('statisticsChart').getContext('2d');
     new Chart(ctxUsers, {
         type:'line',
-        data:{ labels: ordersLabels, datasets:[{label:'Active Users', data: ordersValues, fill:true, borderColor:'#31ce36', backgroundColor:'rgba(49,206,54,.15)'}] },
+        data:{ labels: ordersLabels, datasets:[{label:'Người dùng hoạt động', data: ordersValues, fill:true, borderColor:'#31ce36', backgroundColor:'rgba(49,206,54,.15)'}] },
         options:{ responsive:true, maintainAspectRatio:false, legend:{display:false} }
     });
     /*]]>*/

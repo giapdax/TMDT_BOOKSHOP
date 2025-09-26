@@ -23,11 +23,15 @@
     <link rel="stylesheet" th:href="@{/css/main.css}" />
     <link rel="stylesheet" th:href="@{/css/checkout.css}" />
 
-    <!-- Patch nhỏ: khoá click khi aria-disabled="true" -->
     <style>
         a[aria-disabled="true"] { pointer-events: none; opacity: .5; }
         .qty-row .btn{min-width:32px}
         .table-list img{max-width:72px;border:1px solid #eee;border-radius:8px;background:#fff}
+        /* form đẹp xíu cho đồng bộ */
+        .user-form .form-control { border-radius: 10px; }
+        .user-form .form-button .btn { border-radius: 12px; padding:.75rem 1.25rem; }
+        .form-group .text-danger { display:block; margin-top:6px; }
+        .account-title h4 { font-weight: 800; }
     </style>
 </head>
 <body>
@@ -99,7 +103,6 @@
                                         <h6>[[${item.product.category.categoryName}]]</h6>
                                     </td>
 
-                                    <!-- PATCH: cụm số lượng với redirect='checkout' + aria-disabled + null-safe stock -->
                                     <td class="table-quantity">
                                         <div class="qty-row" style="display:flex; gap:8px; align-items:center;"
                                              th:with="
@@ -107,7 +110,6 @@
                                                 rawMax=${item.product.quantity},
                                                 max=${rawMax == null ? 999999 : rawMax}
                                              ">
-                                            <!-- Giảm -->
                                             <a class="btn btn-sm btn-outline-secondary"
                                                th:href="@{/cart/dec(productId=${item.product.productId}, redirect='checkout')}"
                                                th:attr="aria-disabled=${q <= 1}"
@@ -115,7 +117,6 @@
 
                                             <span><strong>[[${q}]]</strong></span>
 
-                                            <!-- Tăng -->
                                             <a class="btn btn-sm btn-outline-secondary"
                                                th:href="@{/cart/inc(productId=${item.product.productId}, redirect='checkout')}"
                                                th:attr="aria-disabled=${q >= max}"
@@ -173,46 +174,62 @@
                     </div>
                     <div class="account-content">
                         <div class="row">
-                            <!-- POST đúng /checkout (đã có handler) -->
-                            <form class="user-form" th:action="@{/checkout}" th:object="${order}" method="post">
+                            <!-- BIND vào DTO CheckoutAddressDTO -->
+                            <form class="user-form" th:action="@{/checkout}" th:object="${checkout}" method="post" novalidate>
+
+                                <!-- Email readonly -->
                                 <div class="form-group">
-                                    <input type="email" th:value="${user.email}"
-                                           class="form-control" placeholder="Email" readonly="readonly"/>
+                                    <input type="email" class="form-control" th:field="*{email}"
+                                           placeholder="Email" readonly="readonly"/>
+                                    <small class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></small>
                                 </div>
 
+                                <!-- Họ tên readonly -->
                                 <div class="form-group">
-                                    <input type="text" th:value="${user.name}"
-                                           class="form-control" placeholder="Họ tên" readonly="readonly"/>
+                                    <input type="text" class="form-control" th:field="*{fullName}"
+                                           placeholder="Họ tên" readonly="readonly"/>
                                 </div>
 
+                                <!-- Địa chỉ -->
                                 <div class="form-group">
-                                    <input type="text" th:field="*{address}"
-                                           class="form-control" placeholder="Địa chỉ" required="required"/>
+                                    <input type="text" class="form-control" th:field="*{address}"
+                                           placeholder="Địa chỉ nhận hàng" required minlength="5" maxlength="200"/>
+                                    <small class="text-danger" th:if="${#fields.hasErrors('address')}" th:errors="*{address}"></small>
                                 </div>
 
+                                <!-- Số điện thoại -->
                                 <div class="form-group">
-                                    <input type="tel" th:field="*{phone}"
-                                           class="form-control" placeholder="Số điện thoại" required="required"/>
+                                    <input type="tel" class="form-control" th:field="*{phone}"
+                                           placeholder="Số điện thoại"
+                                           required
+                                           pattern="^(0|\+84)(3|5|7|8|9)\d{8}$"
+                                           title="SĐT di động VN: 0(3|5|7|8|9) + 8 số, hoặc +84(3|5|7|8|9) + 8 số"/>
+                                    <small class="text-danger" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></small>
                                 </div>
 
+                                <!-- Ghi chú -->
                                 <div class="form-group">
-                                    <input type="text" class="form-control" placeholder="Nội dung đơn hàng"/>
+                                    <input type="text" class="form-control" th:field="*{note}"
+                                           placeholder="Ghi chú cho đơn hàng (tuỳ chọn)" maxlength="255"/>
+                                    <small class="text-danger" th:if="${#fields.hasErrors('note')}" th:errors="*{note}"></small>
                                 </div>
 
+                                <!-- Payment -->
                                 <div class="form-group">
                                     <div class="account-title"><h4>Chọn phương thức thanh toán</h4></div>
                                     <div class="radio">
                                         <label style="color:#119744">
-                                            <input type="radio" value="cod" name="checkOut" checked>
-                                            <strong><em>Ship COD ( Thanh toán khi nhận hàng )</em></strong>
+                                            <input type="radio" th:field="*{paymentMethod}" value="cod" checked="checked">
+                                            <strong><em>Ship COD (Thanh toán khi nhận hàng)</em></strong>
                                         </label>
                                     </div>
                                     <div class="radio">
                                         <label style="color:#119744">
-                                            <input type="radio" value="paypal" name="checkOut">
+                                            <input type="radio" th:field="*{paymentMethod}" value="paypal">
                                             <strong><em>Thanh Toán Với Paypal</em></strong>
                                         </label>
                                     </div>
+                                    <small class="text-danger" th:if="${#fields.hasErrors('paymentMethod')}" th:errors="*{paymentMethod}"></small>
                                 </div>
 
                                 <div class="checkout-proced">
@@ -236,7 +253,6 @@
         $('#configmationId').modal('show');
     }
 
-    // (Tùy chọn) chặn cố tình click nút đã disabled
     document.addEventListener('click', function(e){
         const a = e.target.closest('a.btn, a.qty-btn');
         if (a && a.getAttribute('aria-disabled') === 'true') {

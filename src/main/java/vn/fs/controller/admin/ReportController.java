@@ -77,6 +77,6 @@ public class ReportController {
         bindCurrentUser(model, principal);
         model.addAttribute("title", "Thống kê theo khách hàng");
         model.addAttribute("listReportCommon", orderDetailRepository.reportCustomer());
-        return "admin/statistical"; // nhớ có file templates/admin/statistical.html
+        return "admin/statistical";
     }
 }

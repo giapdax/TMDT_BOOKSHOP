@@ -33,7 +33,6 @@ public class Cart {
     @Column(name = "expires_at")
     private Date expiresAt;
 
-    /** Trạng thái giỏ – lưu STRING để khớp DB đang có giá trị 'ACTIVE' */
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private CartStatus status;

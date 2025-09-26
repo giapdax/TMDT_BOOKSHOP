@@ -12,19 +12,19 @@ public class CartUpdateResponse {
     private String message;
 
     private Long productId;
-    private int itemQty;             // số lượng của item này trong giỏ sau cập nhật
-    private Integer remainingStock;  // tồn còn lại (optional)
+    private int itemQty;
+    private Integer remainingStock;
 
-    private Double unitPrice;        // đơn giá sau giảm
-    private Double lineTotal;        // thành tiền dòng
-    private Double cartTotal;        // tổng giỏ
+    private Double unitPrice;
+    private Double lineTotal;
+    private Double cartTotal;
 
-    private Integer totalCartItems;  // số dòng trong giỏ (không phải tổng qty)
-    private String unitPriceText;    // text VND
-    private String lineTotalText;    // text VND
-    private String cartTotalText;    // text VND
+    private Integer totalCartItems;
+    private String unitPriceText;
+    private String lineTotalText;
+    private String cartTotalText;
 
-    private List<MiniItem> mini;     // danh sách rút gọn để render mini-cart
+    private List<MiniItem> mini;
 
     @Data
     @NoArgsConstructor
@@ -35,6 +35,6 @@ public class CartUpdateResponse {
         private String image;
         private int qty;
         private String lineTotalText;
-        private String remainingStockText; // optional
+        private String remainingStockText;
     }
 }

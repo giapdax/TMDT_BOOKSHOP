@@ -17,7 +17,7 @@ public class ExchangeRateService {
     private LocalDateTime lastUpdated = LocalDateTime.MIN;
 
     public double getVNDExchangeRate() {
-        // Nếu lần cập nhật cuối cùng hơn 24h trước thì gọi API lại
+
         if (lastUpdated.plusHours(24).isBefore(LocalDateTime.now())) {
             try {
                 RestTemplate restTemplate = new RestTemplate();

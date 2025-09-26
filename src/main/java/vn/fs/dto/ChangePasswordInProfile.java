@@ -20,7 +20,6 @@ public class ChangePasswordInProfile {
     @NotBlank(message = "Vui lòng nhập lại mật khẩu mới.")
     private String confirmPassword;
 
-    // getters & setters
     public String getCurrentPassword() { return currentPassword; }
     public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
 

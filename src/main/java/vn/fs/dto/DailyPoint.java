@@ -1,4 +1,3 @@
-// src/main/java/vn/fs/dto/DailyPoint.java
 package vn.fs.dto;
 
 import java.time.LocalDate;

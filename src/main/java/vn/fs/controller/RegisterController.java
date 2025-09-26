@@ -1,6 +1,6 @@
 package vn.fs.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -9,6 +9,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import vn.fs.dto.UserRegisterDTO;
 import vn.fs.entities.Role;
 import vn.fs.entities.User;
 import vn.fs.repository.RoleRepository;
@@ -16,92 +17,89 @@ import vn.fs.repository.UserRepository;
 
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
-import java.lang.reflect.Method;
 import java.time.Instant;
-import java.util.*;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
 
 @Controller
+@RequiredArgsConstructor
 public class RegisterController {
 
-    private static final String SESSION_PENDING_USER = "PENDING_USER";
-    private static final String SESSION_OTP = "REGISTER_OTP";
-    private static final String SESSION_OTP_EXPIRE = "REGISTER_OTP_EXPIRE";
+    private static final String SESSION_PENDING_FORM   = "REGISTER_PENDING_FORM";
+    private static final String SESSION_OTP            = "REGISTER_OTP";
+    private static final String SESSION_OTP_EXPIRE     = "REGISTER_OTP_EXPIRE";
+    private static final long   OTP_TTL_SECONDS        = 5 * 60; // 5 phút
 
-    @Autowired private UserRepository userRepository;
-    @Autowired private RoleRepository roleRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    // DÙNG CHÍNH JavaMailSender sẵn có trong dự án (không tạo service mới)
-    @Autowired(required = false)
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
 
-    // ============ GET /register ============
     @GetMapping("/register")
     public String showRegister(Model model) {
-        if (!model.containsAttribute("user")) {
-            model.addAttribute("user", new User());
+        if (!model.containsAttribute("form")) {
+            model.addAttribute("form", new UserRegisterDTO());
         }
         return "web/register";
     }
 
-    // ============ POST /register ============
     @PostMapping("/register")
-    public String doRegister(@Valid @ModelAttribute("user") User form,
+    public String doRegister(@Valid @ModelAttribute("form") UserRegisterDTO form,
                              BindingResult br,
                              Model model,
                              HttpSession session) {
 
-        // Lỗi validate entity (email/username/name/phone/password/confirm)
-        if (br.hasErrors()) {
-            return "web/register";
-        }
+        // Validate DTO
+        if (br.hasErrors()) return "web/register";
 
-        // Check trùng email/username nếu repo có method (dùng reflection để khỏi lệ thuộc chữ ký)
-        if (emailExists(form.getEmail())) {
-            model.addAttribute("error", "Email đã tồn tại.");
-            return "web/register";
+        // Unique checks
+        if (userRepository.findByEmailIgnoreCase(form.getEmail()).isPresent()) {
+            br.rejectValue("email", "email.taken", "Email đã tồn tại");
         }
-        if (usernameExists(form.getUsername())) {
-            model.addAttribute("error", "Username đã tồn tại.");
-            return "web/register";
+        if (userRepository.findByUsernameIgnoreCase(form.getUsername()).isPresent()) {
+            br.rejectValue("username", "username.taken", "Username đã tồn tại");
         }
+        if (br.hasErrors()) return "web/register";
 
-        // Tạo OTP 6 số + hạn 5 phút
+        // Phát OTP
         String otp = String.format("%06d", new Random().nextInt(1_000_000));
-        long expireAt = Instant.now().plusSeconds(5 * 60).toEpochMilli();
+        long expireAt = Instant.now().plusSeconds(OTP_TTL_SECONDS).toEpochMilli();
 
-        // LƯU TOÀN BỘ DỮ LIỆU FORM VÀO SESSION (CHƯA encode password)
-        session.setAttribute(SESSION_PENDING_USER, form);
+        // LƯU FORM VÀO SESSION (tạm thời, trước khi xác thực OTP)
+        session.setAttribute(SESSION_PENDING_FORM, form);
         session.setAttribute(SESSION_OTP, otp);
         session.setAttribute(SESSION_OTP_EXPIRE, expireAt);
 
-        // GỬI EMAIL OTP (vẫn theo cơ chế cũ bằng JavaMailSender)
+        // GỬI EMAIL OTP (nếu cấu hình mail đầy đủ)
         try {
             if (mailSender == null) throw new IllegalStateException("MailSender bean not available");
             SimpleMailMessage msg = new SimpleMailMessage();
             msg.setTo(form.getEmail());
             msg.setSubject("Mã xác nhận đăng ký (OTP) - BookShop");
-            msg.setText("Xin chào,\n\nMã OTP của bạn là: " + otp + "\nHiệu lực trong 5 phút.\n\nTrân trọng,\nBookShop");
+            msg.setText("Xin chào,\n\nMã OTP của bạn là: " + otp +
+                    "\nHiệu lực trong 5 phút.\n\nTrân trọng,\nBookShop");
             mailSender.send(msg);
             model.addAttribute("message", "Mã xác nhận đã được gửi tới email của bạn.");
         } catch (Exception ex) {
-            // Nếu gửi fail, dọn session và báo lỗi – tránh user kẹt 404
             clearRegisterSession(session);
-            model.addAttribute("user", form);
             model.addAttribute("error", "Không thể gửi email OTP. Vui lòng kiểm tra cấu hình mail và thử lại!");
             return "web/register";
         }
 
         model.addAttribute("email", form.getEmail());
-        return "web/confirmOtpRegister"; // trang nhập OTP
+        return "web/confirmOtpRegister";
     }
 
-    // ============ GET /confirmOtpRegister ============
+    /* ============== GET /confirmOtpRegister ============== */
     @GetMapping("/confirmOtpRegister")
     public String showConfirmOtp(Model model, HttpSession session) {
-        User pending = (User) session.getAttribute(SESSION_PENDING_USER);
+        UserRegisterDTO pending = (UserRegisterDTO) session.getAttribute(SESSION_PENDING_FORM);
         if (pending == null) {
-            model.addAttribute("user", new User());
+            model.addAttribute("form", new UserRegisterDTO());
             model.addAttribute("error", "Phiên đăng ký đã hết hạn. Vui lòng đăng ký lại.");
             return "web/register";
         }
@@ -109,181 +107,74 @@ public class RegisterController {
         return "web/confirmOtpRegister";
     }
 
-    // ============ POST /confirmOtpRegister ============
+    /* ============== POST /confirmOtpRegister ============== */
     @PostMapping("/confirmOtpRegister")
     public String confirmRegister(@RequestParam("otp") String otpInput,
                                   Model model,
                                   HttpSession session) {
 
-        User pending = (User) session.getAttribute(SESSION_PENDING_USER);
+        UserRegisterDTO pending = (UserRegisterDTO) session.getAttribute(SESSION_PENDING_FORM);
         String otp = (String) session.getAttribute(SESSION_OTP);
         Long expireAt = (Long) session.getAttribute(SESSION_OTP_EXPIRE);
 
-        // Mất session -> quay lại form, tránh 404
         if (pending == null || otp == null || expireAt == null) {
             clearRegisterSession(session);
-            model.addAttribute("user", new User());
+            model.addAttribute("form", new UserRegisterDTO());
             model.addAttribute("error", "Phiên đăng ký đã hết hạn. Vui lòng đăng ký lại.");
             return "web/register";
         }
 
-        // Hết hạn OTP
         if (Instant.now().toEpochMilli() > expireAt) {
             clearRegisterSession(session);
-            model.addAttribute("user", new User());
+            model.addAttribute("form", new UserRegisterDTO());
             model.addAttribute("error", "Mã OTP đã hết hạn. Vui lòng đăng ký lại.");
             return "web/register";
         }
 
-        // Sai OTP
-        if (!otp.equals(otpInput.trim())) {
+        if (!otp.equals(otpInput == null ? "" : otpInput.trim())) {
             model.addAttribute("email", pending.getEmail());
             model.addAttribute("error", "Mã OTP không chính xác!");
             return "web/confirmOtpRegister";
         }
 
-        // OK -> encode password, gán role, lưu DB
-        pending.setPassword(passwordEncoder.encode(pending.getPassword()));
-        pending.setConfirmPassword(null); // tránh validate lại với chuỗi đã mã hoá
-        pending.setRegisterDate(new Date());
-        pending.setStatus(true);
+        User u = new User();
+        u.setUsername(pending.getUsername().trim());
+        u.setEmail(pending.getEmail().trim().toLowerCase());
+        u.setName(pending.getName().trim());
+        u.setPhone(pending.getPhone().trim());
+        u.setPassword(passwordEncoder.encode(pending.getPassword()));
+        u.setStatus(true);
+        u.setRegisterDate(new Date());
 
-        // ==> Avatar mặc định nếu chưa có
-        if (pending.getAvatar() == null || pending.getAvatar().trim().isEmpty()) {
-            pending.setAvatar("user.png"); // hình mặc định
+        if (u.getAvatar() == null || (u.getAvatar() != null && u.getAvatar().isBlank())) {
+            u.setAvatar("user.png");
         }
 
-        // ==> ROLE mặc định = ROLE_USER
-        Role roleUser = resolveUserRoleSafely();
-        if (roleUser != null) {
-            pending.setRoles(Collections.singletonList(roleUser));
-        }
+        Role role = resolveOrCreateRole("CUSTOMER");
+        Set<Role> roles = new HashSet<>();
+        if (role != null) roles.add(role);
+        u.setRoles(roles);
 
-        userRepository.save(pending);
+        userRepository.save(u);
         clearRegisterSession(session);
 
-        model.addAttribute("message", "Đăng ký & kích hoạt thành công. Hãy đăng nhập!");
-        return "web/login";
+        return "redirect:/login?registered=1";
     }
 
-    // ----------------- Helpers -----------------
+    private Role resolveOrCreateRole(String name) {
+        Role role = roleRepository.findByName(name);
+        if (role != null) return role;
+        Role created = new Role(name);
+        try {
+            return roleRepository.save(created);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
 
     private void clearRegisterSession(HttpSession session) {
-        session.removeAttribute(SESSION_PENDING_USER);
+        session.removeAttribute(SESSION_PENDING_FORM);
         session.removeAttribute(SESSION_OTP);
         session.removeAttribute(SESSION_OTP_EXPIRE);
-    }
-
-    /**
-     * Tìm/tạo ROLE_USER nhưng KHÔNG phụ thuộc chữ ký repo:
-     * 1) findByName("ROLE_USER")
-     * 2) findByName("USER")
-     * 3) findById(2) / findById(1)
-     * 4) TẠO MỚI "ROLE_USER" nếu vẫn không có
-     */
-    @SuppressWarnings("unchecked")
-    private Role resolveUserRoleSafely() {
-        // 1) Ưu tiên "ROLE_USER"
-        Role role = invokeRoleByName("ROLE_USER");
-        if (role != null) return role;
-
-        // 2) Thử "USER" (nếu DB bạn đang đặt thế)
-        role = invokeRoleByName("USER");
-        if (role != null) return role;
-
-        // 3) Fallback theo id thông dụng
-        try {
-            Method m = roleRepository.getClass().getMethod("findById", Long.class);
-            // thử id=2
-            Object res = m.invoke(roleRepository, 2L);
-            if (res instanceof Optional) {
-                Optional<Role> o = (Optional<Role>) res;
-                if (o.isPresent()) return o.get();
-            } else if (res instanceof Role) {
-                return (Role) res;
-            }
-            // thử id=1
-            res = m.invoke(roleRepository, 1L);
-            if (res instanceof Optional) {
-                Optional<Role> o = (Optional<Role>) res;
-                if (o.isPresent()) return o.get();
-            } else if (res instanceof Role) {
-                return (Role) res;
-            }
-        } catch (Throwable ignored) {}
-
-        // 4) Không có thì TẠO MỚI "ROLE_USER"
-        try {
-            Role newRole = new Role();
-            newRole.setName("ROLE_USER");
-            return roleRepository.save(newRole);
-        } catch (Throwable ignored) {}
-
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    private Role invokeRoleByName(String name) {
-        try {
-            Method m = roleRepository.getClass().getMethod("findByName", String.class);
-            Object res = m.invoke(roleRepository, name);
-            if (res == null) return null;
-            if (res instanceof Optional) return ((Optional<Role>) res).orElse(null);
-            return (Role) res;
-        } catch (Throwable ignored) { return null; }
-    }
-
-    // Kiểm tra tồn tại email theo nhiều chữ ký repo thường gặp
-    private boolean emailExists(String email) {
-        try {
-            Method exists = userRepository.getClass().getMethod("existsByEmailIgnoreCase", String.class);
-            Object r = exists.invoke(userRepository, email);
-            if (r instanceof Boolean && (Boolean) r) return true;
-        } catch (Throwable ignored) {}
-        try {
-            Method exists = userRepository.getClass().getMethod("existsByEmail", String.class);
-            Object r = exists.invoke(userRepository, email);
-            if (r instanceof Boolean && (Boolean) r) return true;
-        } catch (Throwable ignored) {}
-        try {
-            Method find = userRepository.getClass().getMethod("findByEmailIgnoreCase", String.class);
-            Object r = find.invoke(userRepository, email);
-            if (r instanceof Optional) return ((Optional<?>) r).isPresent();
-            return r != null;
-        } catch (Throwable ignored) {}
-        try {
-            Method find = userRepository.getClass().getMethod("findByEmail", String.class);
-            Object r = find.invoke(userRepository, email);
-            if (r instanceof Optional) return ((Optional<?>) r).isPresent();
-            return r != null;
-        } catch (Throwable ignored) {}
-        return false;
-    }
-
-    // Kiểm tra tồn tại username theo nhiều chữ ký repo thường gặp
-    private boolean usernameExists(String username) {
-        try {
-            Method exists = userRepository.getClass().getMethod("existsByUsernameIgnoreCase", String.class);
-            Object r = exists.invoke(userRepository, username);
-            if (r instanceof Boolean && (Boolean) r) return true;
-        } catch (Throwable ignored) {}
-        try {
-            Method exists = userRepository.getClass().getMethod("existsByUsername", String.class);
-            Object r = exists.invoke(userRepository, username);
-            if (r instanceof Boolean && (Boolean) r) return true;
-        } catch (Throwable ignored) {}
-        try {
-            Method find = userRepository.getClass().getMethod("findByUsernameIgnoreCase", String.class);
-            Object r = find.invoke(userRepository, username);
-            if (r instanceof Optional) return ((Optional<?>) r).isPresent();
-            return r != null;
-        } catch (Throwable ignored) {}
-        try {
-            Method find = userRepository.getClass().getMethod("findByUsername", String.class);
-            Object r = find.invoke(userRepository, username);
-            if (r instanceof Optional) return ((Optional<?>) r).isPresent();
-            return r != null;
-        } catch (Throwable ignored) {}
-        return false;
     }
 }

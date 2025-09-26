@@ -15,7 +15,6 @@ public class CommomController {
     @Autowired
     CategoryRepository categoryRepository;
 
-    /** Danh sách category cho header/nav */
     @ModelAttribute("categoryList")
     public List<Category> showCategory(Model model) {
         List<Category> categoryList = categoryRepository.findAll();

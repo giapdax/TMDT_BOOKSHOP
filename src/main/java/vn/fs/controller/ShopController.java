@@ -43,7 +43,6 @@ public class ShopController {
         return null;
     }
 
-    /* ========== /products: chỉ show sản phẩm ACTIVE ========== */
     @GetMapping(value = "/products")
     public String shop(Model model,
                        Pageable pageable,
@@ -84,7 +83,6 @@ public class ShopController {
         return new PageImpl<>(list, PageRequest.of(currentPage, pageSize), all.size());
     }
 
-    /* ========== SEARCH: chỉ ACTIVE ========== */
     @GetMapping(value = "/searchProduct")
     public String showsearch(Model model,
                              Pageable pageable,
@@ -129,7 +127,6 @@ public class ShopController {
         return new PageImpl<>(list, PageRequest.of(currentPage, pageSize), all.size());
     }
 
-    /* ========== Theo THỂ LOẠI: chặn category inactive + chỉ lấy product active ========== */
     @GetMapping(value = "/productByCategory")
     public String listProductByCategory(Model model,
                                         @RequestParam("id") Long categoryId,
@@ -163,7 +160,6 @@ public class ShopController {
         return "web/shop";
     }
 
-    /* ========== Theo NXB: chặn nxb inactive + chỉ lấy product active ========== */
     @GetMapping(value = "/productByPublisher")
     public String listProductByPublisher(Model model,
                                          @RequestParam("id") Long nxbId,

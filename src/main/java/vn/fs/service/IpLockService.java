@@ -49,6 +49,5 @@ public class IpLockService {
     }
 
     public void onSuccess(String ip) {
-        // có thể giữ nguyên để chống brute-force (không reset)
     }
 }

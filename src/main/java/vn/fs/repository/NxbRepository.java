@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface NxbRepository extends JpaRepository<NXB, Long> {
 
-    /* Menu: chỉ NXB active và có ít nhất 1 sản phẩm active */
+    // Dùng cho navbar (chỉ NXB đang hiển thị và có ít nhất 1 sp đang bán)
     @Query(value =
             "SELECT n.* FROM nxb n " +
                     "WHERE n.status = 1 " +
@@ -19,14 +19,18 @@ public interface NxbRepository extends JpaRepository<NXB, Long> {
             nativeQuery = true)
     List<NXB> findActiveForMenu();
 
-    /* Đọc thô theo id */
+    // Lấy thô theo id (nếu cần)
     @Query(value = "SELECT * FROM nxb WHERE id = ?1", nativeQuery = true)
     NXB findRaw(Long id);
 
+    // Đổ dropdown (hiện trước NXB đang hiển thị)
     @Query("select n from NXB n order by n.status desc, n.name asc")
     List<NXB> findAllForDropdown();
 
-    // Chỉ active — dùng cho trang THÊM
+    // Dùng cho form thêm sản phẩm (chỉ NXB đang mở)
     List<NXB> findByStatusTrueOrderByNameAsc();
 
+    // Check trùng tên
+    boolean existsByNameIgnoreCase(String name);
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long excludeId);
 }

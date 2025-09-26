@@ -1,6 +1,6 @@
 package vn.fs.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -9,23 +9,21 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-
 import vn.fs.dto.ChangePasswordInProfile;
 import vn.fs.entities.User;
 import vn.fs.repository.UserRepository;
 
-import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import java.util.Optional;
 
 @Controller
 @RequestMapping("/profile")
+@RequiredArgsConstructor
 public class ProfilePasswordController {
 
-    @Autowired private UserRepository userRepository;
-    @Autowired private BCryptPasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    // ===== GET form
     @GetMapping("/change-password")
     public String showChangePassword(Model model) {
         if (!model.containsAttribute("form")) {
@@ -34,19 +32,17 @@ public class ProfilePasswordController {
         return "web/profile-change-password";
     }
 
-    // ===== POST submit
     @PostMapping("/change-password")
     @Transactional
     public String doChangePassword(@Valid @ModelAttribute("form") ChangePasswordInProfile form,
                                    BindingResult br,
-                                   Model model,
-                                   HttpSession httpSession) {
+                                   Model model) {
 
         if (br.hasErrors()) {
             return "web/profile-change-password";
         }
 
-        // Lấy user hiện tại (có thể là username hoặc email)
+        // Lấy user đang đăng nhập (có thể là username hoặc email)
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String loginId = (auth == null) ? "" : auth.getName();
 
@@ -58,25 +54,25 @@ public class ProfilePasswordController {
 
         User me = opt.get();
 
-        // Verify mật khẩu hiện tại
+        // Kiểm tra mật khẩu hiện tại
         if (!passwordEncoder.matches(form.getCurrentPassword(), me.getPassword())) {
             model.addAttribute("error", "Mật khẩu hiện tại không đúng.");
             return "web/profile-change-password";
         }
 
-        // Verify confirm
+        // Xác nhận trùng khớp
         if (!form.getNewPassword().equals(form.getConfirmPassword())) {
             model.addAttribute("error", "Xác nhận mật khẩu không khớp.");
             return "web/profile-change-password";
         }
 
-        // (optional) không cho new == current
+        // Không cho đặt y hệt mật khẩu cũ (khuyến nghị)
         if (passwordEncoder.matches(form.getNewPassword(), me.getPassword())) {
             model.addAttribute("error", "Mật khẩu mới phải khác mật khẩu hiện tại.");
             return "web/profile-change-password";
         }
 
-        // Cập nhật bằng JPQL field-level để KHÔNG trigger validate toàn entity (tránh lỗi phone NotBlank,…)
+        // Cập nhật field-level để tránh validate toàn entity
         String hashed = passwordEncoder.encode(form.getNewPassword());
         int updated = userRepository.updatePasswordByEmail(me.getEmail(), hashed);
         if (updated <= 0) {
@@ -84,12 +80,9 @@ public class ProfilePasswordController {
             return "web/profile-change-password";
         }
 
-        // Đổi thành công: gợi ý đăng nhập lại
-        try { SecurityContextHolder.clearContext(); } catch (Exception ignored) {}
-        try { httpSession.invalidate(); } catch (Exception ignored) {}
-
-        model.addAttribute("message", "Đổi mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.");
-        model.addAttribute("showLoginLink", true);
+        // ✅ Thành công: vẫn giữ nguyên session & đăng nhập
+        model.addAttribute("message", "Đổi mật khẩu thành công!");
+        model.addAttribute("showHomeLink", true);       // để view hiện nút về trang chủ
         model.addAttribute("form", new ChangePasswordInProfile());
         return "web/profile-change-password";
     }
