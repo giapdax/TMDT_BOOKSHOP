@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import vn.fs.commom.CommomDataService;
+import vn.fs.dto.SessionUser;
 import vn.fs.entities.*;
 import vn.fs.repository.*;
 
@@ -32,8 +33,21 @@ public class ShopController {
 
     private User getCurrentUser(HttpSession session) {
         Object customer = (session != null) ? session.getAttribute("customer") : null;
-        if (customer instanceof User) return (User) customer;
-
+        if (customer instanceof User) return (User) customer; //Đoạn này phải là  if (customer instanceof SessionUser) return (SessionUser) customer;
+                                                                // vì tại đã lưu SessionUser vào Session
+/**
+       // Đặt "customer" vào session dưới dạng DTO an toàn
+       String loginId = auth.getName();
+       User me = userRepository.findByUsername(loginId);
+       if (me == null) {
+           me = userRepository.findByEmail(loginId);
+       }
+        if (me != null) {
+           SessionUser su = SessionUser.from(me);
+           req.getSession().setAttribute("customer", su);  ***điểm đáng chú ý***
+       }
+ ví dụ như đoạn này trong SuccessHandler thì đã "convert" User sang SessionUser, sau đó lưu vào Session với key là "customer"
+**/
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
             String loginId = auth.getName();
