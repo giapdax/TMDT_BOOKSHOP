@@ -76,9 +76,4 @@ public class OrderService implements OrderAdminService {
             }
         });
     }
-
-    @Override
-    public void exportToExcel(HttpServletResponse response) throws IOException {
-        throw new UnsupportedOperationException("");
-    }
 }

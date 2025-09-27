@@ -23,6 +23,4 @@ public interface OrderAdminService {
     void confirm(Long orderId);   // 1
     void deliveredAndDecreaseStock(Long orderId); // 2 + trừ kho
 
-    // export excel
-    void exportToExcel(HttpServletResponse response) throws IOException;
 }

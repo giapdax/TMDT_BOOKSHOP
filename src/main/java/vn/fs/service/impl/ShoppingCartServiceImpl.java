@@ -157,33 +157,6 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     }
 
     @Override
-    public int decreaseOrRemove(Long productId, int step) {
-        int after = decrease(productId, step); // bạn đã có decrease(...)
-        if (after <= 0) {
-            CartItem item = getItem(productId);
-            if (item != null) {
-                remove(item); // hoặc remove(product) tùy bạn dùng giỏ kiểu gì
-            }
-            return 0;
-        }
-        return after;
-    }
-
-    @Override
-    @Transactional
-    public int updateQuantity(Long productId, int quantity) {
-        Cart cart = getOrCreateActiveCart();
-        Product p = productRepository.findById(productId).orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại."));
-        CartItemEntity row = cartItemRepository.findByCartAndProduct(cart, p)
-                .orElseThrow(() -> new IllegalStateException("Mục này chưa có trong giỏ."));
-        int target = clampToStock(p, Math.max(1, quantity));
-        row.setQuantity(target);
-        row.setUpdatedAt(Date.from(Instant.now()));
-        cartItemRepository.save(row);
-        return target;
-    }
-
-    @Override
     @Transactional
     public int increase(Long productId, int step) {
         return addOrIncrease(productId, Math.max(1, step));

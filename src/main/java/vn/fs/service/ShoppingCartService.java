@@ -19,9 +19,6 @@ public interface ShoppingCartService {
     int addOrIncrease(Long productId, int addQty);
 
 
-    int updateQuantity(Long productId, int quantity);
-
-
     int increase(Long productId, int step);
     int decrease(Long productId, int step);
 
@@ -31,5 +28,4 @@ public interface ShoppingCartService {
     CartItem getItem(Long productId);
 
     void clear();
-    int decreaseOrRemove(Long productId, int step);
 }
