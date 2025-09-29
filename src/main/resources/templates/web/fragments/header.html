@@ -102,7 +102,6 @@
                         <sup th:text="${(totalCartItems != null) ? totalCartItems : 0}" id="totalCartItems">0</sup>
                     </button>
                 </div>
-
             </div>
         </div>
     </header>
@@ -216,7 +215,66 @@
         </div>
 
         <!-- Has items -->
-        <th:block th:if="${(totalCartQtySum != null) and (totalCartQtySum > 0)}">
+<!--        <th:block th:if="${(totalCartQtySum != null) and (totalCartQtySum > 0)}">-->
+<!--            <ul class="cart-list" id="miniCartList">-->
+<!--                <li class="cart-item cart-row"-->
+<!--                    th:each="item : ${(cartItems != null) ? cartItems : T(java.util.Collections).emptyList()}"-->
+<!--                    th:data-id="${item.product.productId}"-->
+<!--                    th:data-unitprice="${item.product.price - (item.product.price * item.product.discount/100)}">-->
+
+<!--                    <div class="cart-media">-->
+<!--                        <a th:href="@{/productDetail(id=${item.product.productId})}">-->
+<!--                            <img th:src="@{'/loadImage?imageName=' + ${item.product.productImage}}" alt="product"/>-->
+<!--                        </a>-->
+<!--                    </div>-->
+
+<!--                    <div class="cart-info-group">-->
+<!--                        <div class="cart-info">-->
+<!--                            <h6 class="mb-1">-->
+<!--                                <a th:href="@{/productDetail(id=${item.product.productId})}"-->
+<!--                                   th:text="${item.product.productName}">Tên sp</a>-->
+<!--                            </h6>-->
+<!--                            <div class="price-row">-->
+<!--                                Tạm tính:-->
+<!--                                <strong class="line-total"-->
+<!--                                        th:text="${#numbers.formatDecimal((item.product.price - (item.product.price * item.product.discount/100)) * item.quantity, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong>-->
+<!--                            </div>-->
+<!--                        </div>-->
+
+<!--                        <div class="action-row"-->
+<!--                             th:with="q=${item.quantity}, rawMax=${item.product.quantity}, max=${rawMax == null ? 999999 : rawMax}">-->
+<!--                            <div class="qty-row" style="display:flex; gap:8px; align-items:center;">-->
+<!--                                <button type="button" class="qty-btn dec-btn">−</button>-->
+<!--                                <input class="qty-input" type="tel" th:value="${q}" readonly />-->
+<!--                                <button type="button" class="qty-btn inc-btn">+</button>-->
+<!--                            </div>-->
+
+<!--                            <div class="stock-row"-->
+<!--                                 th:with="left=${(item.product.quantity == null) ? null : (item.product.quantity - q)}">-->
+<!--                                <span th:if="${left == null}">Kho: cập nhật</span>-->
+<!--                                <span th:if="${left != null}">Còn: <span class="stock">[[${left < 0 ? 0 : left}]]</span></span>-->
+<!--                            </div>-->
+
+<!--                            <a class="rm-btn" title="Xoá" th:href="@{/remove/{id}(id=${item.product.productId})}">-->
+<!--                                <i class="icofont-trash"></i>-->
+<!--                            </a>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </li>-->
+<!--            </ul>-->
+
+<!--            <div class="cart-footer">-->
+<!--                <div class="sum-row">Tổng cộng:-->
+<!--                    <strong id="miniCartTotal"-->
+<!--                            th:text="${#numbers.formatDecimal(totalPrice, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong>-->
+<!--                </div>-->
+<!--                <a class="cart-checkout-btn">-->
+<!--                    <span class="checkout-label">Thanh Toán</span>-->
+<!--                </a>-->
+<!--            </div>-->
+<!--        </th:block>-->
+
+                <th:block th:if="${(totalCartQtySum != null) and (totalCartQtySum > 0)}">
             <ul class="cart-list" id="miniCartList">
                 <li class="cart-item"
                     th:each="item : ${(cartItems != null) ? cartItems : T(java.util.Collections).emptyList()}">
@@ -309,6 +367,85 @@
             });
         })();
     </script>
+<!--    <script>-->
+<!--        document.addEventListener("DOMContentLoaded", function(){-->
+<!--            const formatCurrency = num => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";-->
+
+<!--            function updateRowTotal(row){-->
+<!--                const input = row.querySelector(".qty-input");-->
+<!--                const qty = Math.max(1, parseInt(input.value)||1);-->
+<!--                const price = parseFloat(row.dataset.unitprice||0);-->
+<!--                row.querySelector(".line-total").textContent = formatCurrency(price * qty);-->
+<!--            }-->
+
+<!--            function updateCartTotal(){-->
+<!--                let total = 0, count = 0;-->
+<!--                document.querySelectorAll("li.cart-row").forEach(row=>{-->
+<!--                    const qty = Math.max(1, parseInt(row.querySelector(".qty-input").value)||1);-->
+<!--                    const price = parseFloat(row.dataset.unitprice||0);-->
+<!--                    total += price*qty;-->
+<!--                    count += qty;-->
+<!--                });-->
+<!--                document.getElementById("miniCartTotal").textContent = formatCurrency(total);-->
+<!--                document.getElementById("miniCartCount").textContent = count;-->
+<!--            }-->
+
+<!--            document.querySelectorAll("li.cart-row").forEach(row=>{-->
+<!--                const input = row.querySelector(".qty-input");-->
+<!--                const decBtn = row.querySelector(".dec-btn");-->
+<!--                const incBtn = row.querySelector(".inc-btn");-->
+<!--                const max = parseInt(input.getAttribute("max")) || 999999;-->
+<!--                const min = 1;-->
+
+<!--                decBtn && decBtn.addEventListener("click", ()=>{-->
+<!--                    let v = Math.max(min, parseInt(input.value||1)-1);-->
+<!--                    input.value = v;-->
+<!--                    updateRowTotal(row);-->
+<!--                    updateCartTotal();-->
+<!--                });-->
+
+<!--                incBtn && incBtn.addEventListener("click", ()=>{-->
+<!--                    let v = Math.min(max, parseInt(input.value||1)+1);-->
+<!--                    input.value = v;-->
+<!--                    updateRowTotal(row);-->
+<!--                    updateCartTotal();-->
+<!--                });-->
+
+<!--                updateRowTotal(row);-->
+<!--            });-->
+
+<!--            updateCartTotal();-->
+
+<!--            // Khi click Thanh Toán -> tạo form POST gửi cartJson-->
+<!--            const checkoutBtn = document.querySelector(".cart-checkout-btn");-->
+<!--            if(checkoutBtn){-->
+<!--                checkoutBtn.addEventListener("click", function(e){-->
+<!--                    e.preventDefault();-->
+<!--                    const cart = [];-->
+<!--                    document.querySelectorAll("li.cart-row").forEach(row=>{-->
+<!--                        cart.push({-->
+<!--                            productId: row.dataset.id,-->
+<!--                            qty: parseInt(row.querySelector(".qty-input").value)||1-->
+<!--                        });-->
+<!--                    });-->
+<!--                    const form = document.createElement("form");-->
+<!--                    form.method = "POST";-->
+<!--                    form.action = "/checkout";-->
+
+<!--                    const input = document.createElement("input");-->
+<!--                    input.type = "hidden";-->
+<!--                    input.name = "cartJson";-->
+<!--                    input.value = JSON.stringify(cart);-->
+<!--                    form.appendChild(input);-->
+
+<!--                    // append checkout data nếu cần (email, tên,...)-->
+<!--                    document.body.appendChild(form);-->
+<!--                    form.submit();-->
+<!--                });-->
+<!--            }-->
+<!--        });-->
+<!--    </script>-->
+
 </th:block>
 </body>
 </html>

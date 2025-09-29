@@ -1,11 +1,16 @@
 package vn.fs.controller;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.transaction.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,43 +101,26 @@ public class CartController extends CommomController {
     }
 
     /* ============================ Cart ops ============================ */
-
-    @GetMapping("/addToCart")
-    public String add(@RequestParam("productId") Long productId,
-                      @RequestParam(value = "qty", defaultValue = "1") int qty) {
-        Product product = productRepository.findById(productId).orElse(null);
-        if (product != null) {
-            int desired = Math.max(1, qty);
-            shoppingCartService.addOrIncrease(productId, desired);
-        }
-        return "redirect:/products";
-    }
-
-    @GetMapping("/remove/{id}")
-    public String remove(@PathVariable("id") Long id) {
-        Product product = productRepository.findById(id).orElse(null);
-        if (product != null) {
-            CartItem item = new CartItem();
-            BeanUtils.copyProperties(product, item);
-            item.setProduct(product);
-            item.setId(id);
-            shoppingCartService.remove(item);
-        }
-        return "redirect:/checkout";
-    }
-
-    /* ============================ Checkout ============================ */
-
     @PostMapping("/checkout")
     @Transactional
     public String checkedOut(@Valid @ModelAttribute("checkout") CheckoutAddressDTO checkout,
                              BindingResult br,
+                             @RequestParam("cartJson") String cartJson,
                              Model model,
-                             HttpServletRequest request) {
+                             HttpServletRequest request) throws JsonProcessingException {
 
         Collection<CartItem> cartItems = shoppingCartService.getCartItems();
         if (cartItems == null || cartItems.isEmpty()) {
             return "redirect:/products";
+        }
+
+        // parse json -> update cart
+        ObjectMapper mapper = new ObjectMapper();
+        List<Map<String, Object>> cartList = mapper.readValue(cartJson, new TypeReference<>(){});
+        for (Map<String, Object> item : cartList) {
+            Long pid = Long.valueOf(item.get("productId").toString());
+            int qty = Integer.parseInt(item.get("qty").toString());
+            shoppingCartService.updateQuantity(pid, qty);
         }
 
         bindCartToModel(model);
@@ -164,7 +152,73 @@ public class CartController extends CommomController {
             return "redirect:/checkout";
         }
     }
+    @GetMapping("/addToCart")
+    public String add(@RequestParam("productId") Long productId,
+                      @RequestParam(value = "qty", defaultValue = "1") int qty) {
+        Product product = productRepository.findById(productId).orElse(null);
+        if (product != null) {
+            int desired = Math.max(1, qty);
+            shoppingCartService.addOrIncrease(productId, desired);
+        }
+        return "redirect:/products";
+    }
 
+    @GetMapping("/remove/{id}")
+    public String remove(@PathVariable("id") Long id) {
+        Product product = productRepository.findById(id).orElse(null);
+        if (product != null) {
+            CartItem item = new CartItem();
+            BeanUtils.copyProperties(product, item);
+            item.setProduct(product);
+            item.setId(id);
+            shoppingCartService.remove(item);
+        }
+        return "redirect:/checkout";
+    }
+
+    /* ============================ Checkout ============================ */
+
+//    @PostMapping("/checkout")
+//    @Transactional
+//    public String checkedOut(@Valid @ModelAttribute("checkout") CheckoutAddressDTO checkout,
+//                             BindingResult br,
+//                             Model model,
+//                             HttpServletRequest request) {
+//
+//        Collection<CartItem> cartItems = shoppingCartService.getCartItems();
+//        if (cartItems == null || cartItems.isEmpty()) {
+//            return "redirect:/products";
+//        }
+//
+//        bindCartToModel(model);
+//        commomDataService.commonData(model, currentUser());
+//
+//        if (br.hasErrors()) {
+//            return "web/shoppingCart_checkout";
+//        }
+//
+//        User cur = currentUser();
+//        if (cur == null) return "redirect:/login";
+//
+//        String method = (checkout.getPaymentMethod() == null)
+//                ? "cod" : checkout.getPaymentMethod().trim().toLowerCase();
+//
+//        try {
+//            if (StringUtils.equals(method, "paypal")) {
+//                String approvalUrl = checkoutService.beginPaypalCheckout(cur, checkout, request, session);
+//                if (approvalUrl != null) return "redirect:" + approvalUrl;
+//                log.warn("No approval_url returned by PayPal.");
+//                return "redirect:/checkout";
+//            } else {
+//                Long orderId = checkoutService.placeOrderCOD(cur, checkout, session);
+//                model.addAttribute("orderId", orderId);
+//                return "redirect:/checkout_success";
+//            }
+//        } catch (Exception e) {
+//            log.error("Checkout error", e);
+//            return "redirect:/checkout";
+//        }
+//    }
     /** v2: PayPal redirect về với token=orderId */
     @GetMapping(URL_PAYPAL_SUCCESS)
     @Transactional

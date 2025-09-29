@@ -21,11 +21,12 @@ public interface ShoppingCartService {
 
     int increase(Long productId, int step);
     int decrease(Long productId, int step);
-
     void remove(Product product);
     void remove(CartItem item);
 
     CartItem getItem(Long productId);
 
     void clear();
+
+    void updateQuantity(Long pid, int qty);
 }
