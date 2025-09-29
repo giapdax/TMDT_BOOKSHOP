@@ -1,8 +1,5 @@
 package vn.fs.service;
 
-import com.paypal.api.payments.Links;
-import com.paypal.api.payments.Payment;
-import com.paypal.base.rest.PayPalRESTException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,11 +8,14 @@ import vn.fs.dto.CheckoutAddressDTO;
 import vn.fs.entities.CartItem;
 import vn.fs.entities.Order;
 import vn.fs.entities.OrderDetail;
+import vn.fs.entities.OrderPayment;
 import vn.fs.entities.User;
 import vn.fs.repository.OrderDetailRepository;
+import vn.fs.repository.OrderPaymentRepository;
 import vn.fs.repository.OrderRepository;
 import vn.fs.repository.ProductRepository;
 import vn.fs.service.impl.ExchangeRateService;
+import vn.fs.service.paypal.PaypalOrdersV2Service;
 import vn.fs.util.Utils;
 
 import javax.mail.MessagingException;
@@ -34,98 +34,135 @@ public class CheckoutService {
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
+    private final OrderPaymentRepository paymentRepo;
     private final ExchangeRateService exchangeRateService;
-    private final PaypalService paypalService;
+    private final PaypalOrdersV2Service paypalV2;
     private final CommomDataService commomDataService;
 
-    /* ==================== PUBLIC API ==================== */
+    public static final String DRAFT_KEY = "orderDraft";
 
-    /** Tạo thanh toán PayPal, return approval URL */
+    /** v2: Tạo PayPal Order → trả approve URL */
     public String beginPaypalCheckout(User user, CheckoutAddressDTO dto, HttpServletRequest req, HttpSession session)
-            throws PayPalRESTException {
-        // Lưu draft (địa chỉ, phone) vào session để dùng sau khi approve
-        session.setAttribute("orderDraft", draftFrom(dto));
+            throws Exception {
 
+        // Snapshot giỏ hàng + tỷ giá
         double totalVnd = cart.getAmount();
         double rate = exchangeRateService.getVNDExchangeRate();
-        double usdAmount = new BigDecimal(totalVnd / rate).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        BigDecimal usdAmount = BigDecimal.valueOf(totalVnd / rate).setScale(2, RoundingMode.HALF_UP);
+
+        // Lưu draft (địa chỉ, phone) + snapshot vào session
+        Order draft = draftFrom(dto);
+        draft.setAmount(totalVnd);
+        session.setAttribute(DRAFT_KEY, draft);
+        session.setAttribute("exchangeRate", rate);
+        session.setAttribute("usdAmount", usdAmount.doubleValue());
 
         String base = Utils.getBaseURL(req);
-        String cancelUrl = base + "pay/cancel";
-        String successUrl = base + "pay/success";
+        if (!base.endsWith("/")) base = base + "/";
+        String successUrl = base + "pay/success"; // PayPal v2 sẽ trả về token=orderId
+        String cancelUrl  = base + "pay/cancel";
 
-        Payment payment = paypalService.createPayment(
-                usdAmount,
-                "USD",
-                vn.fs.config.PaypalPaymentMethod.paypal,
-                vn.fs.config.PaypalPaymentIntent.sale,
-                "Thanh toán bằng Paypal",
-                cancelUrl, successUrl
-        );
+        var created = paypalV2.createOrder(usdAmount, "USD", successUrl, cancelUrl);
+        session.setAttribute("orderId_pp_hint", created.orderId); // optional debug
 
-        for (Links l : payment.getLinks()) {
-            if ("approval_url".equalsIgnoreCase(l.getRel())) {
-                return l.getHref();
-            }
-        }
-        return null;
+        return created.approveUrl;
     }
 
-    /** Hoàn tất PayPal sau khi user approve */
+    /** v2: Sau khi approve → capture + ghi Order/OrderDetails/order_payments */
     @Transactional
-    public Long finalizePaypal(User user, String paymentId, String payerId, HttpSession session) throws Exception {
-        Payment payment = paypalService.executePayment(paymentId, payerId);
-        if (!"approved".equalsIgnoreCase(payment.getState())) {
-            throw new IllegalStateException("Payment not approved");
+    public Long finalizePaypalV2(User user, String orderId, HttpSession session) throws Exception {
+        // Idempotent: nếu đã có payment cho orderId này → trả về luôn
+        var existedPay = paymentRepo.findByProviderAndExternalOrderId("PAYPAL", orderId);
+        if (existedPay.isPresent()) {
+            return existedPay.get().getOrder().getOrderId();
         }
-        return persistOrderAfterPaid(user, session, /*paidStatus*/ (short) 2);
-    }
 
-    /** Đặt hàng COD (pending), rollback nếu thiếu kho (nếu muốn) */
-    @Transactional
-    public Long placeOrderCOD(User user, CheckoutAddressDTO dto, HttpSession session) throws MessagingException {
-        // Tạo order pending + persist item + (tuỳ bạn) trừ stock sau khi xác nhận giao
-        Order order = createOrderSkeleton(user, dto, (short) 0, cart.getAmount());
-        persistOrderDetailsAndDecreaseStockOrThrow(order); // Nếu muốn trừ kho ngay, dùng hàm này
-        afterPersistSuccess(user, order, session);
-        return order.getOrderId();
-    }
+        // Capture (thu tiền thật)
+        var cap = paypalV2.captureOrder(orderId); // COMPLETED, có captureId + payerEmail
 
-    /* =============== INTERNAL BUSINESS HELPERS =============== */
-
-    private Long persistOrderAfterPaid(User user, HttpSession session, short status) throws MessagingException {
-        Collection<CartItem> items = cart.getCartItems();
-        double total = cart.getAmount();
-
-        Order draft = (Order) session.getAttribute("orderDraft");
+        // Lấy snapshot đã lưu
+        Order draft = (Order) session.getAttribute(DRAFT_KEY);
         if (draft == null) draft = new Order();
 
-        draft.setOrderDate(new Date());
-        draft.setStatus(status);      // 2 = paid
+        double totalVnd = cart.getAmount();
+        Double rate = (Double) session.getAttribute("exchangeRate");
+        Double usdAmount = (Double) session.getAttribute("usdAmount");
+        if (rate == null || usdAmount == null) {
+            rate = exchangeRateService.getVNDExchangeRate();
+            usdAmount = BigDecimal.valueOf(totalVnd / rate).setScale(2, RoundingMode.HALF_UP).doubleValue();
+        }
+
+        // ====== LƯU captureId vào đơn (trực tiếp qua trường public của cap) ======
+        draft.setPaypalCaptureId(cap.captureId);
+
+        // Ghi Order (PAID)
         draft.setUser(user);
-        draft.setAmount(total);
+        draft.setOrderDate(new Date());
+        draft.setStatus(2); // 2 = ĐÃ THANH TOÁN
+        draft.setAmount(totalVnd);
         orderRepository.save(draft);
 
-        // ghi OrderDetail + trừ stock theo từng item (conditional)
-        for (CartItem ci : items) {
+        // Ghi chi tiết + trừ kho an toàn
+        for (CartItem ci : cart.getCartItems()) {
             OrderDetail od = new OrderDetail();
-            od.setQuantity(ci.getQuantity());
             od.setOrder(draft);
             od.setProduct(ci.getProduct());
+            od.setQuantity(ci.getQuantity());
             od.setPrice(ci.getProduct().getPrice());
             orderDetailRepository.save(od);
 
-            int updated = productRepository.decreaseStock(
-                    ci.getProduct().getProductId(), ci.getQuantity());
+            int updated = productRepository.decreaseStock(ci.getProduct().getProductId(), ci.getQuantity());
             if (updated == 0) {
-                // Thiếu kho -> throw để rollback toàn bộ giao dịch
-                throw new IllegalStateException(
-                        "Không đủ tồn kho cho productId=" + ci.getProduct().getProductId());
+                throw new IllegalStateException("Không đủ tồn kho cho productId=" + ci.getProduct().getProductId());
             }
         }
 
-        afterPersistSuccess(user, draft, session);
+        // Ghi bản ghi thanh toán (order_payments)
+        OrderPayment pay = new OrderPayment();
+        pay.setOrder(draft);
+        pay.setProvider("PAYPAL");
+        pay.setMethod("PAYPAL_BALANCE"); // optional
+        pay.setExternalOrderId(orderId);
+        pay.setExternalCaptureId(cap.captureId);
+        pay.setCurrency("USD");
+        pay.setAmount(BigDecimal.valueOf(usdAmount));
+        pay.setExchangeRate(BigDecimal.valueOf(rate));
+        pay.setPayerEmail(cap.payerEmail);
+        pay.setStatus("COMPLETED");
+        pay.setPaymentTime(new Date());
+        paymentRepo.save(pay);
+
+        // Email (không rollback đơn nếu lỗi)
+        try {
+            commomDataService.sendSimpleEmail(
+                    user.getEmail(),
+                    "Book-Shop Xác Nhận Đơn hàng",
+                    "CONFIRM",
+                    cart.getCartItems(),
+                    totalVnd,
+                    draft
+            );
+        } catch (MessagingException ignore) {}
+
+        // Clear session/cart
+        cart.clear();
+        session.removeAttribute("cartItems");
+        session.removeAttribute(DRAFT_KEY);
+        session.removeAttribute("exchangeRate");
+        session.removeAttribute("usdAmount");
+        session.removeAttribute("orderId_pp_hint");
+
         return draft.getOrderId();
+    }
+
+    /* ==================== COD giữ nguyên ==================== */
+
+    @Transactional
+    public Long placeOrderCOD(User user, CheckoutAddressDTO dto, HttpSession session) throws MessagingException {
+        Order order = createOrderSkeleton(user, dto, 0, cart.getAmount());
+        persistOrderDetailsAndDecreaseStockOrThrow(order);
+        afterPersistSuccess(user, order, session);
+        return order.getOrderId();
     }
 
     private void afterPersistSuccess(User user, Order order, HttpSession session) throws MessagingException {
@@ -143,10 +180,10 @@ public class CheckoutService {
 
         cart.clear();
         session.removeAttribute("cartItems");
-        session.removeAttribute("orderDraft");
+        session.removeAttribute(DRAFT_KEY);
     }
 
-    private Order createOrderSkeleton(User user, CheckoutAddressDTO dto, short status, double total) {
+    private Order createOrderSkeleton(User user, CheckoutAddressDTO dto, int status, double total) {
         Order order = new Order();
         order.setOrderDate(new Date());
         order.setStatus(status);
@@ -157,7 +194,6 @@ public class CheckoutService {
         return orderRepository.save(order);
     }
 
-    /** Ghi chi tiết & trừ stock; thiếu kho -> throw để rollback */
     private void persistOrderDetailsAndDecreaseStockOrThrow(Order order) {
         for (CartItem ci : cart.getCartItems()) {
             OrderDetail od = new OrderDetail();

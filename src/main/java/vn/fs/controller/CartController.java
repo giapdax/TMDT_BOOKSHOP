@@ -161,25 +161,23 @@ public class CartController extends CommomController {
             }
         } catch (Exception e) {
             log.error("Checkout error", e);
-            // TODO: add error message to model if you want
             return "redirect:/checkout";
         }
     }
 
+    /** v2: PayPal redirect về với token=orderId */
     @GetMapping(URL_PAYPAL_SUCCESS)
     @Transactional
-    public String successPay(@RequestParam("paymentId") String paymentId,
-                             @RequestParam("PayerID") String payerId,
-                             Model model) {
+    public String successPay(@RequestParam("token") String orderIdToken, Model model) {
         User cur = currentUser();
         if (cur == null) return "redirect:/login";
 
         try {
-            Long orderId = checkoutService.finalizePaypal(cur, paymentId, payerId, session);
+            Long orderId = checkoutService.finalizePaypalV2(cur, orderIdToken, session);
             model.addAttribute("orderId", orderId);
             return "redirect:/checkout_paypal_success";
         } catch (Exception e) {
-            log.error("PayPal finalize error", e);
+            log.error("PayPal v2 finalize error", e);
             return "redirect:/";
         }
     }
@@ -201,31 +199,5 @@ public class CartController extends CommomController {
         commomDataService.commonData(model, currentUser());
         model.addAttribute("message", "Bạn đã hủy thanh toán qua PayPal.");
         return "web/payment_cancel";
-    }
-
-    @GetMapping("/cart/inc")
-    public String inc(@RequestParam Long productId,
-                      @RequestParam(required=false) String redirect,
-                      @RequestParam(required=false) String anchor) {
-        shoppingCartService.increase(productId, 1);
-        if ("checkout".equalsIgnoreCase(redirect)) {
-            return "redirect:/checkout" + (anchor != null ? "#" + anchor : "");
-        }
-        return "redirect:/products";
-    }
-
-    @GetMapping("/cart/dec")
-    public String dec(@RequestParam Long productId,
-                      @RequestParam(required=false) String redirect,
-                      @RequestParam(required=false) String anchor) {
-        int after = shoppingCartService.decrease(productId, 1);
-        if (after <= 0) {
-            CartItem ci = shoppingCartService.getItem(productId);
-            if (ci != null) shoppingCartService.remove(ci);
-        }
-        if ("checkout".equalsIgnoreCase(redirect)) {
-            return "redirect:/checkout" + (anchor != null ? "#" + anchor : "");
-        }
-        return "redirect:/products";
     }
 }
