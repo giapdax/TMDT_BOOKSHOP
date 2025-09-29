@@ -14,19 +14,12 @@
     <!-- Fonts & Icons (Atlantis) -->
     <script th:src="@{/assets/js/plugin/webfont/webfont.min.js}"></script>
     <script>
-        /* keep Atlantis header/navbar icons working */
         if (window.WebFont) {
             WebFont.load({
                 google: { families: ["Lato:300,400,700,900"] },
                 custom: {
-                    families: [
-                        "Flaticon",
-                        "Font Awesome 5 Solid",
-                        "Font Awesome 5 Regular",
-                        "Font Awesome 5 Brands",
-                        "simple-line-icons"
-                    ],
-                    urls: [/* path under static */ "/assets/css/fonts.min.css"]
+                    families: ["Flaticon","Font Awesome 5 Solid","Font Awesome 5 Regular","Font Awesome 5 Brands","simple-line-icons"],
+                    urls: ["/assets/css/fonts.min.css"]
                 },
                 active: function(){ try { sessionStorage.fonts = true; } catch(e){} }
             });
@@ -118,7 +111,7 @@
                                 </form>
 
                                 <div class="orders__tip">
-                                    Tip: chọn trạng thái ở dropdown; với ô ngày & từ khóa, nhấn <b>Enter</b> để áp dụng.
+                                    Tip: chọn trạng thái ở dropdown; với ô ngày & từ khóa, nhấn <b>Enter</b>.
                                 </div>
                             </div>
 
@@ -178,7 +171,6 @@
             </div>
         </div>
 
-        <!-- footer project (giữ nguyên của bạn nếu có fragment) -->
         <footer class="footer">
             <div class="container-fluid">
                 <div class="copyright ml-auto">
@@ -188,5 +180,14 @@
         </footer>
     </div>
 </div>
+
+<script th:src="@{/assets/js/core/jquery.3.2.1.min.js}"></script>
+<script th:src="@{/assets/js/core/popper.min.js}"></script>
+<script th:src="@{/assets/js/core/bootstrap.min.js}"></script>
+<script th:src="@{/assets/js/plugin/jquery-ui-1.12.1.custom/jquery-ui.min.js}"></script>
+<script th:src="@{/assets/js/plugin/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js}"></script>
+<script th:src="@{/assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js}"></script>
+<script th:src="@{/assets/js/atlantis.min.js}"></script>
+<!-- (tuỳ dự án) <script th:src="@{/assets/js/setting-demo2.js}"></script> -->
 </body>
 </html>
