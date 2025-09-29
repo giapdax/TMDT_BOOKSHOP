@@ -95,7 +95,8 @@ public class CategoryController {
         model.addAttribute("message", "Thêm thể loại thành công!");
         model.addAttribute("alertType", "success");
         model.addAttribute("category", categoryService.newDefaultDTO());
-        return "admin/categories";
+//        return "admin/categories";
+        return "redirect:/admin/categories";
     }
 
     /* cập nhật */

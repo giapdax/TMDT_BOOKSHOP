@@ -124,7 +124,8 @@ public class ProductController {
         model.addAttribute("message", "Thêm sản phẩm thành công.");
         model.addAttribute("alertType", "success");
         model.addAttribute("product", productService.newDefaultDTO());
-        return "admin/products";
+//        return "admin/products";
+        return "redirect:/admin/products";
     }
 
     // cập nhật
