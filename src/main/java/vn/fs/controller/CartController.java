@@ -101,6 +101,20 @@ public class CartController extends CommomController {
     }
 
     /* ============================ Cart ops ============================ */
+    @PostMapping("/cart/updateForCheckout")
+    @Transactional
+    public String updateMiniCart(@RequestParam("cartJson") String cartJson) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        List<Map<String, Object>> cartList = mapper.readValue(cartJson, new TypeReference<>(){});
+        for (Map<String, Object> item : cartList) {
+            Long pid = Long.valueOf(item.get("productId").toString());
+            int qty = Integer.parseInt(item.get("qty").toString());
+            shoppingCartService.updateQuantity(pid, qty);
+        }
+        return "redirect:/shoppingCart_checkout"; // redirect về GET checkout
+    }
+
+
     @PostMapping("/checkout")
     @Transactional
     public String checkedOut(@Valid @ModelAttribute("checkout") CheckoutAddressDTO checkout,

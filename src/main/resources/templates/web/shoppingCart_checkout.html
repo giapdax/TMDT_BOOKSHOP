@@ -301,67 +301,6 @@
 <script th:src="@{/js/venobox.js}"></script>
 <script th:src="@{/js/slick.js}"></script>
 <script th:src="@{/js/main.js}"></script>
-<!--<script>-->
-<!--    document.addEventListener("DOMContentLoaded", function() {-->
-<!--        const formatCurrency = num => new Intl.NumberFormat("vi-VN").format(num) + " đ";-->
-
-<!--        function updateRowTotal(row) {-->
-<!--            const price = parseFloat(row.dataset.price);  // đơn giá đã render sẵn-->
-<!--            const qty = parseInt(row.querySelector(".qty-input").value) || 1;-->
-<!--            row.querySelector(".line-total").textContent = formatCurrency(price * qty);-->
-<!--        }-->
-
-<!--        function updateCartTotal() {-->
-<!--            let total = 0;-->
-<!--            document.querySelectorAll("tr.cart-row").forEach(row => {-->
-<!--                const price = parseFloat(row.dataset.price);-->
-<!--                const qty = parseInt(row.querySelector(".qty-input").value) || 1;-->
-<!--                total += price * qty;-->
-<!--            });-->
-<!--            document.querySelector("#cart-total").textContent = formatCurrency(total);-->
-<!--        }-->
-
-<!--        // Gắn sự kiện cho input và nút-->
-<!--        document.querySelectorAll("tr.cart-row").forEach(row => {-->
-<!--            const input = row.querySelector(".qty-input");-->
-<!--            const decBtn = row.querySelector(".dec-btn");-->
-<!--            const incBtn = row.querySelector(".inc-btn");-->
-
-<!--            decBtn.addEventListener("click", () => {-->
-<!--                if (input.value > 1) input.value&#45;&#45;;-->
-<!--                updateRowTotal(row);-->
-<!--                updateCartTotal();-->
-<!--            });-->
-
-<!--            incBtn.addEventListener("click", () => {-->
-<!--                input.value++;-->
-<!--                updateRowTotal(row);-->
-<!--                updateCartTotal();-->
-<!--            });-->
-
-<!--            input.addEventListener("change", () => {-->
-<!--                if (input.value < 1 || isNaN(input.value)) input.value = 1;-->
-<!--                updateRowTotal(row);-->
-<!--                updateCartTotal();-->
-<!--            });-->
-<!--        });-->
-
-<!--        // init-->
-<!--        updateCartTotal();-->
-<!--    });-->
-<!--</script>-->
-<!--<script>-->
-<!--    document.getElementById("checkoutForm").addEventListener("submit", function(e) {-->
-<!--        const cart = [];-->
-<!--        document.querySelectorAll("tr.cart-row").forEach(row => {-->
-<!--            cart.push({-->
-<!--                productId: row.dataset.id,-->
-<!--                qty: row.querySelector(".qty-input").value-->
-<!--            });-->
-<!--        });-->
-<!--        document.getElementById("cartJson").value = JSON.stringify(cart);-->
-<!--    });-->
-<!--</script>-->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const formatCurrency = num => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";
@@ -451,7 +390,7 @@
                 if (cartJsonInput) {
                     cartJsonInput.value = JSON.stringify(cart);
                 }
-                // không preventDefault: form vẫn submit về controller
+
             });
         }
     });

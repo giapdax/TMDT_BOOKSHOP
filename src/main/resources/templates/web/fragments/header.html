@@ -215,69 +215,13 @@
         </div>
 
         <!-- Has items -->
-<!--        <th:block th:if="${(totalCartQtySum != null) and (totalCartQtySum > 0)}">-->
-<!--            <ul class="cart-list" id="miniCartList">-->
-<!--                <li class="cart-item cart-row"-->
-<!--                    th:each="item : ${(cartItems != null) ? cartItems : T(java.util.Collections).emptyList()}"-->
-<!--                    th:data-id="${item.product.productId}"-->
-<!--                    th:data-unitprice="${item.product.price - (item.product.price * item.product.discount/100)}">-->
-
-<!--                    <div class="cart-media">-->
-<!--                        <a th:href="@{/productDetail(id=${item.product.productId})}">-->
-<!--                            <img th:src="@{'/loadImage?imageName=' + ${item.product.productImage}}" alt="product"/>-->
-<!--                        </a>-->
-<!--                    </div>-->
-
-<!--                    <div class="cart-info-group">-->
-<!--                        <div class="cart-info">-->
-<!--                            <h6 class="mb-1">-->
-<!--                                <a th:href="@{/productDetail(id=${item.product.productId})}"-->
-<!--                                   th:text="${item.product.productName}">Tên sp</a>-->
-<!--                            </h6>-->
-<!--                            <div class="price-row">-->
-<!--                                Tạm tính:-->
-<!--                                <strong class="line-total"-->
-<!--                                        th:text="${#numbers.formatDecimal((item.product.price - (item.product.price * item.product.discount/100)) * item.quantity, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong>-->
-<!--                            </div>-->
-<!--                        </div>-->
-
-<!--                        <div class="action-row"-->
-<!--                             th:with="q=${item.quantity}, rawMax=${item.product.quantity}, max=${rawMax == null ? 999999 : rawMax}">-->
-<!--                            <div class="qty-row" style="display:flex; gap:8px; align-items:center;">-->
-<!--                                <button type="button" class="qty-btn dec-btn">−</button>-->
-<!--                                <input class="qty-input" type="tel" th:value="${q}" readonly />-->
-<!--                                <button type="button" class="qty-btn inc-btn">+</button>-->
-<!--                            </div>-->
-
-<!--                            <div class="stock-row"-->
-<!--                                 th:with="left=${(item.product.quantity == null) ? null : (item.product.quantity - q)}">-->
-<!--                                <span th:if="${left == null}">Kho: cập nhật</span>-->
-<!--                                <span th:if="${left != null}">Còn: <span class="stock">[[${left < 0 ? 0 : left}]]</span></span>-->
-<!--                            </div>-->
-
-<!--                            <a class="rm-btn" title="Xoá" th:href="@{/remove/{id}(id=${item.product.productId})}">-->
-<!--                                <i class="icofont-trash"></i>-->
-<!--                            </a>-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </li>-->
-<!--            </ul>-->
-
-<!--            <div class="cart-footer">-->
-<!--                <div class="sum-row">Tổng cộng:-->
-<!--                    <strong id="miniCartTotal"-->
-<!--                            th:text="${#numbers.formatDecimal(totalPrice, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong>-->
-<!--                </div>-->
-<!--                <a class="cart-checkout-btn">-->
-<!--                    <span class="checkout-label">Thanh Toán</span>-->
-<!--                </a>-->
-<!--            </div>-->
-<!--        </th:block>-->
-
-                <th:block th:if="${(totalCartQtySum != null) and (totalCartQtySum > 0)}">
+        <th:block th:if="${(totalCartQtySum != null) and (totalCartQtySum > 0)}">
             <ul class="cart-list" id="miniCartList">
-                <li class="cart-item"
-                    th:each="item : ${(cartItems != null) ? cartItems : T(java.util.Collections).emptyList()}">
+                <li class="cart-item cart-row"
+                    th:each="item : ${(cartItems != null) ? cartItems : T(java.util.Collections).emptyList()}"
+                    th:data-id="${item.product.productId}"
+                    th:data-unitprice="${item.product.price - (item.product.price * item.product.discount/100)}">
+
                     <div class="cart-media">
                         <a th:href="@{/productDetail(id=${item.product.productId})}">
                             <img th:src="@{'/loadImage?imageName=' + ${item.product.productImage}}" alt="product"/>
@@ -298,23 +242,11 @@
                         </div>
 
                         <div class="action-row"
-                             th:with="
-                                q=${item.quantity},
-                                rawMax=${item.product.quantity},
-                                max=${rawMax == null ? 999999 : rawMax}
-                             ">
-                            <div class="qty-row">
-                                <!-- DEC: khoá khi q<=1 -->
-                                <a class="qty-btn"
-                                   th:href="@{/cart/dec(productId=${item.product.productId}, redirect='mini')}"
-                                   th:attr="aria-disabled=${q <= 1}">−</a>
-
+                             th:with="q=${item.quantity}, rawMax=${item.product.quantity}, max=${rawMax == null ? 999999 : rawMax}">
+                            <div class="qty-row" style="display:flex; gap:8px; align-items:center;">
+                                <button type="button" class="qty-btn dec-btn">−</button>
                                 <input class="qty-input" type="tel" th:value="${q}" readonly />
-
-                                <!-- INC: khoá khi q>=max -->
-                                <a class="qty-btn"
-                                   th:href="@{/cart/inc(productId=${item.product.productId}, redirect='mini')}"
-                                   th:attr="aria-disabled=${q >= max}">+</a>
+                                <button type="button" class="qty-btn inc-btn">+</button>
                             </div>
 
                             <div class="stock-row"
@@ -323,8 +255,7 @@
                                 <span th:if="${left != null}">Còn: <span class="stock">[[${left < 0 ? 0 : left}]]</span></span>
                             </div>
 
-                            <a class="rm-btn" title="Xoá"
-                               th:href="@{/remove/{id}(id=${item.product.productId})}">
+                            <a class="rm-btn" title="Xoá" th:href="@{/remove/{id}(id=${item.product.productId})}">
                                 <i class="icofont-trash"></i>
                             </a>
                         </div>
@@ -337,15 +268,17 @@
                     <strong id="miniCartTotal"
                             th:text="${#numbers.formatDecimal(totalPrice, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ'">0 đ</strong>
                 </div>
-                <!-- ĐÚNG ROUTE GET -->
-                <a class="cart-checkout-btn" th:href="@{/shoppingCart_checkout}">
-                    <span class="checkout-label">Thanh Toán</span>
-                </a>
+                <form id="miniCartForm" th:action="@{/cart/updateForCheckout}" method="post">
+                    <input type="hidden" name="cartJson" id="miniCartJson" />
+                    <a href="#" class="cart-checkout-btn" id="miniCartCheckoutBtn">
+                        <span class="checkout-label">Thanh Toán</span>
+                    </a>
+                </form>
+
+
             </div>
         </th:block>
     </aside>
-
-    <!-- JS mở/đóng mini-cart (no AJAX) + chặn click disabled -->
     <script>
         (function(){
             const openBtn = document.querySelector('.js-open-cart');
@@ -367,85 +300,75 @@
             });
         })();
     </script>
-<!--    <script>-->
-<!--        document.addEventListener("DOMContentLoaded", function(){-->
-<!--            const formatCurrency = num => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";-->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const formatCurrency = num => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";
 
-<!--            function updateRowTotal(row){-->
-<!--                const input = row.querySelector(".qty-input");-->
-<!--                const qty = Math.max(1, parseInt(input.value)||1);-->
-<!--                const price = parseFloat(row.dataset.unitprice||0);-->
-<!--                row.querySelector(".line-total").textContent = formatCurrency(price * qty);-->
-<!--            }-->
+            function updateRowTotal(row) {
+                const input = row.querySelector(".qty-input");
+                const qty = Math.max(1, parseInt(input.value) || 1);
+                const price = parseFloat(row.dataset.unitprice || 0);
+                row.querySelector(".line-total").textContent = formatCurrency(price * qty);
+            }
 
-<!--            function updateCartTotal(){-->
-<!--                let total = 0, count = 0;-->
-<!--                document.querySelectorAll("li.cart-row").forEach(row=>{-->
-<!--                    const qty = Math.max(1, parseInt(row.querySelector(".qty-input").value)||1);-->
-<!--                    const price = parseFloat(row.dataset.unitprice||0);-->
-<!--                    total += price*qty;-->
-<!--                    count += qty;-->
-<!--                });-->
-<!--                document.getElementById("miniCartTotal").textContent = formatCurrency(total);-->
-<!--                document.getElementById("miniCartCount").textContent = count;-->
-<!--            }-->
+            function updateCartTotal() {
+                let total = 0;
+                document.querySelectorAll("li.cart-row").forEach(row => {
+                    const qty = parseInt(row.querySelector(".qty-input").value) || 1;
+                    const price = parseFloat(row.dataset.unitprice || 0);
+                    total += qty * price;
+                });
+                const el = document.getElementById("miniCartTotal");
+                if(el) el.textContent = formatCurrency(total);
+            }
 
-<!--            document.querySelectorAll("li.cart-row").forEach(row=>{-->
-<!--                const input = row.querySelector(".qty-input");-->
-<!--                const decBtn = row.querySelector(".dec-btn");-->
-<!--                const incBtn = row.querySelector(".inc-btn");-->
-<!--                const max = parseInt(input.getAttribute("max")) || 999999;-->
-<!--                const min = 1;-->
+            // tăng giảm
+            document.querySelectorAll("li.cart-row").forEach(row => {
+                const decBtn = row.querySelector(".dec-btn");
+                const incBtn = row.querySelector(".inc-btn");
+                const input = row.querySelector(".qty-input");
+                const max = parseInt(input.getAttribute("max")) || 999999;
+                const min = 1;
 
-<!--                decBtn && decBtn.addEventListener("click", ()=>{-->
-<!--                    let v = Math.max(min, parseInt(input.value||1)-1);-->
-<!--                    input.value = v;-->
-<!--                    updateRowTotal(row);-->
-<!--                    updateCartTotal();-->
-<!--                });-->
+                decBtn && decBtn.addEventListener("click", () => {
+                    let v = Math.max(min, (parseInt(input.value) || min) - 1);
+                    input.value = v;
+                    updateRowTotal(row);
+                    updateCartTotal();
+                });
 
-<!--                incBtn && incBtn.addEventListener("click", ()=>{-->
-<!--                    let v = Math.min(max, parseInt(input.value||1)+1);-->
-<!--                    input.value = v;-->
-<!--                    updateRowTotal(row);-->
-<!--                    updateCartTotal();-->
-<!--                });-->
+                incBtn && incBtn.addEventListener("click", () => {
+                    let v = Math.min(max, (parseInt(input.value) || min) + 1);
+                    input.value = v;
+                    updateRowTotal(row);
+                    updateCartTotal();
+                });
+            });
 
-<!--                updateRowTotal(row);-->
-<!--            });-->
+            // nút checkout mini cart
+            const miniCheckoutBtn = document.getElementById("miniCartCheckoutBtn");
+            const miniForm = document.getElementById("miniCartForm");
+            const miniCartJsonInput = document.getElementById("miniCartJson");
 
-<!--            updateCartTotal();-->
+            miniCheckoutBtn.addEventListener("click", function(e){
+                e.preventDefault();
+                const cart = [];
+                document.querySelectorAll("li.cart-row").forEach(row => {
+                    cart.push({
+                        productId: row.dataset.id,
+                        qty: parseInt(row.querySelector(".qty-input").value) || 1
+                    });
+                });
+                miniCartJsonInput.value = JSON.stringify(cart);
+                miniForm.submit(); // chỉ update số lượng -> redirect về trang checkout
+            });
 
-<!--            // Khi click Thanh Toán -> tạo form POST gửi cartJson-->
-<!--            const checkoutBtn = document.querySelector(".cart-checkout-btn");-->
-<!--            if(checkoutBtn){-->
-<!--                checkoutBtn.addEventListener("click", function(e){-->
-<!--                    e.preventDefault();-->
-<!--                    const cart = [];-->
-<!--                    document.querySelectorAll("li.cart-row").forEach(row=>{-->
-<!--                        cart.push({-->
-<!--                            productId: row.dataset.id,-->
-<!--                            qty: parseInt(row.querySelector(".qty-input").value)||1-->
-<!--                        });-->
-<!--                    });-->
-<!--                    const form = document.createElement("form");-->
-<!--                    form.method = "POST";-->
-<!--                    form.action = "/checkout";-->
 
-<!--                    const input = document.createElement("input");-->
-<!--                    input.type = "hidden";-->
-<!--                    input.name = "cartJson";-->
-<!--                    input.value = JSON.stringify(cart);-->
-<!--                    form.appendChild(input);-->
+            // init tổng mini cart
+            updateCartTotal();
+        });
 
-<!--                    // append checkout data nếu cần (email, tên,...)-->
-<!--                    document.body.appendChild(form);-->
-<!--                    form.submit();-->
-<!--                });-->
-<!--            }-->
-<!--        });-->
-<!--    </script>-->
-
+    </script>
 </th:block>
 </body>
 </html>
