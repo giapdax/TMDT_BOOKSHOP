@@ -13,6 +13,7 @@ import vn.fs.entities.User;
 import vn.fs.service.CategoryService;
 import vn.fs.service.ImageStorageService;
 import vn.fs.repository.UserRepository;
+import vn.fs.service.ProductService;
 
 import javax.validation.Valid;
 import java.security.Principal;
@@ -25,6 +26,7 @@ public class CategoryController {
     private final CategoryService categoryService;
     private final ImageStorageService image;   // dùng check file hợp lệ
     private final UserRepository userRepository;
+    private final ProductService productService;
 
     /* bind user cho header */
     @ModelAttribute("user")
@@ -95,7 +97,8 @@ public class CategoryController {
         model.addAttribute("message", "Thêm thể loại thành công!");
         model.addAttribute("alertType", "success");
         model.addAttribute("category", categoryService.newDefaultDTO());
-        return "admin/categories";
+//        return "admin/categories";
+        return "redirect:/admin/categories";
     }
 
     /* cập nhật */
@@ -154,6 +157,7 @@ public class CategoryController {
     @RequestMapping(value = "/restoreCategory/{id}", method = {RequestMethod.GET, RequestMethod.POST})
     public String restore(@PathVariable("id") Long id, RedirectAttributes ra) {
         categoryService.restore(id);
+        productService.restoreByCategory(id);
         ra.addFlashAttribute("message", "Đã HIỂN THỊ lại thể loại (sản phẩm vẫn ẨN).");
         ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/categories";

@@ -50,6 +50,10 @@
                         <div class="card-header">
                             <div class="d-flex align-items-center">
                                 <h4 class="card-title" style="text-decoration: underline;">Quản lý Nhà Xuất Bản</h4>
+                                <input id="searchName" type="text" class="form-control ml-3" style="max-width:250px;" placeholder="Tìm theo tên thể loại">
+                                <button id="btn-hide" class="btn btn-warning">NXB ấn</button>
+                                <button id="btn-visible" class="btn btn-danger">NXB hiện</button>
+                                <button id="btn-reset" class="btn btn-secondary">Hiển thị tất cả</button>
                                 <button class="btn btn-primary btn-round ml-auto" data-toggle="modal" data-target="#addRowModal">
                                     <i class="fa fa-plus"></i> Thêm mới
                                 </button>
@@ -230,19 +234,67 @@
 <script src="/assets/js/plugin/datatables/datatables.min.js"></script>
 <script src="/assets/js/atlantis.min.js"></script>
 <script src="/assets/js/setting-demo2.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('searchName'); // ô search
+        const tableRows = document.querySelectorAll('#add-row tbody tr');
+        const btnVisible = document.getElementById("btn-visible");
+        const btnHidden = document.getElementById("btn-hide");
+        const btnReset = document.getElementById("btn-reset");
 
-<!-- Auto mở modal Add khi validate fail -->
-<script th:inline="javascript">
-    (function() {
-        var open = /*[[${openAddModal}]]*/ false;
-        if (open) { $('#addRowModal').modal('show'); }
-    })();
-</script>
+        let currentFilter = "all"; // all / visible / hidden
 
-<script th:inline="none">
-    $(function () {
-        $('#add-row').DataTable({ pageLength: 5, order: [[0, 'desc']] });
+        // ====== Lọc theo search + trạng thái ======
+        function filterRows(keyword, type) {
+            tableRows.forEach(row => {
+                const nameCell = row.cells[1].textContent.toLowerCase(); // cột TÊN NXB
+                const statusText = row.cells[2].textContent.trim();     // cột TRẠNG THÁI
+
+                let matchSearch = nameCell.includes(keyword);
+                let matchFilter =
+                    type === "visible" ? statusText === "HIỂN THỊ" :
+                        type === "hidden" ? statusText === "ẨN" :
+                            true;
+
+                row.style.display = (matchSearch && matchFilter) ? "" : "none";
+            });
+        }
+
+        // ====== Đếm số lượng ngay khi load ======
+        let visibleCount = 0, hiddenCount = 0;
+        tableRows.forEach(row => {
+            const statusText = row.cells[2].textContent.trim();
+            if (statusText === "HIỂN THỊ") visibleCount++;
+            else if (statusText === "ẨN") hiddenCount++;
+        });
+
+        btnVisible.textContent = `NXB HIỂN THỊ (${visibleCount})`;
+        btnHidden.textContent = `NXB ẨN (${hiddenCount})`;
+
+        // ====== Gán sự kiện cho nút ======
+        btnVisible.onclick = () => { currentFilter = "visible"; filterRows(searchInput.value.toLowerCase(), currentFilter); };
+        btnHidden.onclick = () => { currentFilter = "hidden"; filterRows(searchInput.value.toLowerCase(), currentFilter); };
+        btnReset.onclick = () => { currentFilter = "all"; filterRows(searchInput.value.toLowerCase(), currentFilter); };
+
+        // ====== Gõ search ======
+        searchInput.addEventListener('input', () => {
+            filterRows(searchInput.value.toLowerCase(), currentFilter);
+        });
     });
 </script>
+
+<!-- Auto mở modal Add khi validate fail -->
+<!--<script th:inline="javascript">-->
+<!--    (function() {-->
+<!--        var open = /*[[${openAddModal}]]*/ false;-->
+<!--        if (open) { $('#addRowModal').modal('show'); }-->
+<!--    })();-->
+<!--</script>-->
+
+<!--<script th:inline="none">-->
+<!--    $(function () {-->
+<!--        $('#add-row').DataTable({ pageLength: 5, order: [[0, 'desc']] });-->
+<!--    });-->
+<!--</script>-->
 </body>
 </html>

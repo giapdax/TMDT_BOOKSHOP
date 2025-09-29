@@ -49,6 +49,8 @@
                         <div class="card-header">
                             <div class="d-flex align-items-center">
                                 <h4 class="card-title" style="text-decoration: underline;">Quản lý người dùng</h4>
+                                <input type="text" id="searchEmail" class="form-control" placeholder="Tìm theo email...">
+
                             </div>
                         </div>
 
@@ -136,11 +138,32 @@
 <script src="/assets/js/core/bootstrap.min.js"></script>
 <script src="/assets/js/plugin/datatables/datatables.min.js"></script>
 <script src="/assets/js/atlantis.min.js"></script>
+
 <script>
-    $(function () {
-        $('#add-row').DataTable({ pageLength: 10, order: [[0, 'asc']] });
-        $('[data-toggle="tooltip"]').tooltip();
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('searchEmail');
+        const tableRows = document.querySelectorAll('#add-row tbody tr');
+
+        function filterRows(keyword) {
+            tableRows.forEach(row => {
+                const emailCell = row.cells[3].textContent.toLowerCase(); // cột 4 = Email
+                let matchSearch = emailCell.includes(keyword);
+                row.style.display = matchSearch ? "" : "none";
+            });
+        }
+        // Gõ tìm kiếm
+        searchInput.addEventListener('input', () => {
+            filterRows(searchInput.value.toLowerCase());
+        });
     });
 </script>
+<!--<script>-->
+<!--    $(function () {-->
+<!--        $('#add-row').DataTable({ pageLength: 10, order: [[0, 'asc']], searching: true });-->
+<!--        $('[data-toggle="tooltip"]').tooltip();-->
+<!--    });-->
+
+<!--</script>-->
+
 </body>
 </html>
