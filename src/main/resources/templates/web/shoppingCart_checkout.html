@@ -306,7 +306,6 @@
         const formatCurrency = num => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";
 
         function getUnitPrice(row) {
-            // lấy data-price từ <tr>
             return parseFloat(row.dataset.price || 0);
         }
 
@@ -329,7 +328,6 @@
             if (el) el.textContent = formatCurrency(total);
         }
 
-        // Gán sự kiện cho mỗi hàng
         document.querySelectorAll("tr.cart-row").forEach(row => {
             const input = row.querySelector(".qty-input");
             const decBtn = row.querySelector(".dec-btn");
@@ -337,10 +335,23 @@
             const max = parseInt(input.getAttribute("max")) || 999999;
             const min = parseInt(input.getAttribute("min")) || 1;
 
+            // tạo span báo lỗi nếu chưa có
+            let errorEl = row.querySelector(".qty-error");
+            if (!errorEl) {
+                errorEl = document.createElement("span");
+                errorEl.className = "qty-error";
+                errorEl.style.color = "red";
+                errorEl.style.fontSize = "12px";
+                errorEl.style.display = "none";
+                errorEl.textContent = "Số lượng trong kho không đủ!";
+                input.parentNode.appendChild(errorEl);
+            }
+
             // nút giảm
             decBtn && decBtn.addEventListener("click", () => {
                 let v = Math.max(min, (parseInt(input.value) || min) - 1);
                 input.value = v;
+                errorEl.style.display = "none";
                 updateRowTotal(row);
                 updateCartTotal();
             });
@@ -349,20 +360,25 @@
             incBtn && incBtn.addEventListener("click", () => {
                 let v = Math.min(max, (parseInt(input.value) || min) + 1);
                 input.value = v;
+                errorEl.style.display = (v > max) ? "block" : "none";
                 updateRowTotal(row);
                 updateCartTotal();
             });
 
             // khi gõ trực tiếp
             input && input.addEventListener("input", () => {
-                // chỉ giữ chữ số
                 input.value = input.value.replace(/[^\d]/g,'');
             });
 
             input && input.addEventListener("change", () => {
                 let v = parseInt(input.value);
                 if (isNaN(v) || v < min) v = min;
-                if (v > max) v = max;
+                if (v > max) {
+                    v = max;
+                    errorEl.style.display = "block";
+                } else {
+                    errorEl.style.display = "none";
+                }
                 input.value = v;
                 updateRowTotal(row);
                 updateCartTotal();
@@ -375,7 +391,7 @@
         // init tổng
         updateCartTotal();
 
-        // khi submit form, gom cart -> cartJson
+        // submit form gom cart -> cartJson
         const checkoutForm = document.getElementById("checkoutForm");
         if (checkoutForm) {
             checkoutForm.addEventListener("submit", function(e) {
@@ -390,10 +406,10 @@
                 if (cartJsonInput) {
                     cartJsonInput.value = JSON.stringify(cart);
                 }
-
             });
         }
     });
+
 </script>
 
 
