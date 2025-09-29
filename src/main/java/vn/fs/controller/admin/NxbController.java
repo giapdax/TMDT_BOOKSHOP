@@ -119,7 +119,7 @@ public class NxbController {
     public String restoreNxb(@PathVariable("id") Long id, RedirectAttributes ra) {
         nxbService.restore(id);
         productService.restoreByNxb(id);
-        ra.addFlashAttribute("message", "Đã HIỂN THỊ lại NXB.");
+        ra.addFlashAttribute("message", "Đã HIỂN THỊ lại NXB (sản phẩm đã mở bán lại).");
         ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/nxbs";
     }
