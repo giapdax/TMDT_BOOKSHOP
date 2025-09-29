@@ -1,0 +1,88 @@
+/* Scope toàn trang để không bị theme đè */
+body.orders-page {
+    --chip-bd:#e5e7eb;
+    --chip-fg:#111827;
+    --chip-ac:#0d6efd;
+    --chip-ac-bg:#eef6ff;
+    --muted:#6b7280;
+    --panel:#ffffff;
+    --ring:#93c5fd;
+    --shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+body.orders-page .orders__page-header{
+    display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:.5rem;
+}
+body.orders-page .orders__export{ font-weight:700; color:#198754; text-decoration:underline; }
+body.orders-page .orders__export:hover{ color:#157347; }
+
+body.orders-page .orders__card{ border-radius:14px; overflow:hidden; }
+body.orders-page .orders__filters{ display:flex; flex-direction:column; gap:.5rem; }
+
+/* Chips */
+body.orders-page .orders__chips{ display:flex; flex-wrap:wrap; gap:.35rem; }
+body.orders-page .orders__chip{
+    display:inline-block; padding:.35rem .7rem; border:1px solid var(--chip-bd);
+    border-radius:999px; background:#fff; color:var(--chip-fg); text-decoration:none; font-size:.9rem; line-height:1.2;
+}
+body.orders-page .orders__chip:hover{ border-color:#cbd5e1; background:#f8fafc; }
+body.orders-page .orders__chip--active{
+    border-color:var(--chip-ac); background:var(--chip-ac-bg); color:var(--chip-ac); font-weight:700;
+}
+body.orders-page .orders__chip--primary{ border-color:var(--chip-ac); color:var(--chip-ac); background:var(--chip-ac-bg); }
+body.orders-page .orders__chip-label{ display:inline-flex; gap:.35rem; align-items:center; }
+
+/* Dropdown (Trạng thái) */
+body.orders-page .orders__dropdown{ position:relative; display:inline-block; }
+body.orders-page .orders__dropdown > summary{ list-style:none; cursor:pointer; outline:none; }
+body.orders-page .orders__dropdown > summary::-webkit-details-marker{ display:none; }
+body.orders-page .orders__dropdown[open] > summary .orders__chip{ box-shadow:0 0 0 2px var(--ring) inset; }
+body.orders-page .orders__dropdown-panel{
+    position:absolute; z-index:30; min-width:240px; margin-top:.35rem; padding:.4rem;
+    border:1px solid #e5e7eb; border-radius:12px; background:var(--panel); box-shadow:var(--shadow);
+}
+body.orders-page .orders__dropdown-panel a{
+    display:block; padding:.48rem .6rem; border-radius:8px; color:#111827; text-decoration:none; font-size:.94rem;
+}
+body.orders-page .orders__dropdown-panel a:hover{ background:#f3f4f6; }
+body.orders-page .orders__dropdown-panel a.is-active{ background:#eff6ff; color:#1d4ed8; font-weight:700; }
+
+/* Toolbar */
+body.orders-page .orders__toolbar{
+    display:flex; align-items:end; gap:.6rem; flex-wrap:wrap; margin-top:.25rem;
+}
+body.orders-page .orders__field-group{ display:flex; flex-direction:column; gap:.25rem; }
+body.orders-page .orders__field-group--grow{ flex:1; }
+body.orders-page .orders__label{ font-size:.85rem; color:var(--muted); margin:0; }
+body.orders-page .orders__field{ height:2.25rem; padding:.25rem .5rem; }
+body.orders-page .orders__btn-reset{
+    border:1px solid #e5e7eb; background:#fff; height:2.25rem; line-height:2.0rem; padding:0 .75rem;
+}
+body.orders-page .orders__btn-reset:hover{ background:#f8fafc; }
+
+body.orders-page .orders__tip{ color:var(--muted); font-size:.9rem; }
+
+/* Table */
+body.orders-page .orders__table thead th,
+body.orders-page .orders__table tfoot th{ white-space:nowrap; }
+body.orders-page .orders__table td,
+body.orders-page .orders__table th{ vertical-align:middle; }
+body.orders-page .orders__date{ white-space:nowrap; }
+
+body.orders-page .orders__link{ color:#0d6efd; text-decoration:underline; }
+body.orders-page .orders__link:hover{ color:#0b5ed7; }
+
+body.orders-page .orders__action--primary{ color:#0d6efd; font-weight:600; }
+body.orders-page .orders__action--warning{ color:#ff9800; font-weight:600; }
+body.orders-page .orders__action--danger{ color:#dc3545; font-weight:600; }
+
+body.orders-page .orders__badge--success{ color:#119744; font-weight:700; }
+body.orders-page .orders__badge--danger{ color:#ff3838; font-weight:700; }
+body.orders-page .orders__badge--muted{ color:#6c757d; font-weight:700; }
+
+body.orders-page .orders__muted{ color:var(--muted); font-size:.9rem; }
+
+/* Responsive */
+@media (max-width: 992px){
+    body.orders-page .orders__field{ width:100%; }
+}

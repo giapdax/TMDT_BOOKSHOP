@@ -11,8 +11,7 @@ import vn.fs.repository.OrderDetailRepository;
 import vn.fs.repository.OrderRepository;
 import vn.fs.repository.ProductRepository;
 
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,10 +22,20 @@ public class OrderService implements OrderAdminService {
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final ProductRepository productRepository;
+
     @Override
     public List<Order> listAll() {
         return orderRepository.findAll();
     }
+
+    @Override
+    public List<Order> listAllFiltered(Integer status, LocalDate from, LocalDate to, String q, String payment) {
+        // Chuẩn hóa input rỗng -> null để query gọn gàng
+        String safeQ = (q != null && !q.trim().isEmpty()) ? q.trim() : null;
+        String safePayment = (payment != null && !payment.trim().isEmpty()) ? payment.trim().toUpperCase() : null;
+        return orderRepository.findAllFiltered(status, from, to, safeQ, safePayment);
+    }
+
     @Override
     public Optional<Double> amountOf(Long orderId) {
         return orderRepository.findById(orderId).map(Order::getAmount);
@@ -70,7 +79,6 @@ public class OrderService implements OrderAdminService {
             for (OrderDetail od : items) {
                 Product p = od.getProduct();
                 if (p == null) continue;
-
                 p.setQuantity(p.getQuantity() - od.getQuantity());
                 productRepository.save(p);
             }

@@ -1,13 +1,14 @@
-// src/main/java/vn/fs/controller/admin/OrderController.java
 package vn.fs.controller.admin;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.ui.ModelMap;
@@ -24,7 +25,7 @@ import vn.fs.service.OrderAdminService;
 @RequestMapping("/admin")
 public class OrderController {
 
-    @Autowired private OrderAdminService orderService;  // <-- dùng Service chung
+    @Autowired private OrderAdminService orderService;
     @Autowired private UserRepository userRepository;
 
     @ModelAttribute("user")
@@ -36,11 +37,25 @@ public class OrderController {
         return user;
     }
 
-    // list order
+    // list + filters (auto-apply)
     @GetMapping("/orders")
-    public String orders(Model model) {
-        List<Order> orders = orderService.listAll();
+    public String orders(Model model,
+                         @RequestParam(required = false) Integer status,
+                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                         @RequestParam(required = false) String q,
+                         @RequestParam(required = false) String payment) {
+
+        List<Order> orders = orderService.listAllFiltered(status, from, to, q, payment);
         model.addAttribute("orderDetails", orders);
+
+        // giữ lại filter trên UI
+        model.addAttribute("f_status", status);
+        model.addAttribute("f_from", from);
+        model.addAttribute("f_to", to);
+        model.addAttribute("f_q", q);
+        model.addAttribute("f_payment", payment);
+
         return "admin/orders";
     }
 
@@ -57,19 +72,19 @@ public class OrderController {
     }
 
     @RequestMapping("/order/cancel/{order_id}")
-    public String cancel(ModelMap model, @PathVariable("order_id") Long id) {
+    public String cancel(@PathVariable("order_id") Long id) {
         orderService.cancel(id);
         return "forward:/admin/orders";
     }
 
     @RequestMapping("/order/confirm/{order_id}")
-    public String confirm(ModelMap model, @PathVariable("order_id") Long id) {
+    public String confirm(@PathVariable("order_id") Long id) {
         orderService.confirm(id);
         return "forward:/admin/orders";
     }
 
     @RequestMapping("/order/delivered/{order_id}")
-    public String delivered(ModelMap model, @PathVariable("order_id") Long id) {
+    public String delivered(@PathVariable("order_id") Long id) {
         orderService.deliveredAndDecreaseStock(id);
         return "forward:/admin/orders";
     }
