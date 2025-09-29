@@ -143,4 +143,15 @@ public class ProductService {
             productRepository.save(p);
         });
     }
+    /* ---------- Restore by Category / NXB ---------- */
+    @Transactional
+    public int restoreByCategory(Long categoryId) {
+        return productRepository.visibleByCategory(categoryId);
+    }
+
+    @Transactional
+    public int restoreByNxb(Long nxbId) {
+        return productRepository.visibleByNxb(nxbId);
+    }
+
 }

@@ -97,4 +97,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Transactional
     @Query("UPDATE Product p SET p.status = false WHERE p.nxb.id = :nxbId")
     int hideByNxb(@Param("nxbId") Long nxbId);
+    // Hiển thị sản phẩm theo Category
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Product p SET p.status = true WHERE p.category.categoryId = :categoryId")
+    int visibleByCategory(@Param("categoryId") Long categoryId);
+
+    // Hiển thị sản phẩm theo NXB
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE Product p SET p.status = true WHERE p.nxb.id = :nxbId")
+    int visibleByNxb(@Param("nxbId") Long nxbId);
 }
