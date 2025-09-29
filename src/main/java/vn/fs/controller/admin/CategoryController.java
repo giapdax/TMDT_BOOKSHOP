@@ -158,7 +158,7 @@ public class CategoryController {
     public String restore(@PathVariable("id") Long id, RedirectAttributes ra) {
         categoryService.restore(id);
         productService.restoreByCategory(id);
-        ra.addFlashAttribute("message", "Đã HIỂN THỊ lại thể loại (sản phẩm vẫn ẨN).");
+        ra.addFlashAttribute("message", "Đã HIỂN THỊ lại thể loại (sản phẩm đã mở bán lại).");
         ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/categories";
     }
