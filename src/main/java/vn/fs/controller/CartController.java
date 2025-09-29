@@ -200,4 +200,43 @@ public class CartController extends CommomController {
         model.addAttribute("message", "Bạn đã hủy thanh toán qua PayPal.");
         return "web/payment_cancel";
     }
+    // Tăng số lượng 1 đơn vị (hoặc step) rồi redirect về nơi gọi
+    @GetMapping("/cart/inc")
+    public String cartInc(@RequestParam("productId") Long productId,
+                          @RequestParam(value = "step", defaultValue = "1") int step,
+                          @RequestParam(value = "redirect", required = false) String redirect,
+                          HttpServletRequest req) {
+        try {
+            shoppingCartService.increase(productId, Math.max(1, step));
+        } catch (IllegalStateException ex) {
+            // chưa đăng nhập hoặc giỏ chưa sẵn sàng
+            return "redirect:/login";
+        }
+        return redirectBack(redirect, req);
+    }
+
+    // Giảm số lượng 1 đơn vị (không thấp hơn 1) rồi redirect về nơi gọi
+    @GetMapping("/cart/dec")
+    public String cartDec(@RequestParam("productId") Long productId,
+                          @RequestParam(value = "step", defaultValue = "1") int step,
+                          @RequestParam(value = "redirect", required = false) String redirect,
+                          HttpServletRequest req) {
+        try {
+            shoppingCartService.decrease(productId, Math.max(1, step));
+        } catch (IllegalStateException ex) {
+            return "redirect:/login";
+        }
+        return redirectBack(redirect, req);
+    }
+
+    // Helper: điều hướng về trang phù hợp
+    private String redirectBack(String redirect, HttpServletRequest req) {
+        if ("checkout".equalsIgnoreCase(redirect)) return "redirect:/checkout";
+        if ("mini".equalsIgnoreCase(redirect)) {
+            String ref = req.getHeader("Referer");
+            return "redirect:" + (ref != null ? ref : "/");
+        }
+        return "redirect:/products";
+    }
+
 }

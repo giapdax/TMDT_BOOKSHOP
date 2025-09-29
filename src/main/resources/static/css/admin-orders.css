@@ -1,4 +1,4 @@
-/* Scope toàn trang để không bị theme đè */
+/* ===== Orders page (no JS) ===== */
 body.orders-page {
     --chip-bd:#e5e7eb;
     --chip-fg:#111827;

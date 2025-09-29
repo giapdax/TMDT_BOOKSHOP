@@ -11,11 +11,35 @@
     <link rel="stylesheet" th:href="@{/assets/css/bootstrap.min.css}"/>
     <link rel="stylesheet" th:href="@{/assets/css/atlantis.min.css}"/>
 
-    <!-- Page CSS: ĐÚNG PATH /css/... -->
+    <!-- Fonts & Icons (Atlantis) -->
+    <script th:src="@{/assets/js/plugin/webfont/webfont.min.js}"></script>
+    <script>
+        /* keep Atlantis header/navbar icons working */
+        if (window.WebFont) {
+            WebFont.load({
+                google: { families: ["Lato:300,400,700,900"] },
+                custom: {
+                    families: [
+                        "Flaticon",
+                        "Font Awesome 5 Solid",
+                        "Font Awesome 5 Regular",
+                        "Font Awesome 5 Brands",
+                        "simple-line-icons"
+                    ],
+                    urls: [/* path under static */ "/assets/css/fonts.min.css"]
+                },
+                active: function(){ try { sessionStorage.fonts = true; } catch(e){} }
+            });
+        }
+    </script>
+
+    <!-- Page CSS (đặt CUỐI để override) -->
     <link rel="stylesheet" th:href="@{/css/admin-orders.css(v=${T(java.lang.System).currentTimeMillis()})}"/>
 </head>
+
 <body class="orders-page">
 <div class="wrapper">
+    <!-- Header & Navbar fragments -->
     <th:block th:replace="~{admin/fragments/header :: header}"></th:block>
     <th:block th:replace="~{admin/fragments/navbar :: navbar}"></th:block>
 
@@ -32,7 +56,9 @@
                     <div class="card orders__card">
                         <div class="card-body">
 
+                            <!-- FILTERS -->
                             <div class="orders__filters">
+                                <!-- Trạng thái -->
                                 <details class="orders__dropdown">
                                     <summary class="orders__chip orders__chip--primary">
                     <span class="orders__chip-label">
@@ -60,6 +86,7 @@
                                     </div>
                                 </details>
 
+                                <!-- Thanh toán -->
                                 <div class="orders__chips">
                                     <a class="orders__chip" th:classappend="${f_payment == null or f_payment == ''}? ' orders__chip--active'"
                                        th:href="@{/admin/orders(status=${f_status},q=${f_q},from=${f_from},to=${f_to})}">Tất cả</a>
@@ -69,6 +96,7 @@
                                        th:href="@{/admin/orders(status=${f_status},q=${f_q},from=${f_from},to=${f_to},payment='COD')}">COD</a>
                                 </div>
 
+                                <!-- Ô ngày & từ khóa -->
                                 <form class="orders__toolbar" th:action="@{/admin/orders}" method="get">
                                     <input type="hidden" name="status" th:value="${f_status}"/>
                                     <input type="hidden" name="payment" th:value="${f_payment}"/>
@@ -94,6 +122,7 @@
                                 </div>
                             </div>
 
+                            <!-- Bảng -->
                             <div class="table-responsive mt-2">
                                 <table class="table table-hover orders__table">
                                     <thead>
@@ -127,8 +156,11 @@
                                             </div>
                                             <div th:if="${item.status == 2}">
                                                 <div class="orders__badge--success mb-1">Đã thanh toán</div>
-                                                <a th:if="${!#strings.isEmpty(item.paypalCaptureId)}" th:href="@{'/admin/paypal/refund/' + ${item.orderId}}" class="orders__action--danger">Hoàn tiền</a>
-                                                <small th:if="${#strings.isEmpty(item.paypalCaptureId)}" class="orders__muted d-block">(Không thanh toán PayPal nên không thể hoàn tiền PayPal)</small>
+                                                <a th:if="${!#strings.isEmpty(item.paypalCaptureId)}"
+                                                   th:href="@{'/admin/paypal/refund/' + ${item.orderId}}" class="orders__action--danger">Hoàn tiền</a>
+                                                <small th:if="${#strings.isEmpty(item.paypalCaptureId)}" class="orders__muted d-block">
+                                                    (Không thanh toán PayPal nên không thể hoàn tiền PayPal)
+                                                </small>
                                             </div>
                                             <div th:if="${item.status == 3}" class="orders__badge--danger">Đã huỷ</div>
                                             <div th:if="${item.status == 4}" class="orders__badge--muted">Đã hoàn tiền</div>
@@ -145,7 +177,15 @@
 
             </div>
         </div>
-        <footer class="footer">...</footer>
+
+        <!-- footer project (giữ nguyên của bạn nếu có fragment) -->
+        <footer class="footer">
+            <div class="container-fluid">
+                <div class="copyright ml-auto">
+                    2025, made with <i class="fa fa-heart heart text-danger"></i> by <a href="#">BOOK-SHOP</a>
+                </div>
+            </div>
+        </footer>
     </div>
 </div>
 </body>
