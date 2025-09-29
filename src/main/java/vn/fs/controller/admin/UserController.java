@@ -1,11 +1,11 @@
+// src/main/java/vn/fs/controller/admin/UserController.java
 package vn.fs.controller.admin;
 
 import java.security.Principal;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -14,18 +14,14 @@ import org.springframework.web.bind.annotation.*;
 
 import vn.fs.entities.Role;
 import vn.fs.entities.User;
-import vn.fs.repository.RoleRepository;
-import vn.fs.repository.UserRepository;
+import vn.fs.service.UserAdminService;
 
 @Controller
 @RequestMapping("/admin/customers")
+@RequiredArgsConstructor
 public class UserController {
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
+    private final UserAdminService userAdminService;
 
     // Danh sách người dùng
     @GetMapping
@@ -34,7 +30,7 @@ public class UserController {
                        @RequestParam(value = "notfound", required = false) String notfound) {
         if (principal == null) return "redirect:/login";
 
-        List<User> users = userRepository.findAll();
+        List<User> users = userAdminService.listAll();
         model.addAttribute("users", users);
 
         if (StringUtils.hasText(updated))  model.addAttribute("flash", "Cập nhật thành công!");
@@ -49,14 +45,11 @@ public class UserController {
     public String editForm(@PathVariable Long id, Model model, Principal principal) {
         if (principal == null) return "redirect:/login";
 
-        // KHÔNG set 'user' ở đây nữa — GlobalModelAdvice đã bơm sẵn
-
-        User target = userRepository.findById(id).orElse(null);
+        User target = userAdminService.getById(id);
         if (target == null) return "redirect:/admin/customers?notfound=1";
 
-        var allRoles = roleRepository.findAll();
-        var selectedRoleIds = target.getRoles() == null ? java.util.Set.<Long>of()
-                : target.getRoles().stream().map(r -> r.getId()).collect(java.util.stream.Collectors.toSet());
+        List<Role> allRoles = userAdminService.listAllRoles();
+        Set<Long> selectedRoleIds = userAdminService.roleIdsOf(target);
 
         model.addAttribute("target", target);
         model.addAttribute("allRoles", allRoles);
@@ -68,30 +61,18 @@ public class UserController {
     // Lưu quyền + trạng thái (ADMIN only)
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/edit/{id}")
-    public String update(
-            @PathVariable("id") Long id,
-            @RequestParam(value = "roleIds", required = false) List<Long> roleIds,
-            @RequestParam(value = "enabled", required = false) String enabled // "on" nếu tick
+    public String update(@PathVariable("id") Long id,
+                         @RequestParam(value = "roleIds", required = false) List<Long> roleIds,
+                         @RequestParam(value = "enabled", required = false) String enabled // "on" nếu tick
     ) {
-        User target = userRepository.findById(id).orElse(null);
+        User target = userAdminService.getById(id);
         if (target == null) {
             return "redirect:/admin/customers?notfound=1";
         }
 
-        // Cập nhật trạng thái: map checkbox -> boolean
         boolean isEnabled = StringUtils.hasText(enabled);
-        target.setStatus(isEnabled);
+        userAdminService.updateRolesAndStatus(id, roleIds, isEnabled);
 
-        // Cập nhật vai trò
-        Set<Role> newRoles = new HashSet<>();
-        if (roleIds != null && !roleIds.isEmpty()) {
-            for (Long rid : roleIds) {
-                roleRepository.findById(rid).ifPresent(newRoles::add);
-            }
-        }
-        target.setRoles(newRoles);
-
-        userRepository.save(target);
         return "redirect:/admin/customers?updated=1";
     }
 }

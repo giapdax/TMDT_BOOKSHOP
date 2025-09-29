@@ -2,153 +2,98 @@ package vn.fs.controller.admin;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.ui.ModelMap;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.bind.annotation.*;
 
 import vn.fs.dto.OrderExcelExporter;
 import vn.fs.entities.Order;
 import vn.fs.entities.OrderDetail;
-import vn.fs.entities.Product;
 import vn.fs.entities.User;
-import vn.fs.repository.OrderDetailRepository;
-import vn.fs.repository.OrderRepository;
-import vn.fs.repository.ProductRepository;
 import vn.fs.repository.UserRepository;
-import vn.fs.service.OrderDetailService;
-import vn.fs.service.SendMailService;
-
+import vn.fs.service.OrderAdminService;
 
 @Controller
 @RequestMapping("/admin")
 public class OrderController {
 
-	@Autowired
-	OrderDetailService orderDetailService;
+    @Autowired private OrderAdminService orderService;
+    @Autowired private UserRepository userRepository;
 
-	@Autowired
-	OrderRepository orderRepository;
+    @ModelAttribute("user")
+    public User user(Model model, Principal principal, User user) {
+        if (principal != null) {
+            user = userRepository.findByEmail(principal.getName());
+            model.addAttribute("user", user);
+        }
+        return user;
+    }
 
-	@Autowired
-	OrderDetailRepository orderDetailRepository;
+    // list + filters (auto-apply)
+    @GetMapping("/orders")
+    public String orders(Model model,
+                         @RequestParam(required = false) Integer status,
+                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                         @RequestParam(required = false) String q,
+                         @RequestParam(required = false) String payment) {
 
-	@Autowired
-	ProductRepository productRepository;
+        List<Order> orders = orderService.listAllFiltered(status, from, to, q, payment);
+        model.addAttribute("orderDetails", orders);
 
-	@Autowired
-	SendMailService sendMailService;
+        // giữ lại filter trên UI
+        model.addAttribute("f_status", status);
+        model.addAttribute("f_from", from);
+        model.addAttribute("f_to", to);
+        model.addAttribute("f_q", q);
+        model.addAttribute("f_payment", payment);
 
-	@Autowired
-	UserRepository userRepository;
+        return "admin/orders";
+    }
 
-	@ModelAttribute(value = "user")
-	public User user(Model model, Principal principal, User user) {
+    @GetMapping("/order/detail/{order_id}")
+    public String detail(ModelMap model, @PathVariable("order_id") Long id) {
+        List<OrderDetail> list = orderService.detailsOf(id);
+        double amount = orderService.amountOf(id).orElse(0d);
 
-		if (principal != null) {
-			model.addAttribute("user", new User());
-			user = userRepository.findByEmail(principal.getName());
-			model.addAttribute("user", user);
-		}
+        model.addAttribute("amount", amount);
+        model.addAttribute("orderDetail", list);
+        model.addAttribute("orderId", id);
+        model.addAttribute("menuO", "menu");
+        return "admin/editOrder";
+    }
 
-		return user;
-	}
+    @RequestMapping("/order/cancel/{order_id}")
+    public String cancel(@PathVariable("order_id") Long id) {
+        orderService.cancel(id);
+        return "forward:/admin/orders";
+    }
 
-	// list order
-	@GetMapping(value = "/orders")
-	public String orders(Model model, Principal principal) {
+    @RequestMapping("/order/confirm/{order_id}")
+    public String confirm(@PathVariable("order_id") Long id) {
+        orderService.confirm(id);
+        return "forward:/admin/orders";
+    }
 
-		List<Order> orderDetails = orderRepository.findAll();
-		model.addAttribute("orderDetails", orderDetails);
+    @RequestMapping("/order/delivered/{order_id}")
+    public String delivered(@PathVariable("order_id") Long id) {
+        orderService.deliveredAndDecreaseStock(id);
+        return "forward:/admin/orders";
+    }
 
-		return "admin/orders";
-	}
-
-	@GetMapping("/order/detail/{order_id}")
-	public ModelAndView detail(ModelMap model, @PathVariable("order_id") Long id) {
-
-		List<OrderDetail> listO = orderDetailRepository.findByOrderId(id);
-
-		model.addAttribute("amount", orderRepository.findById(id).get().getAmount());
-		model.addAttribute("orderDetail", listO);
-		model.addAttribute("orderId", id);
-		// set active front-end
-		model.addAttribute("menuO", "menu");
-		return new ModelAndView("admin/editOrder", model);
-	}
-
-	@RequestMapping("/order/cancel/{order_id}")
-	public ModelAndView cancel(ModelMap model, @PathVariable("order_id") Long id) {
-		Optional<Order> o = orderRepository.findById(id);
-		if (o.isEmpty()) {
-			return new ModelAndView("forward:/admin/orders", model);
-		}
-		Order oReal = o.get();
-		oReal.setStatus((short) 3);
-		orderRepository.save(oReal);
-
-		return new ModelAndView("forward:/admin/orders", model);
-	}
-
-	@RequestMapping("/order/confirm/{order_id}")
-	public ModelAndView confirm(ModelMap model, @PathVariable("order_id") Long id) {
-		Optional<Order> o = orderRepository.findById(id);
-		if (o.isEmpty()) {
-			return new ModelAndView("forward:/admin/orders", model);
-		}
-		Order oReal = o.get();
-		oReal.setStatus((short) 1);
-		orderRepository.save(oReal);
-
-		return new ModelAndView("forward:/admin/orders", model);
-	}
-
-	@RequestMapping("/order/delivered/{order_id}")
-	public ModelAndView delivered(ModelMap model, @PathVariable("order_id") Long id) {
-		Optional<Order> o = orderRepository.findById(id);
-		if (o.isEmpty()) {
-			return new ModelAndView("forward:/admin/orders", model);
-		}
-		Order oReal = o.get();
-		oReal.setStatus((short) 2);
-		orderRepository.save(oReal);
-
-		Product p = null;
-		List<OrderDetail> listDe = orderDetailRepository.findByOrderId(id);
-		for (OrderDetail od : listDe) {
-			p = od.getProduct();
-			p.setQuantity(p.getQuantity() - od.getQuantity());
-			productRepository.save(p);
-		}
-
-		return new ModelAndView("forward:/admin/orders", model);
-	}
-
-	// to excel
-	@GetMapping(value = "/export")
-	public void exportToExcel(HttpServletResponse response) throws IOException {
-
-		response.setContentType("application/octet-stream");
-		String headerKey = "Content-Disposition";
-		String headerValue = "attachement; filename=orders.xlsx";
-
-		response.setHeader(headerKey, headerValue);
-
-		List<Order> lisOrders = orderDetailService.listAll();
-
-		OrderExcelExporter excelExporter = new OrderExcelExporter(lisOrders);
-		excelExporter.export(response);
-
-	}
-
+    @GetMapping("/export")
+    public void exportToExcel(HttpServletResponse response) throws IOException {
+        response.setContentType("application/octet-stream");
+        response.setHeader("Content-Disposition", "attachment; filename=orders.xlsx");
+        List<Order> listOrders = orderService.listAll();
+        new OrderExcelExporter(listOrders).export(response);
+    }
 }

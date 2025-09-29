@@ -212,5 +212,6 @@ public class ProductController {
         ra.addFlashAttribute("message", "Đã mở bán lại sản phẩm.");
         ra.addFlashAttribute("alertType", "success");
         return "redirect:/admin/products";
+
     }
 }

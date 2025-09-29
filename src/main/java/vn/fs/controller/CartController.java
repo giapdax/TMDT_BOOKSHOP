@@ -1,7 +1,6 @@
 package vn.fs.controller;
 
 import java.util.Collection;
-import java.util.Date;
 import javax.mail.MessagingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -20,27 +19,15 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import com.paypal.api.payments.Links;
-import com.paypal.api.payments.Payment;
-import com.paypal.base.rest.PayPalRESTException;
-
 import vn.fs.commom.CommomDataService;
-import vn.fs.config.PaypalPaymentIntent;
-import vn.fs.config.PaypalPaymentMethod;
 import vn.fs.dto.CheckoutAddressDTO;
 import vn.fs.entities.CartItem;
-import vn.fs.entities.Order;
-import vn.fs.entities.OrderDetail;
 import vn.fs.entities.Product;
 import vn.fs.entities.User;
-import vn.fs.repository.OrderDetailRepository;
-import vn.fs.repository.OrderRepository;
 import vn.fs.repository.ProductRepository;
 import vn.fs.repository.UserRepository;
-import vn.fs.service.PaypalService;
+import vn.fs.service.CheckoutService;
 import vn.fs.service.ShoppingCartService;
-import vn.fs.service.impl.ExchangeRateService;
-import vn.fs.util.Utils;
 
 import javax.validation.Valid;
 
@@ -51,10 +38,7 @@ public class CartController extends CommomController {
 
     @Autowired private CommomDataService commomDataService;
     @Autowired private ShoppingCartService shoppingCartService;
-    @Autowired private PaypalService paypalService;
-    @Autowired private OrderRepository orderRepository;
-    @Autowired private OrderDetailRepository orderDetailRepository;
-    @Autowired private ExchangeRateService exchangeRateService;
+    @Autowired private CheckoutService checkoutService;
     @Autowired private UserRepository userRepository;
     @Autowired private ProductRepository productRepository;
 
@@ -65,20 +49,18 @@ public class CartController extends CommomController {
 
     /* ============================ Helpers ============================ */
 
-    // Lấy user đăng nhập từ Spring Security + Optional/IgnoreCase.
     private User currentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             return null;
         }
-        String login = auth.getName(); // có thể là email hoặc username
+        String login = auth.getName();
         return userRepository.findByUsernameIgnoreCase(login)
                 .or(() -> userRepository.findByEmailIgnoreCase(login))
                 .or(() -> userRepository.findByUsernameIgnoreCaseOrEmailIgnoreCase(login, login))
                 .orElse(null);
     }
 
-    // Bind info giỏ hàng lên model theo service mới.
     private void bindCartToModel(Model model) {
         Collection<CartItem> cartItems = shoppingCartService.getCartItems();
         model.addAttribute("cartItems", cartItems);
@@ -87,6 +69,8 @@ public class CartController extends CommomController {
         model.addAttribute("totalCartItems", shoppingCartService.getDistinctCount());
         model.addAttribute("totalCartQtySum", shoppingCartService.getQuantitySum());
     }
+
+    /* ============================ Pages ============================ */
 
     @GetMapping("/shoppingCart_checkout")
     public String shoppingCart(Model model) {
@@ -111,6 +95,7 @@ public class CartController extends CommomController {
         return shoppingCart(model);
     }
 
+    /* ============================ Cart ops ============================ */
 
     @GetMapping("/addToCart")
     public String add(@RequestParam("productId") Long productId,
@@ -136,15 +121,15 @@ public class CartController extends CommomController {
         return "redirect:/checkout";
     }
 
+    /* ============================ Checkout ============================ */
 
     @PostMapping("/checkout")
     @Transactional
     public String checkedOut(@Valid @ModelAttribute("checkout") CheckoutAddressDTO checkout,
                              BindingResult br,
                              Model model,
-                             HttpServletRequest request) throws MessagingException {
+                             HttpServletRequest request) {
 
-        // cart empty
         Collection<CartItem> cartItems = shoppingCartService.getCartItems();
         if (cartItems == null || cartItems.isEmpty()) {
             return "redirect:/products";
@@ -154,150 +139,47 @@ public class CartController extends CommomController {
         commomDataService.commonData(model, currentUser());
 
         if (br.hasErrors()) {
-            // trả lại view + lỗi
             return "web/shoppingCart_checkout";
-        }
-
-        double totalPrice = shoppingCartService.getAmount();
-        String method = (checkout.getPaymentMethod() == null) ? "cod" : checkout.getPaymentMethod().trim().toLowerCase();
-
-        if (StringUtils.equals(method, "paypal")) {
-            Order draft = new Order();
-            draft.setAddress(checkout.getAddress());
-            draft.setPhone(checkout.getPhone());
-            session.setAttribute("orderDraft", draft);
-
-            String cancelUrl  = Utils.getBaseURL(request) + URL_PAYPAL_CANCEL;
-            String successUrl = Utils.getBaseURL(request) + URL_PAYPAL_SUCCESS;
-            try {
-                double rateVNDToUSD = exchangeRateService.getVNDExchangeRate();
-                java.math.BigDecimal usd = new java.math.BigDecimal(totalPrice / rateVNDToUSD)
-                        .setScale(2, java.math.RoundingMode.HALF_UP);
-                double usdAmount = usd.doubleValue();
-
-                log.info("Creating PayPal payment (rounded): {} USD", usdAmount);
-                Payment payment = paypalService.createPayment(
-                        usdAmount,
-                        "USD",
-                        PaypalPaymentMethod.paypal,
-                        PaypalPaymentIntent.sale,
-                        "Thanh toán bằng Paypal",
-                        cancelUrl, successUrl
-                );
-
-                for (Links l : payment.getLinks()) {
-                    if ("approval_url".equalsIgnoreCase(l.getRel())) {
-                        return "redirect:" + l.getHref();
-                    }
-                }
-                log.warn("No approval_url returned by PayPal.");
-                return "redirect:/checkout";
-
-            } catch (PayPalRESTException e) {
-                log.error("PayPal createPayment error", e);
-                return "redirect:/checkout";
-            }
         }
 
         User cur = currentUser();
         if (cur == null) return "redirect:/login";
 
-        Order order = new Order();
-        order.setOrderDate(new Date());
-        order.setStatus(0);
-        order.setAmount(totalPrice);
-        order.setUser(cur);
-        order.setAddress(checkout.getAddress());
-        order.setPhone(checkout.getPhone());
-        orderRepository.save(order);
-
-        for (CartItem ci : cartItems) {
-            OrderDetail od = new OrderDetail();
-            od.setQuantity(ci.getQuantity());
-            od.setOrder(order);
-            od.setProduct(ci.getProduct());
-            od.setPrice(ci.getProduct().getPrice());
-            orderDetailRepository.save(od);
-        }
-
-        // send mail
-        commomDataService.sendSimpleEmail(
-                cur.getEmail(),
-                "Book-Shop Xác Nhận Đơn hàng",
-                "CONFIRM",
-                cartItems,
-                totalPrice,
-                order
-        );
-
-        shoppingCartService.clear();
-        session.removeAttribute("cartItems");
-        model.addAttribute("orderId", order.getOrderId());
-
-        return "redirect:/checkout_success";
-    }
-
-
-    @GetMapping(URL_PAYPAL_SUCCESS)
-    public String successPay(@RequestParam("paymentId") String paymentId,
-                             @RequestParam("PayerID") String payerId,
-                             HttpServletRequest request, Model model) throws MessagingException {
-
-        Collection<CartItem> cartItems = shoppingCartService.getCartItems();
-        double totalPrice = shoppingCartService.getAmount();
-
-        model.addAttribute("cartItems", cartItems);
-        model.addAttribute("total", totalPrice);
-        model.addAttribute("totalPrice", totalPrice);
-        model.addAttribute("totalCartItems", shoppingCartService.getDistinctCount());
+        String method = (checkout.getPaymentMethod() == null)
+                ? "cod" : checkout.getPaymentMethod().trim().toLowerCase();
 
         try {
-            Payment payment = paypalService.executePayment(paymentId, payerId);
-            if ("approved".equalsIgnoreCase(payment.getState())) {
-                User cur = currentUser();
-                if (cur == null) return "redirect:/login";
-
-                // Lấy order draft từ session
-                Order draft = (Order) session.getAttribute("orderDraft");
-                if (draft == null) {
-                    draft = new Order();
-                }
-
-                draft.setOrderDate(new Date());
-                draft.setStatus(2);        // paid
-                draft.setUser(cur);
-                draft.setAmount(totalPrice);
-                orderRepository.save(draft);
-
-                for (CartItem ci : cartItems) {
-                    OrderDetail od = new OrderDetail();
-                    od.setQuantity(ci.getQuantity());
-                    od.setOrder(draft);
-                    od.setProduct(ci.getProduct());
-                    od.setPrice(ci.getProduct().getPrice());
-                    orderDetailRepository.save(od);
-                }
-
-                commomDataService.sendSimpleEmail(
-                        cur.getEmail(),
-                        "Book-Shop Xác Nhận Đơn hàng",
-                        "CONFIRM",
-                        cartItems,
-                        totalPrice,
-                        draft
-                );
-
-                shoppingCartService.clear();
-                session.removeAttribute("cartItems");
-                session.removeAttribute("orderDraft");
-                model.addAttribute("orderId", draft.getOrderId());
-
-                return "redirect:/checkout_paypal_success";
+            if (StringUtils.equals(method, "paypal")) {
+                String approvalUrl = checkoutService.beginPaypalCheckout(cur, checkout, request, session);
+                if (approvalUrl != null) return "redirect:" + approvalUrl;
+                log.warn("No approval_url returned by PayPal.");
+                return "redirect:/checkout";
+            } else {
+                Long orderId = checkoutService.placeOrderCOD(cur, checkout, session);
+                model.addAttribute("orderId", orderId);
+                return "redirect:/checkout_success";
             }
-        } catch (PayPalRESTException e) {
-            log.error("PayPal executePayment error", e);
+        } catch (Exception e) {
+            log.error("Checkout error", e);
+            return "redirect:/checkout";
         }
-        return "redirect:/";
+    }
+
+    /** v2: PayPal redirect về với token=orderId */
+    @GetMapping(URL_PAYPAL_SUCCESS)
+    @Transactional
+    public String successPay(@RequestParam("token") String orderIdToken, Model model) {
+        User cur = currentUser();
+        if (cur == null) return "redirect:/login";
+
+        try {
+            Long orderId = checkoutService.finalizePaypalV2(cur, orderIdToken, session);
+            model.addAttribute("orderId", orderId);
+            return "redirect:/checkout_paypal_success";
+        } catch (Exception e) {
+            log.error("PayPal v2 finalize error", e);
+            return "redirect:/";
+        }
     }
 
     @GetMapping("/checkout_success")
@@ -318,30 +200,43 @@ public class CartController extends CommomController {
         model.addAttribute("message", "Bạn đã hủy thanh toán qua PayPal.");
         return "web/payment_cancel";
     }
-
+    // Tăng số lượng 1 đơn vị (hoặc step) rồi redirect về nơi gọi
     @GetMapping("/cart/inc")
-    public String inc(@RequestParam Long productId,
-                      @RequestParam(required=false) String redirect,
-                      @RequestParam(required=false) String anchor) {
-        shoppingCartService.increase(productId, 1);
-        if ("checkout".equalsIgnoreCase(redirect)) {
-            return "redirect:/checkout" + (anchor != null ? "#" + anchor : "");
+    public String cartInc(@RequestParam("productId") Long productId,
+                          @RequestParam(value = "step", defaultValue = "1") int step,
+                          @RequestParam(value = "redirect", required = false) String redirect,
+                          HttpServletRequest req) {
+        try {
+            shoppingCartService.increase(productId, Math.max(1, step));
+        } catch (IllegalStateException ex) {
+            // chưa đăng nhập hoặc giỏ chưa sẵn sàng
+            return "redirect:/login";
+        }
+        return redirectBack(redirect, req);
+    }
+
+    // Giảm số lượng 1 đơn vị (không thấp hơn 1) rồi redirect về nơi gọi
+    @GetMapping("/cart/dec")
+    public String cartDec(@RequestParam("productId") Long productId,
+                          @RequestParam(value = "step", defaultValue = "1") int step,
+                          @RequestParam(value = "redirect", required = false) String redirect,
+                          HttpServletRequest req) {
+        try {
+            shoppingCartService.decrease(productId, Math.max(1, step));
+        } catch (IllegalStateException ex) {
+            return "redirect:/login";
+        }
+        return redirectBack(redirect, req);
+    }
+
+    // Helper: điều hướng về trang phù hợp
+    private String redirectBack(String redirect, HttpServletRequest req) {
+        if ("checkout".equalsIgnoreCase(redirect)) return "redirect:/checkout";
+        if ("mini".equalsIgnoreCase(redirect)) {
+            String ref = req.getHeader("Referer");
+            return "redirect:" + (ref != null ? ref : "/");
         }
         return "redirect:/products";
     }
 
-    @GetMapping("/cart/dec")
-    public String dec(@RequestParam Long productId,
-                      @RequestParam(required=false) String redirect,
-                      @RequestParam(required=false) String anchor) {
-        int after = shoppingCartService.decrease(productId, 1);
-        if (after <= 0) {
-            CartItem ci = shoppingCartService.getItem(productId);
-            if (ci != null) shoppingCartService.remove(ci);
-        }
-        if ("checkout".equalsIgnoreCase(redirect)) {
-            return "redirect:/checkout" + (anchor != null ? "#" + anchor : "");
-        }
-        return "redirect:/products";
-    }
 }

@@ -146,7 +146,7 @@
                                 <h6 class="product-price">
                                     <del>[[${#numbers.formatDecimal(item.price, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]</del>
                                     <span>
-                                      [[${#numbers.formatDecimal(item.price - (item.price * item.discount / 100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]]
+                                      [[${#numbers.formatDecimal(item.price - (item.price * item.discount / 100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]
                                     </span>
                                 </h6>
                                 <a class="product-add1" title="Thêm giỏ hàng" th:if="${!outOfStock}" th:href="@{/addToCart(productId=${item.productId})}">
@@ -243,7 +243,7 @@
                                 <h6 class="product-price">
                                     <del>[[${#numbers.formatDecimal(item.price, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]</del>
                                     <span>
-                                      [[${#numbers.formatDecimal(item.price - (item.price * item.discount / 100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]]
+                                      [[${#numbers.formatDecimal(item.price - (item.price * item.discount / 100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]
                                     </span>
                                 </h6>
                                 <a class="product-add1" title="Thêm giỏ hàng" th:if="${!outOfStock}" th:href="@{/addToCart(productId=${item.productId})}">
@@ -357,7 +357,7 @@
                                 <h6 class="product-price">
                                     <del>[[${#numbers.formatDecimal(item.price, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]</del>
                                     <span>
-                                      [[${#numbers.formatDecimal(item.price - (item.price * item.discount / 100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]]
+                                      [[${#numbers.formatDecimal(item.price - (item.price * item.discount / 100), 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']]
                                     </span>
                                 </h6>
                                 <a class="product-add1" title="Thêm giỏ hàng" th:if="${!outOfStock}" th:href="@{/addToCart(productId=${item.productId})}">
