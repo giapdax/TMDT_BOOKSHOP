@@ -1,128 +1,188 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title></title>
+    <meta charset="UTF-8" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Xác nhận đặt hàng</title>
+    <!-- Không nhúng font ngoài để tránh client chặn. Dùng hệ thống -->
+    <style>
+        /* Reset cơ bản cho email */
+        html, body { margin:0 !important; padding:0 !important; height:100% !important; width:100% !important; }
+        * { -ms-text-size-adjust:100%; -webkit-text-size-adjust:100%; }
+        table, td { mso-table-lspace:0pt !important; mso-table-rspace:0pt !important; }
+        img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:none; display:block; }
+        a { text-decoration:none; }
+        /* iOS blue links reset */
+        a[x-apple-data-detectors] { color:inherit !important; text-decoration:none !important; }
+        /* Android center fix */
+        div[style*="margin: 16px 0"] { margin:0 !important; }
 
-<body style="margin: 0 !important; padding: 0 !important; background-color: #eeeeee;" bgcolor="#eeeeee">
-    <div style="display: none; font-size: 1px; color: #fefefe; line-height: 1px; font-family: Open Sans, Helvetica, Arial, sans-serif; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
-        For what reason would it be advisable for me to think about business content? That might be little bit risky to have crew member like them.
-    </div>
-    <table border="0" cellpadding="0" cellspacing="0" width="100%">
-        <tr>
-            <td align="center" style="background-color: #eeeeee;" bgcolor="#eeeeee">
-                <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;">
-                    <tr>
-                        <td align="center" valign="top" style="font-size:0; padding: 35px;" bgcolor="#ddffd5">
-                            <div style="display:inline-block; max-width:50%; min-width:100px; vertical-align:top; width:100%;">
-                                <table align="left" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:300px;">
-                                    <tr>
-                                        <td align="left" valign="top" style="font-family: Open Sans, Helvetica, Arial, sans-serif; font-size: 36px; font-weight: 800; line-height: 48px;" class="mobile-center">
-                                            <img src="https://res.cloudinary.com/dgr8klnam/image/upload/v1745308544/book_rvri9g.jpg" width="220px"/>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-                            
-                        </td>
-                    </tr>
-                    <tr>
-                        <td align="center" style="padding: 35px 35px 20px 35px; background-color: #ffffff;" bgcolor="#ffffff">
-                            <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;">
-                                <tr>
-                                    <td align="center" style="font-family: Open sans-serif; font-size: 16px; font-weight: 400; line-height: 24px; padding-top: 25px;">
-                                        <img src="https://res.cloudinary.com/dgr8klnam/image/upload/v1745308544/book_rvri9g.jpg" width="115" height="110" style="display: block; border: 0px;" /><br>
-                                        <h2 style="font-size: 30px; font-weight: 800; line-height: 36px; color: #333333; margin: 0;"> Chúc mừng đã đặt hàng thành công! </h2>
-                                        <p style="font-family: Open sans-serif; font-size: 18px;"><em>Chúng tôi sẽ tiến hành xử lý đơn hàng sớm nhất, bạn vui lòng chờ nhé!</em></p>
-                                    </td>
-                                </tr>
-                                
-                                <tr>
-                                    <td align="left" style="padding-top: 20px;">
-                                        <table cellspacing="0" cellpadding="0" border="0" width="100%">
-                                            <p style="font-size: 20px;font-family: Open sans-serif; text-decoration: underline;">Đơn hàng của bạn:</p>
-                                            <tr>
-                                                <td width="25%" align="left" bgcolor="#eeeeee" style="font-family: Open sans-serif; font-size: 18px; font-weight: 800; line-height: 24px; padding: 10px;">#</td>
-                                                <td width="25%" align="left" bgcolor="#eeeeee" style="font-family: Open sans-serif; font-size: 18px; font-weight: 800; line-height: 24px; padding: 10px;">Tên</td>
-                                                <td width="25%" align="left" bgcolor="#eeeeee" style="font-family: Open sans-serif; font-size: 18px; font-weight: 800; line-height: 24px; padding: 10px;">Số lượng</td>
-                                                <td width="25%" align="left" bgcolor="#eeeeee" style="font-family: Open sans-serif; font-size: 18px; font-weight: 800; line-height: 24px; padding: 10px;">Thành tiền</td>
-                                            </tr>
-                                            
-                                            <tr th:each="item,iState : ${cartItems}">
-                                                <td width="25%" align="left" style="font-family: Open sans-serif; font-size: 18px; font-weight: 400; line-height: 24px; padding: 15px 10px 5px 10px;">[[${iState.index + 1}]]</td>
-                                                <td width="25%" align="left" style="font-family: Open sans-serif; font-size: 18px; font-weight: 400; line-height: 24px; padding: 15px 10px 5px 10px;">[[${item.product.productName}]]</td>
-                                                <td width="25%" align="left" style="font-family: Open sans-serif; font-size: 18px; font-weight: 400; line-height: 24px; padding: 15px 10px 5px 10px;">[[${item.quantity}]]</td>
-                                                <td width="25%" align="left" style="font-family: Open sans-serif; font-size: 18px; font-weight: 400; line-height: 24px; padding: 15px 10px 5px 10px;">[[${#numbers.formatDecimal((item.product.price - (item.product.price * item.product.discount/100)) * item.quantity, 1, 'DEFAULT', 0, 'DEFAULT')}+ ' đ']]</td>
-                                                																																				
-                                            </tr>
-                                            
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td align="left" style="padding-top: 20px;">
-                                        <table cellspacing="0" cellpadding="0" border="0" width="100%">
-                                            <tr>
-                                                <td width="75%" align="left" style="font-family: Open sans-serif; font-size: 20px; font-weight: 800; line-height: 24px; padding: 10px; border-top: 3px solid #eeeeee; border-bottom: 3px solid #eeeeee;"> Tổng tiền: </td>
-                                                <td width="25%" align="left" style="font-family: Open sans-serif; font-size: 20px; font-weight: 800; line-height: 24px; padding: 10px; border-top: 3px solid #eeeeee; border-bottom: 3px solid #eeeeee; color: red;"> [[${#numbers.formatDecimal(totalPrice, 1, 'DEFAULT', 0, 'DEFAULT')} + ' đ']] </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td align="center" height="100%" valign="top" width="100%" style="padding: 0 35px 35px 35px; background-color: #ffffff;" bgcolor="#ffffff">
-                            <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:660px;">
-                                <tr>
-                                    <td align="center" valign="top" style="font-size:0;">
-                                        <div style="display:inline-block; max-width:50%; min-width:240px; vertical-align:top; width:100%;">
-                                            <table align="left" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:300px;">
-                                                <tr>
-                                                    <td align="left" valign="top" style="font-family: Open sans-serif; font-size: 20px; font-weight: 400; line-height: 24px;">
-                                                        <p style="font-weight: 800;">Địa chỉ giao hàng</p>
-                                                        <p>[[${orderFinal.address}]]</p>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </div>
-                                        <div style="display:inline-block; max-width:50%; min-width:240px; vertical-align:top; width:100%;">
-                                            <table align="left" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:300px;">
-                                                <tr>
-                                                    <td align="left" valign="top" style="font-family: Open sans-serif; font-size: 20px; font-weight: 400; line-height: 24px;">
-                                                        <p style="font-weight: 800;">Ngày đặt hàng</p>
-                                                        <p>[[${orderFinal.orderDate}]]</p>
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <td align="center" style="padding: 35px; background-color: #ffffff;" bgcolor="#ffffff">
-                            <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;">
-                                <tr>
-                                    <td align="center" style="font-family: Open sans-serif; font-size: 18px; font-weight: 400; line-height: 24px; padding: 5px 0 10px 0;">
-                                        <p style="font-size: 18px; font-weight: 800; line-height: 18px; color: #49a010;"> vinabook </p>
-                                        <p style="font-family: Open sans-serif;">Cảm ơn bạn đã tin tưởng chúng tôi - Chúc bạn một ngày vui vẻ!</p>
-                                    </td>
-                                </tr>
-                                
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+        /* Layout */
+        .wrapper { width:100%; background-color:#eeeeee; }
+        .container { width:100%; max-width:600px; margin:0 auto; }
+        .card { background:#ffffff; }
+        .header { background:#ddffd5; }
+        .p-35 { padding:35px; }
+        .px-35 { padding-left:35px; padding-right:35px; }
+        .py-35 { padding-top:35px; padding-bottom:35px; }
+        .pt-25 { padding-top:25px; }
+        .pt-20 { padding-top:20px; }
+        .pb-10 { padding-bottom:10px; }
+        .border-t { border-top:3px solid #eeeeee; }
+        .border-b { border-bottom:3px solid #eeeeee; }
+
+        /* Typography */
+        .font { font-family: Arial, Helvetica, sans-serif; color:#333333; }
+        .muted { color:#666666; }
+        .title { font-size:30px; font-weight:800; line-height:36px; margin:0; }
+        .lead { font-size:18px; line-height:26px; margin:0; }
+        .cell { font-size:18px; line-height:24px; }
+        .cell-strong { font-size:18px; font-weight:800; line-height:24px; }
+        .sum { font-size:20px; font-weight:800; line-height:24px; color:#c00; }
+
+        /* Table */
+        .table { width:100%; border-collapse:collapse; }
+        .th { background:#eeeeee; padding:10px; }
+        .td { padding:15px 10px 5px 10px; }
+
+        /* Responsive */
+        @media screen and (max-width:600px) {
+            .p-35, .px-35, .py-35 { padding:18px !important; }
+            .title { font-size:24px !important; line-height:30px !important; }
+            .lead { font-size:16px !important; line-height:24px !important; }
+            .cell, .cell-strong { font-size:16px !important; line-height:22px !important; }
+            .sum { font-size:18px !important; }
+        }
+    </style>
+</head>
+
+<body class="wrapper" bgcolor="#eeeeee" style="margin:0 !important; padding:0 !important; background-color:#eeeeee;">
+<!-- Preheader (ẩn) -->
+<div class="font" style="display:none; font-size:1px; color:#fefefe; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;"
+     th:text="${contentEmail != null ? contentEmail : 'Xác nhận đặt hàng thành công từ BOOKSHOP.'}">
+    Xác nhận đặt hàng thành công từ BOOKSHOP.
+</div>
+
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td align="center" bgcolor="#eeeeee">
+            <table role="presentation" class="container" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <!-- Header -->
+                <tr>
+                    <td align="center" valign="top" class="header p-35">
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                                <td align="center">
+                                    <img src="https://res.cloudinary.com/dgr8klnam/image/upload/v1745308544/book_rvri9g.jpg"
+                                         width="220" height="auto" alt="BOOKSHOP"
+                                         style="display:block; max-width:220px; width:100%; height:auto;" />
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                    <td align="center" class="card px-35">
+                        <table role="presentation" class="container" border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                                <td align="center" class="font pt-25">
+                                    <img src="https://res.cloudinary.com/dgr8klnam/image/upload/v1745308544/book_rvri9g.jpg"
+                                         width="115" height="110" alt="BOOKSHOP" style="display:block; border:0;" />
+                                    <h1 class="title font pt-25">Chúc mừng đã đặt hàng thành công!</h1>
+                                    <p class="lead font" style="margin-top:8px;">
+                                        <em>Chúng tôi sẽ xử lý đơn hàng sớm nhất, bạn vui lòng chờ nhé!</em>
+                                    </p>
+                                </td>
+                            </tr>
+
+                            <!-- Bảng đơn hàng -->
+                            <tr>
+                                <td align="left" class="pt-20">
+                                    <table role="presentation" class="table" cellpadding="0" cellspacing="0" border="0" width="100%">
+                                        <tr>
+                                            <td colspan="4" class="font cell" style="padding:6px 0 10px 0; text-decoration:underline;">
+                                                Đơn hàng của bạn:
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td width="10%" align="left" class="font cell-strong th">#</td>
+                                            <td width="45%" align="left" class="font cell-strong th">Tên</td>
+                                            <td width="20%" align="left" class="font cell-strong th">Số lượng</td>
+                                            <td width="25%" align="left" class="font cell-strong th">Thành tiền</td>
+                                        </tr>
+
+                                        <tr th:each="item, iState : ${cartItems}">
+                                            <td class="font td" th:text="${iState.index + 1}">1</td>
+                                            <td class="font td" th:text="${item.product != null ? item.product.productName : 'Sản phẩm'}">Sản phẩm</td>
+                                            <td class="font td" th:text="${item.quantity}">1</td>
+                                            <td class="font td"
+                                                th:text="${#numbers.formatDecimal((item.product.price - (item.product.price * item.product.discount / 100.0)) * item.quantity, 0, 'POINT', 0, 'POINT')} + ' đ'">
+                                                0 đ
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Tổng tiền -->
+                            <tr>
+                                <td align="left" class="pt-20">
+                                    <table role="presentation" class="table" cellpadding="0" cellspacing="0" border="0" width="100%">
+                                        <tr>
+                                            <td width="75%" align="left" class="font cell-strong border-t border-b" style="padding:10px;">
+                                                Tổng tiền:
+                                            </td>
+                                            <td width="25%" align="left" class="font sum border-t border-b" style="padding:10px;"
+                                                th:text="${#numbers.formatDecimal(totalPrice, 0, 'POINT', 0, 'POINT')} + ' đ'">
+                                                0 đ
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Địa chỉ & Ngày đặt -->
+                            <tr>
+                                <td align="center" class="py-35">
+                                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:660px;">
+                                        <tr>
+                                            <td align="left" valign="top" class="font cell" style="padding-right:10px;">
+                                                <p class="font cell-strong" style="margin:0 0 6px 0;">Địa chỉ giao hàng</p>
+                                                <p class="font" style="margin:0;" th:text="${orderFinal != null ? orderFinal.address : ''}">Địa chỉ</p>
+                                            </td>
+                                            <td align="left" valign="top" class="font cell" style="padding-left:10px;">
+                                                <p class="font cell-strong" style="margin:0 0 6px 0;">Ngày đặt hàng</p>
+                                                <p class="font" style="margin:0;" th:text="${orderFinal != null ? orderFinal.orderDate : ''}">2025-09-30</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td align="center" class="card px-35" style="padding-top:35px; padding-bottom:35px;">
+                        <table role="presentation" class="container" border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                                <td align="center" class="font pb-10">
+                                    <p class="font" style="font-size:18px; font-weight:800; line-height:18px; color:#49a010; margin:0;">BOOKSHOP</p>
+                                    <p class="font muted" style="margin:8px 0 0 0;">Cảm ơn bạn đã tin tưởng chúng tôi — Chúc bạn một ngày vui vẻ!</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
 </body>
-
 </html>

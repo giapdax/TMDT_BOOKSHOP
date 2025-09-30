@@ -15,6 +15,7 @@ import org.springframework.ui.Model;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import vn.fs.dto.MailInfo;
 import vn.fs.entities.CartItem;
 import vn.fs.entities.Order;
 import vn.fs.entities.User;
@@ -22,6 +23,7 @@ import vn.fs.repository.CategoryRepository;
 import vn.fs.repository.FavoriteRepository;
 import vn.fs.repository.NxbRepository;
 import vn.fs.repository.ProductRepository;
+import vn.fs.service.SendMailService;
 import vn.fs.service.ShoppingCartService;
 
 @Service
@@ -36,7 +38,9 @@ public class CommomDataService {
     @Autowired public JavaMailSender emailSender;
     @Autowired private TemplateEngine templateEngine;
 
-     // Đổ dữ liệu dùng chung cho header/navbar/footer.
+    @Autowired private SendMailService sendMailService; // dùng queue
+
+    // Đổ dữ liệu dùng chung cho header/navbar/footer.
     public void commonData(Model model, User user) {
         // Yêu thích
         Integer totalSave = 0;
@@ -81,7 +85,7 @@ public class CommomDataService {
                 productRepository.listCategoryByProductNameActive());
     }
 
-    /// Gửi email xác nhận đặt hàng
+    // === Email thường: xác nhận đặt hàng (giữ nguyên cách gửi trực tiếp) ===
     public void sendSimpleEmail(String email, String subject, String contentEmail,
                                 Collection<CartItem> cartItems, double totalPrice, Order orderFinal)
             throws MessagingException {
@@ -102,5 +106,32 @@ public class CommomDataService {
         helper.setText(htmlContent, true);
 
         emailSender.send(mimeMessage);
+    }
+
+    // === Refund: Đưa email vào queue để gửi async SAU COMMIT ===
+    public void enqueueRefundSuccessEmail(String email, Order order, double refundAmount, String reason) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Context ctx = new Context(locale);
+        ctx.setVariable("order", order);
+        ctx.setVariable("refundAmount", refundAmount);
+        ctx.setVariable("reason", reason);
+
+        String html = templateEngine.process("mail/refund_success.html", ctx);
+        sendMailService.queue(new MailInfo(email,
+                "[BOOKSHOP] Xác nhận hoàn tiền thành công #" + order.getOrderId(),
+                html));
+    }
+
+    public void enqueueRefundFailedEmail(String email, Order order, String reason, String supportEmail) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Context ctx = new Context(locale);
+        ctx.setVariable("order", order);
+        ctx.setVariable("reason", reason);
+        ctx.setVariable("supportEmail", supportEmail);
+
+        String html = templateEngine.process("mail/refund_failed.html", ctx);
+        sendMailService.queue(new MailInfo(email,
+                "[BOOKSHOP] Hoàn tiền thất bại #" + order.getOrderId(),
+                html));
     }
 }

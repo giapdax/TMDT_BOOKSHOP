@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Refund failed</title>
+    <style>
+        body{font-family:Arial,Helvetica,sans-serif}
+        .card{max-width:640px;margin:auto;padding:16px;border:1px solid #eee;border-radius:8px}
+        .error{color:#c00}
+        .muted{color:#666}
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2 class="error">Hoàn tiền thất bại</h2>
+    <p>
+        Xin chào
+        <b th:text="${(order != null and order.user != null and order.user.name != null) ? order.user.name : 'bạn'}">bạn</b>,
+    </p>
+    <p>Rất tiếc, yêu cầu hoàn tiền cho đơn #<b th:text="${order != null ? order.orderId : 0}">0</b> chưa xử lý được.</p>
+    <p>Lý do: <code th:text="${reason != null ? reason : 'Lỗi chưa xác định'}">Lỗi</code></p>
+    <hr/>
+    <p class="muted">
+        Vui lòng phản hồi email này hoặc liên hệ
+        <a th:href="'mailto:' + ${supportEmail != null ? supportEmail : 'support@bookshop.local'}"
+           th:text="${supportEmail != null ? supportEmail : 'support@bookshop.local'}">support@bookshop.local</a>
+        để được hỗ trợ thêm.
+    </p>
+    <p>Trân trọng,<br/>BOOKSHOP Team</p>
+</div>
+</body>
+</html>

@@ -6,24 +6,127 @@
     <title>Hoàn tiền PayPal (1 lần)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <link rel="stylesheet" href="/assets/css/bootstrap.min.css">
+    <style>
+        body{background:#f6f8fb}
+        .page-container{max-width:880px;margin:24px auto}
+        .card{border:0;border-radius:16px;box-shadow:0 6px 24px rgba(15,23,42,.08)}
+        .badge-soft{background:#eef2ff;color:#3730a3;border-radius:12px;padding:.35rem .6rem}
+        .money{font-weight:700;font-size:1.1rem}
+        .btn-lg{border-radius:12px;padding:.75rem 1.25rem}
+    </style>
 </head>
-<body class="p-4">
-<h4>Hoàn tiền 1 lần – Đơn <span th:text="${order.orderId}">#</span></h4>
+<body>
+<div class="page-container">
 
-<p>Khách: <strong th:text="${order.user.name}">Tên KH</strong></p>
-<p>Tổng tiền (VND): <strong th:text="${#numbers.formatDecimal(order.amount,1,'DEFAULT',0,'DEFAULT')} + ' đ'">0 đ</strong></p>
-<p>Capture ID: <code th:text="${order.paypalCaptureId}">CAPTURE-ID</code></p>
-<hr/>
+    <!-- flash -->
+    <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>✅ Thành công:</strong> <span th:text="${successMsg}">Hoàn tiền thành công.</span>
+        <a th:href="@{/admin/orders}" class="btn btn-sm btn-success ml-2">⬅ Quay lại danh sách đơn</a>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>❌ Lỗi:</strong> <span th:text="${errorMsg}">Có lỗi khi hoàn tiền.</span>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
 
-<form th:action="@{/admin/paypal/refund}" method="post" class="mt-2">
-    <input type="hidden" name="orderId" th:value="${order.orderId}"/>
-    <!-- Tránh lỗi khi _csrf không có trong model -->
-    <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-    <button type="submit" class="btn btn-danger">Xác nhận hoàn tiền toàn bộ (1 lần)</button>
-    <a th:href="@{/admin/orders}" class="btn btn-secondary">Huỷ</a>
-</form>
+    <div class="d-flex align-items-center mb-3">
+        <a th:href="@{/admin/orders}" class="btn btn-link text-decoration-none">⬅ Quay lại đơn hàng</a>
+    </div>
 
+    <div class="card">
+        <div class="card-body p-4 p-md-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">Hoàn tiền 1 lần – Đơn
+                    <span class="badge badge-soft" th:text="'#' + ${order.orderId}">#123</span>
+                </h4>
+                <span class="text-muted" th:text="${#dates.format(order.orderDate,'dd/MM/yyyy HH:mm')}">--/--</span>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="border rounded p-3 bg-white">
+                        <div class="text-muted mb-1">Khách hàng</div>
+                        <div class="font-weight-semibold" th:text="${order.user.name}">Tên KH</div>
+                        <div class="small text-muted" th:text="${order.user.email}">email@domain.com</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="border rounded p-3 bg-white">
+                        <div class="text-muted mb-1">Tổng tiền (VND)</div>
+                        <div class="money" th:text="${#numbers.formatDecimal(order.amount,1,'DEFAULT',0,'DEFAULT')} + ' đ'">0 đ</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-muted">PayPal Capture ID</label>
+                <div class="input-group">
+                    <span class="input-group-text">ID</span>
+                    <input id="capId" type="text" readonly class="form-control" th:value="${order.paypalCaptureId}" value="CAPTURE-ID">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button"
+                                onclick="navigator.clipboard.writeText(document.getElementById('capId').value)">Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4"/>
+
+            <!-- Form -->
+            <form th:action="@{/admin/paypal/refund}" method="post" id="refundForm">
+                <input type="hidden" name="orderId" th:value="${order.orderId}"/>
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+                <div class="d-flex flex-wrap">
+                    <!-- Bootstrap 4 attributes: data-toggle / data-target -->
+                    <button type="button" class="btn btn-danger btn-lg mr-2"
+                            data-toggle="modal" data-target="#confirmModal">
+                        🔁 Xác nhận hoàn tiền toàn bộ
+                    </button>
+                    <a th:href="@{/admin/orders}" class="btn btn-outline-secondary btn-lg">Huỷ / Quay lại</a>
+                </div>
+            </form>
+
+            <p class="text-muted small mt-3 mb-0">
+                Lưu ý: Hoàn tiền toàn bộ một lần cho capture này. Hành động không thể đảo ngược.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal (Bootstrap 4 markup) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">Xác nhận hoàn tiền</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Đóng">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Bạn chắc chắn muốn hoàn <strong>toàn bộ</strong> số tiền cho đơn
+                <span class="badge bg-light text-dark" th:text="'#' + ${order.orderId}">#123</span>?
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Để mình xem lại</button>
+                <button type="button" class="btn btn-danger" id="doRefundBtn">Hoàn tiền ngay</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JS: đúng thứ tự cho Bootstrap 4 -->
 <script src="/assets/js/core/jquery.3.2.1.min.js"></script>
+<script src="/assets/js/core/popper.min.js"></script>
 <script src="/assets/js/core/bootstrap.min.js"></script>
+<script>
+    // submit form khi confirm
+    document.getElementById('doRefundBtn')?.addEventListener('click', function () {
+        this.disabled = true;
+        this.textContent = 'Đang xử lý...';
+        document.getElementById('refundForm').submit();
+    });
+</script>
 </body>
 </html>

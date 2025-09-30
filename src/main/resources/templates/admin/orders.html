@@ -26,7 +26,10 @@
         }
     </script>
     <link rel="stylesheet" th:href="@{/css/admin-orders.css(v=${T(java.lang.System).currentTimeMillis()})}"/>
-
+    <style>
+        /* Nhẹ nhàng cho alert */
+        .orders__flash { margin-bottom: 16px; }
+    </style>
 </head>
 
 <body class="orders-page">
@@ -47,6 +50,21 @@
                 <div class="col-12">
                     <div class="card orders__card">
                         <div class="card-body">
+
+                            <!-- ========== FLASH TOAST (CHÈN THÊM) ========== -->
+                            <div class="orders__flash">
+                                <div th:if="${toast}" class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <strong>✅ Thành công:</strong>
+                                    <span th:text="${toast}">Hoàn tiền thành công.</span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                <div th:if="${toast_error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <strong>❌ Lỗi:</strong>
+                                    <span th:text="${toast_error}">Có lỗi xảy ra.</span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            </div>
+                            <!-- ========== HẾT FLASH TOAST ========== -->
 
                             <!-- FILTERS -->
                             <div class="orders__filters">
@@ -192,5 +210,17 @@
 <script th:src="@{/assets/js/plugin/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js}"></script>
 <script th:src="@{/assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js}"></script>
 <script th:src="@{/assets/js/atlantis.min.js}"></script>
+
+<script>
+    // Auto-hide alert sau 5s cho gọn UI
+    setTimeout(function () {
+        document.querySelectorAll('.alert').forEach(function (el) {
+            if (el.classList.contains('show')) {
+                var alert = new bootstrap.Alert(el);
+                alert.close();
+            }
+        });
+    }, 5000);
+</script>
 </body>
 </html>

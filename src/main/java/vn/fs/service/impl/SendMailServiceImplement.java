@@ -20,50 +20,60 @@ import vn.fs.service.SendMailService;
 
 @Service
 public class SendMailServiceImplement implements SendMailService {
-	@Autowired
-	JavaMailSender sender;
 
-	List<MailInfo> list = new ArrayList<>();
+    @Autowired
+    JavaMailSender sender;
 
-	@Override
-	public void send(MailInfo mail) throws MessagingException, IOException {
-		MimeMessage message = sender.createMimeMessage();
-		MimeMessageHelper helper = new MimeMessageHelper(message, true, "utf-8");
-		helper.setFrom(mail.getFrom());
-		helper.setTo(mail.getTo());
-		helper.setSubject(mail.getSubject());
-		helper.setText(mail.getBody(), true);
-		helper.setReplyTo(mail.getFrom());
+    private final List<MailInfo> list = new ArrayList<>();
 
-		if (mail.getAttachments() != null) {
-			FileSystemResource file = new FileSystemResource(new File(mail.getAttachments()));
-			helper.addAttachment(mail.getAttachments(), file);
-		}
+    @Override
+    public synchronized void queue(MailInfo mail) {
+        list.add(mail);
+    }
 
-		sender.send(message);
+    @Override
+    public void queue(String to, String subject, String body) {
+        queue(new MailInfo(to, subject, body));
+    }
 
-	}
+    @Override
+    public void send(MailInfo mail) throws MessagingException, IOException {
+        MimeMessage message = sender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-	@Override
-	public void queue(MailInfo mail) {
-		list.add(mail);
-	}
+        // From (nếu có)
+        if (mail.getFrom() != null && !mail.getFrom().isBlank()) {
+            helper.setFrom(mail.getFrom());
+            // Nếu muốn có Reply-To y như From mà không cần field replyTo:
+            helper.setReplyTo(mail.getFrom());
+        }
 
-	@Override
-	public void queue(String to, String subject, String body) {
-		queue(new MailInfo(to, subject, body));
-	}
+        helper.setTo(mail.getTo());
+        helper.setSubject(mail.getSubject());
+        helper.setText(mail.getBody(), true);
 
-	@Override
-	@Scheduled(fixedDelay = 5000)
-	public void run() {
-		while (!list.isEmpty()) {
-			MailInfo mail = list.remove(0);
-			try {
-				this.send(mail);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+        if (mail.getAttachments() != null && !mail.getAttachments().isBlank()) {
+            FileSystemResource file = new FileSystemResource(new File(mail.getAttachments()));
+            helper.addAttachment(file.getFilename(), file);
+        }
+
+        sender.send(message);
+    }
+
+    @Override
+    @Scheduled(fixedDelay = 5000) // 5s quét 1 lần
+    public void run() {
+        while (true) {
+            MailInfo mail;
+            synchronized (this) {
+                if (list.isEmpty()) break;
+                mail = list.remove(0);
+            }
+            try {
+                this.send(mail);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
