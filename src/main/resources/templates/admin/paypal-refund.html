@@ -18,7 +18,6 @@
 <body>
 <div class="page-container">
 
-    <!-- flash -->
     <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show" role="alert">
         <strong>✅ Thành công:</strong> <span th:text="${successMsg}">Hoàn tiền thành công.</span>
         <a th:href="@{/admin/orders}" class="btn btn-sm btn-success ml-2">⬅ Quay lại danh sách đơn</a>
@@ -94,7 +93,6 @@
     </div>
 </div>
 
-<!-- Modal (Bootstrap 4 markup) -->
 <div class="modal fade" id="confirmModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
@@ -116,7 +114,6 @@
     </div>
 </div>
 
-<!-- JS: đúng thứ tự cho Bootstrap 4 -->
 <script src="/assets/js/core/jquery.3.2.1.min.js"></script>
 <script src="/assets/js/core/popper.min.js"></script>
 <script src="/assets/js/core/bootstrap.min.js"></script>
