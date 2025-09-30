@@ -25,9 +25,8 @@
             });
         }
     </script>
-
-    <!-- Page CSS (đặt CUỐI để override) -->
     <link rel="stylesheet" th:href="@{/css/admin-orders.css(v=${T(java.lang.System).currentTimeMillis()})}"/>
+
 </head>
 
 <body class="orders-page">
@@ -54,14 +53,14 @@
                                 <!-- Trạng thái -->
                                 <details class="orders__dropdown">
                                     <summary class="orders__chip orders__chip--primary">
-                    <span class="orders__chip-label">
-                      Trạng thái:
-                      <b th:text="${f_status==null} ? 'Tất cả' :
-                                   (${f_status==0} ? '0 - Chờ xác nhận' :
-                                   (${f_status==1} ? '1 - Đang giao' :
-                                   (${f_status==2} ? '2 - Đã thanh toán' :
-                                   (${f_status==3} ? '3 - Đã hủy' : '4 - Đã hoàn tiền'))))">Tất cả</b>
-                    </span>
+                                        <span class="orders__chip-label">
+                                          Trạng thái:
+                                          <b th:text="${f_status==null} ? 'Tất cả' :
+                                                       (${f_status==0} ? '0 - Chờ xác nhận' :
+                                                       (${f_status==1} ? '1 - Đang giao' :
+                                                       (${f_status==2} ? '2 - Đã thanh toán' :
+                                                       (${f_status==3} ? '3 - Đã hủy' : '4 - Đã hoàn tiền'))))">Tất cả</b>
+                                        </span>
                                     </summary>
                                     <div class="orders__dropdown-panel">
                                         <a th:href="@{/admin/orders(q=${f_q},from=${f_from},to=${f_to},payment=${f_payment})}"
@@ -103,15 +102,20 @@
                                         <input type="date" class="form-control orders__field" name="to" th:value="${f_to}"/>
                                     </div>
                                     <div class="orders__field-group orders__field-group--grow">
+                                        <label class="orders__label sr-only">Từ khoá</label>
                                         <input type="search" class="form-control orders__field" name="q" th:value="${f_q}"
-                                               placeholder="Tên / email / SĐT / địa chỉ (nhấn Enter để tìm)"/>
+                                               placeholder="Tên / email / SĐT / địa chỉ (Enter để tìm)"/>
                                     </div>
 
+                                    <!-- Nút submit LỌC -->
+                                    <button type="submit" class="btn btn-primary">Lọc</button>
+
+                                    <!-- Nút reset -->
                                     <a class="btn orders__btn-reset" th:href="@{/admin/orders}">Reset</a>
                                 </form>
 
                                 <div class="orders__tip">
-                                    Tip: chọn trạng thái ở dropdown; với ô ngày & từ khóa, nhấn <b>Enter</b>.
+                                    Tip: chọn trạng thái ở dropdown; với ô ngày & từ khóa, bấm <b>Lọc</b> hoặc nhấn <b>Enter</b>.
                                 </div>
                             </div>
 
@@ -188,6 +192,5 @@
 <script th:src="@{/assets/js/plugin/jquery-ui-touch-punch/jquery.ui.touch-punch.min.js}"></script>
 <script th:src="@{/assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js}"></script>
 <script th:src="@{/assets/js/atlantis.min.js}"></script>
-<!-- (tuỳ dự án) <script th:src="@{/assets/js/setting-demo2.js}"></script> -->
 </body>
 </html>

@@ -86,3 +86,32 @@ body.orders-page .orders__muted{ color:var(--muted); font-size:.9rem; }
 @media (max-width: 992px){
     body.orders-page .orders__field{ width:100%; }
 }
+.orders__toolbar .btn { margin-left: .5rem; }
+.orders__btn-reset.btn { border: 1px solid #e3e3e3; }
+.orders__table th, .orders__table td { vertical-align: middle; }
+.orders__badge--success{display:inline-block;padding:.25rem .5rem;border-radius:6px;background:#E8FFF3;color:#16A34A;font-weight:600}
+.orders__badge--danger{display:inline-block;padding:.25rem .5rem;border-radius:6px;background:#FFE8E8;color:#DC2626;font-weight:600}
+.orders__badge--muted{display:inline-block;padding:.25rem .5rem;border-radius:6px;background:#F3F4F6;color:#374151;font-weight:600}
+.orders__action--primary{color:#2563EB}
+.orders__action--danger{color:#DC2626}
+.orders__action--warning{color:#D97706}
+.orders__muted{color:#6b7280}
+.orders__chip{display:inline-flex;align-items:center;padding:.375rem .75rem;border-radius:999px;border:1px solid #e5e7eb;text-decoration:none}
+.orders__chip--active{background:#111827;color:#fff;border-color:#111827}
+.orders__chip--primary{background:#EEF2FF;border-color:#EEF2FF}
+.orders__dropdown{position:relative}
+.orders__dropdown > summary{list-style:none;cursor:pointer}
+.orders__dropdown-panel{position:absolute;z-index:9;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:.5rem;min-width:220px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.orders__dropdown-panel a{display:block;padding:.375rem .5rem;border-radius:8px;color:#111827;text-decoration:none}
+.orders__dropdown-panel a.is-active{background:#F3F4F6;font-weight:600}
+.orders__field-group{display:flex;flex-direction:column;margin-right:.5rem}
+.orders__field-group--grow{flex:1}
+.orders__field{height:38px}
+.orders__page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.orders__export{font-weight:600}
+.orders__filters{display:flex;flex-direction:column;gap:.75rem}
+.orders__chips{display:flex;gap:.5rem;flex-wrap:wrap}
+.orders__toolbar{display:flex;align-items:flex-end;gap:.5rem;flex-wrap:wrap}
+.orders__card{border-radius:18px}
+.orders__table .orders__link{font-weight:600}
+details[open] .orders__dropdown-panel{margin-top:.5rem}

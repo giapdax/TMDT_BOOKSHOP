@@ -14,6 +14,8 @@
         a[aria-disabled="true"] { pointer-events:none; opacity:.5; }
         .qty-row .qty-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #ddd;border-radius:6px;line-height:1}
         .qty-input{width:36px;text-align:center;border:none;background:transparent}
+        /* Lỗi đơn giản dưới input */
+        .qty-error{display:none;color:#e74c3c;font-size:12px;margin-top:6px;line-height:1.3}
     </style>
 </head>
 <body>
@@ -195,7 +197,7 @@
         </div>
     </nav>
 
-    <!-- Mini Cart (MVC links) -->
+    <!-- Mini Cart -->
     <aside class="cart-sidebar" id="miniCart">
         <div class="cart-header">
             <div class="cart-total">
@@ -246,7 +248,7 @@
                                 <input class="qty-input" type="tel" th:value="${q}" th:attr="max=${max}" min="1" />
                                 <button type="button" class="qty-btn inc-btn">+</button>
                             </div>
-                            <span class="qty-error" style="color:red; display:none;">Số lượng trong kho không đủ!</span>
+                            <span class="qty-error" style="display:none;">Số lượng trong kho không đủ!</span>
 
                             <div class="stock-row"
                                  th:with="left=${(item.product.quantity == null) ? null : (item.product.quantity)}">
@@ -278,283 +280,8 @@
         </th:block>
     </aside>
 
-    <!--                        <div class="action-row"-->
-    <!--                             th:with="q=${item.quantity}, rawMax=${item.product.quantity}, max=${rawMax == null ? 999999 : rawMax}">-->
-    <!--                            <div class="qty-row" style="display:flex; gap:8px; align-items:center;">-->
-    <!--                                <button type="button" class="qty-btn dec-btn">−</button>-->
-    <!--                                <input class="qty-input" type="tel" th:value="${q}" />-->
-    <!--                                <button type="button" class="qty-btn inc-btn">+</button>-->
-    <!--                            </div>-->
-
-    <!--                            <div class="stock-row"-->
-    <!--                                 th:with="left=${(item.product.quantity == null) ? null : (item.product.quantity - q)}">-->
-    <!--                                <span th:if="${left == null}">Kho: cập nhật</span>-->
-    <!--                                <span th:if="${left != null}">Còn: <span class="stock">[[${left < 0 ? 0 : left}]]</span></span>-->
-    <!--                            </div>-->
-
-    <!--                            <a class="rm-btn" title="Xoá" th:href="@{/remove/{id}(id=${item.product.productId})}">-->
-    <!--                                <i class="icofont-trash"></i>-->
-    <!--                            </a>-->
-    <!--                        </div>-->
-    <script>
-        (function(){
-            const openBtn = document.querySelector('.js-open-cart');
-            const closeBtn = document.querySelector('.js-close-cart');
-            const sidebar = document.getElementById('miniCart');
-            const backdrop = document.querySelector('.backdrop');
-            function open(){ sidebar && sidebar.classList.add('active'); backdrop && backdrop.classList.add('active'); }
-            function close(){ sidebar && sidebar.classList.remove('active'); backdrop && backdrop.classList.remove('active'); }
-            openBtn && openBtn.addEventListener('click', open);
-            closeBtn && closeBtn.addEventListener('click', close);
-            backdrop && backdrop.addEventListener('click', close);
-
-            // chặn click khi aria-disabled="true"
-            document.addEventListener('click', function(e){
-                const a = e.target.closest('a.qty-btn');
-                if (a && a.getAttribute('aria-disabled') === 'true') {
-                    e.preventDefault(); e.stopPropagation();
-                }
-            });
-        })();
-    </script>
-<!--    <script>-->
-<!--        // document.addEventListener("DOMContentLoaded", function() {-->
-<!--        //     const formatCurrency = num => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";-->
-<!--        //-->
-<!--        //     function updateRowTotal(row) {-->
-<!--        //         const input = row.querySelector(".qty-input");-->
-<!--        //         const qty = Math.max(1, parseInt(input.value) || 1);-->
-<!--        //         const price = parseFloat(row.dataset.unitprice || 0);-->
-<!--        //         row.querySelector(".line-total").textContent = formatCurrency(price * qty);-->
-<!--        //     }-->
-<!--        //-->
-<!--        //     function updateCartTotal() {-->
-<!--        //         let total = 0;-->
-<!--        //         document.querySelectorAll("li.cart-row").forEach(row => {-->
-<!--        //             const qty = parseInt(row.querySelector(".qty-input").value) || 1;-->
-<!--        //             const price = parseFloat(row.dataset.unitprice || 0);-->
-<!--        //             total += qty * price;-->
-<!--        //         });-->
-<!--        //         const el = document.getElementById("miniCartTotal");-->
-<!--        //         if(el) el.textContent = formatCurrency(total);-->
-<!--        //     }-->
-<!--        //-->
-<!--        //     // tăng giảm-->
-<!--        //     document.querySelectorAll("li.cart-row").forEach(row => {-->
-<!--        //         const decBtn = row.querySelector(".dec-btn");-->
-<!--        //         const incBtn = row.querySelector(".inc-btn");-->
-<!--        //         const input = row.querySelector(".qty-input");-->
-<!--        //         const max = parseInt(input.getAttribute("max")) || 999999;-->
-<!--        //         const min = 1;-->
-<!--        //-->
-<!--        //         decBtn && decBtn.addEventListener("click", () => {-->
-<!--        //             let v = Math.max(min, (parseInt(input.value) || min) - 1);-->
-<!--        //             input.value = v;-->
-<!--        //             updateRowTotal(row);-->
-<!--        //             updateCartTotal();-->
-<!--        //         });-->
-<!--        //-->
-<!--        //         incBtn && incBtn.addEventListener("click", () => {-->
-<!--        //             let v = Math.min(max, (parseInt(input.value) || min) + 1);-->
-<!--        //             input.value = v;-->
-<!--        //             updateRowTotal(row);-->
-<!--        //             updateCartTotal();-->
-<!--        //         });-->
-<!--        //     });-->
-<!--        //-->
-<!--        //     // nút checkout mini cart-->
-<!--        //     const miniCheckoutBtn = document.getElementById("miniCartCheckoutBtn");-->
-<!--        //     const miniForm = document.getElementById("miniCartForm");-->
-<!--        //     const miniCartJsonInput = document.getElementById("miniCartJson");-->
-<!--        //-->
-<!--        //     miniCheckoutBtn.addEventListener("click", function(e){-->
-<!--        //         e.preventDefault();-->
-<!--        //         const cart = [];-->
-<!--        //         document.querySelectorAll("li.cart-row").forEach(row => {-->
-<!--        //             cart.push({-->
-<!--        //                 productId: row.dataset.id,-->
-<!--        //                 qty: parseInt(row.querySelector(".qty-input").value) || 1-->
-<!--        //             });-->
-<!--        //         });-->
-<!--        //         miniCartJsonInput.value = JSON.stringify(cart);-->
-<!--        //         miniForm.submit(); // chỉ update số lượng -> redirect về trang checkout-->
-<!--        //     });-->
-<!--        //-->
-<!--        //-->
-<!--        //     // init tổng mini cart-->
-<!--        //     updateCartTotal();-->
-<!--        //-->
-<!--        // });-->
-<!--        document.addEventListener("DOMContentLoaded", function() {-->
-<!--            const formatCurrency = num => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";-->
-
-<!--            function updateRowTotal(row) {-->
-<!--                const input = row.querySelector(".qty-input");-->
-<!--                const qty = parseInt(input.value) || 1;-->
-<!--                const price = parseFloat(row.dataset.unitprice || 0);-->
-<!--                row.querySelector(".line-total").textContent = formatCurrency(price * qty);-->
-<!--            }-->
-
-<!--            function updateCartTotal() {-->
-<!--                let total = 0;-->
-<!--                document.querySelectorAll("li.cart-row").forEach(row => {-->
-<!--                    const qty = parseInt(row.querySelector(".qty-input").value) || 1;-->
-<!--                    const price = parseFloat(row.dataset.unitprice || 0);-->
-<!--                    total += qty * price;-->
-<!--                });-->
-<!--                const el = document.getElementById("miniCartTotal");-->
-<!--                if (el) el.textContent = formatCurrency(total);-->
-<!--            }-->
-
-<!--            document.querySelectorAll("li.cart-row").forEach(row => {-->
-<!--                const input = row.querySelector(".qty-input");-->
-<!--                const decBtn = row.querySelector(".dec-btn");-->
-<!--                const incBtn = row.querySelector(".inc-btn");-->
-<!--                const max = parseInt(input.getAttribute("max")) || 999999;-->
-<!--                const min = parseInt(input.getAttribute("min")) || 1;-->
-<!--                const errorEl = row.querySelector(".qty-error");-->
-
-<!--                // nút giảm-->
-<!--                decBtn && decBtn.addEventListener("click", () => {-->
-<!--                    let v = Math.max(min, (parseInt(input.value) || min) - 1);-->
-<!--                    input.value = v;-->
-<!--                    errorEl.style.display = "none";-->
-<!--                    updateRowTotal(row);-->
-<!--                    updateCartTotal();-->
-<!--                });-->
-
-<!--                // nút tăng-->
-<!--                incBtn && incBtn.addEventListener("click", () => {-->
-<!--                    let v = Math.min(max, (parseInt(input.value) || min) + 1);-->
-<!--                    input.value = v;-->
-<!--                    errorEl.style.display = (v > max) ? "block" : "none";-->
-<!--                    updateRowTotal(row);-->
-<!--                    updateCartTotal();-->
-<!--                });-->
-
-<!--                // nhập trực tiếp-->
-<!--                input && input.addEventListener("input", () => {-->
-<!--                    input.value = input.value.replace(/[^\d]/g,'');-->
-<!--                });-->
-
-<!--                input && input.addEventListener("change", () => {-->
-<!--                    let v = parseInt(input.value) || min;-->
-<!--                    if (v < min) v = min;-->
-<!--                    if (v > max) {-->
-<!--                        v = max;-->
-<!--                        errorEl.style.display = "block";-->
-<!--                    } else {-->
-<!--                        errorEl.style.display = "none";-->
-<!--                    }-->
-<!--                    input.value = v;-->
-<!--                    updateRowTotal(row);-->
-<!--                    updateCartTotal();-->
-<!--                });-->
-
-<!--                // init row total-->
-<!--                updateRowTotal(row);-->
-<!--            });-->
-
-<!--            // init tổng-->
-<!--            updateCartTotal();-->
-<!--        });-->
-
-<!--</script>-->
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const formatCurrency = num => new Intl.NumberFormat("vi-VN").format(Math.round(num)) + " đ";
-
-            function updateRowTotal(row) {
-                const input = row.querySelector(".qty-input");
-                const qty = parseInt(input.value) || 1;
-                const price = parseFloat(row.dataset.unitprice || 0);
-                row.querySelector(".line-total").textContent = formatCurrency(price * qty);
-            }
-
-            function updateCartTotal() {
-                let total = 0;
-                let totalQty = 0;
-                document.querySelectorAll("li.cart-row").forEach(row => {
-                    const input = row.querySelector(".qty-input");
-                    const qty = parseInt(input.value) || 1;
-                    const price = parseFloat(row.dataset.unitprice || 0);
-                    total += qty * price;
-                    totalQty += qty;
-                });
-                const elTotal = document.getElementById("miniCartTotal");
-                const elCount = document.getElementById("miniCartCount");
-                if (elTotal) elTotal.textContent = formatCurrency(total);
-                if (elCount) elCount.textContent = totalQty;
-            }
-
-            // xử lý tăng giảm và nhập số
-            document.querySelectorAll("li.cart-row").forEach(row => {
-                const input = row.querySelector(".qty-input");
-                const decBtn = row.querySelector(".dec-btn");
-                const incBtn = row.querySelector(".inc-btn");
-                const errorEl = row.querySelector(".qty-error");
-                const max = parseInt(input.getAttribute("max")) || 999999;
-                const min = parseInt(input.getAttribute("min")) || 1;
-
-                decBtn && decBtn.addEventListener("click", () => {
-                    let v = Math.max(min, (parseInt(input.value) || min) - 1);
-                    input.value = v;
-                    errorEl.style.display = "none";
-                    updateRowTotal(row);
-                    updateCartTotal();
-                });
-
-                incBtn && incBtn.addEventListener("click", () => {
-                    let v = Math.min(max, (parseInt(input.value) || min) + 1);
-                    input.value = v;
-                    errorEl.style.display = (v > max) ? "block" : "none";
-                    updateRowTotal(row);
-                    updateCartTotal();
-                });
-
-                input && input.addEventListener("input", () => {
-                    input.value = input.value.replace(/[^\d]/g,'');
-                });
-
-                input && input.addEventListener("change", () => {
-                    let v = parseInt(input.value) || min;
-                    if(v < min) v = min;
-                    if(v > max) {
-                        v = max;
-                        errorEl.style.display = "block";
-                    } else {
-                        errorEl.style.display = "none";
-                    }
-                    input.value = v;
-                    updateRowTotal(row);
-                    updateCartTotal();
-                });
-
-                // init row
-                updateRowTotal(row);
-            });
-
-            updateCartTotal();
-
-            // nút checkout mini cart
-            const miniCheckoutBtn = document.getElementById("miniCartCheckoutBtn");
-            const miniForm = document.getElementById("miniCartForm");
-            const miniCartJsonInput = document.getElementById("miniCartJson");
-
-            miniCheckoutBtn.addEventListener("click", function(e){
-                e.preventDefault();
-                const cart = [];
-                document.querySelectorAll("li.cart-row").forEach(row => {
-                    cart.push({
-                        productId: row.dataset.id,
-                        qty: parseInt(row.querySelector(".qty-input").value) || 1
-                    });
-                });
-                miniCartJsonInput.value = JSON.stringify(cart);
-                miniForm.submit(); // chỉ update số lượng -> redirect về /checkout
-            });
-        });
-    </script>
+    <!-- Import JS rời (đã tách) -->
+    <script th:src="@{/js/header-cart.js}"></script>
 </th:block>
 </body>
 </html>
